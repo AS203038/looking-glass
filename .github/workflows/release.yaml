@@ -68,7 +68,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ghcr.io/f0o/netbench
+        images: ghcr.io/r0cket-net/looking-glass
     - name: Build and Push
       uses: docker/build-push-action@v5
       with:

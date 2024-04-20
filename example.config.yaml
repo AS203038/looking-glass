@@ -1,14 +1,14 @@
 devices:                                                                  # List of devices
     - name: "Example Device"                                              #   freetext name
-        type: "Example Device Type"                                       #   device model to use (frrouting, cisco, juniper, ...)
-        location: "Stockholm, Sweden"                                     #   freetext location for grouping/display in UI
-        hostname: "rt.example.com:22"                                     #   hostname or IP as well as SSH Port
-        username: "rouser"                                                #   username
-        password: "password123"                                           #   password (optional) or
-        ssh_key: "/path/to/ssh_key"                                       #   SSH private key path (optional)
-        source4: "192.168.1.1"                                            #   IPv4 source, such as your rt's loopback (required)
-        source6: "2001:db8::1"                                            #   IPv6 source, such as your rt's loopback (required)
-        vrf: "vrf1"                                                       #   VRF name, most platforms use 'default' if no VRF is used (required)
+      type: "Example Device Type"                                         #   device model to use (frrouting, cisco, juniper, ...)
+      location: "Stockholm, Sweden"                                       #   freetext location for grouping/display in UI
+      hostname: "rt.example.com:22"                                       #   hostname or IP as well as SSH Port
+      username: "rouser"                                                  #   username
+      password: "password123"                                             #   password (optional) or
+      ssh_key: "/path/to/ssh_key"                                         #   SSH private key path (optional)
+      source4: "192.168.1.1"                                              #   IPv4 source, such as your rt's loopback (required)
+      source6: "2001:db8::1"                                              #   IPv6 source, such as your rt's loopback (required)
+      vrf: "vrf1"                                                         #   VRF name, most platforms use 'default' if no VRF is used (required)
 
 grpc:                                                                     # gRPC Server Settings
     listen: ":8080"                                                       #   gRPC listener
@@ -28,13 +28,13 @@ web:                                                                      # WebU
         logo: "/path/to/logo"                                             #     Header logo path (optional)
         links:                                                            #     List of links to add to the topbar (optional)
             - text: "Example Link"                                        #       Example link text
-                url: "https://example.com"                                #       Example link URL
+              url: "https://example.com"                                  #       Example link URL
     footer:                                                               #   Footer navbar definitions (optional)
         text: "© 2024 Example Company"                                    #     Freetext footer text, will be centered (optional)
         logo: "/path/to/footer_logo"                                      #     Example footer logo path (optional)
         links:                                                            #     List of links to add to the footer (optional)
             - text: "Privacy Policy"                                      #       Example link text
-                url: "https://example.com/privacy"                        #       Example link URL
+              url: "https://example.com/privacy"                          #       Example link URL
 
 security.txt:                                                             # See https://www.rfc-editor.org/rfc/rfc9116 for field descriptions
     enabled: true                                                         # Enable or disable security.txt generation
