@@ -1,0 +1,11 @@
+{
+    "name": "@as203038/lg-protobuf",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Protocol Buffers for Node.js",
+    "type": "module",
+    "dependencies": {
+        "@bufbuild/protobuf": "^1.5.1",
+        "typescript": "^5.3.3"
+    }
+}

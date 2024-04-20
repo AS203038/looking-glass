@@ -1,0 +1,140 @@
+// (-- api-linter: core::0191::proto-package=disabled
+//     aip.dev/not-precedent: We need to do this because go module structures. --)
+syntax = "proto3";
+
+package lookingglass.v0;
+
+option go_package = "gitlab.as203038.net/AS203038/looking-glass/protobuf/lookingglass/v0;lookingglass";
+option java_multiple_files = true;
+option java_outer_classname = "LookingGlassProto";
+option java_package = "lookingglass.v0";
+
+// Data Streaming Service
+service LookingGlassService {
+  rpc GetRouters(GetRoutersRequest) returns (GetRoutersResponse) {}
+  rpc Ping(PingRequest) returns (PingResponse) {}
+  rpc Traceroute(TracerouteRequest) returns (TracerouteResponse) {}
+  rpc BGPSummary(BGPSummaryRequest) returns (BGPSummaryResponse) {}
+  rpc BGPRoute(BGPRouteRequest) returns (BGPRouteResponse) {}
+  rpc BGPCommunity(BGPCommunityRequest) returns (BGPCommunityResponse) {}
+  rpc BGPASPath(BGPASPathRequest) returns (BGPASPathResponse) {}
+}
+
+// Router is a router.
+message Router {
+  // The ID of the router.
+  int64 id = 1;
+  // The name of the router.
+  string name = 2;
+  // The Location of the router.
+  string location = 4;
+}
+
+// BGPCommunity is a BGP community.g
+message BGPCommunity {
+  // The ASN of the BGP community.
+  int32 asn = 1;
+  // The value of the BGP community.
+  int32 value = 2;
+}
+
+// GetRoutersRequest is the request message for GetRouters.
+message GetRoutersRequest {
+  // The number of routers to return.
+  uint32 limit = 1;
+
+  // The page token.
+  uint32 page_token = 2;
+}
+
+// GetRoutersResponse is the response message for GetRouters.
+message GetRoutersResponse {
+  // The routers.
+  repeated Router routers = 1;
+
+  // The next page token.
+  uint32 next_page = 2;
+}
+
+// PingRequest is the request message for Ping.
+message PingRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+  // The IP address to ping.
+  string target = 2;
+}
+
+// PingResponse is the response message for Ping.
+message PingResponse {
+  // The result of the ping.
+  string result = 1;
+}
+
+// TracerouteRequest is the request message for Traceroute.
+message TracerouteRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+  // The IP address to traceroute.
+  string target = 2;
+}
+
+// TracerouteResponse is the response message for Traceroute.
+message TracerouteResponse {
+  // The result of the traceroute.
+  string result = 1;
+}
+
+// BGPSummaryRequest is the request message for BGPSummary.
+message BGPSummaryRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+}
+
+// BGPSummaryResponse is the response message for BGPSummary.
+message BGPSummaryResponse {
+  // The BGP summary.
+  string result = 1;
+}
+
+// BGPRouteRequest is the request message for BGPRoute.
+message BGPRouteRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+  // The IP address to look up.
+  string target = 2;
+}
+
+// BGPRouteResponse is the response message for BGPRoute.
+message BGPRouteResponse {
+  // The BGP route.
+  string result = 1;
+}
+
+// BGPCommunityRequest is the request message for BGPCommunity.
+message BGPCommunityRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+  // The BGP community to look up.
+  BGPCommunity community = 2;
+}
+
+// BGPCommunityResponse is the response message for BGPCommunity.
+message BGPCommunityResponse {
+  // The BGP community.
+  string result = 1;
+}
+
+// BGPASPathRequest is the request message for BGPASPath.
+message BGPASPathRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+  // The IP address to look up.
+  string pattern = 2;
+}
+
+// BGPASPathResponse is the response message for BGPASPath.
+message BGPASPathResponse {
+  // The BGP AS path.
+  string result = 1;
+}
+

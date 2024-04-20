@@ -1,0 +1,49 @@
+devices:                                                                  # List of devices
+    - name: "Example Device"                                              #   freetext name
+        type: "Example Device Type"                                       #   device model to use (frrouting, cisco, juniper, ...)
+        location: "Stockholm, Sweden"                                     #   freetext location for grouping/display in UI
+        hostname: "rt.example.com:22"                                     #   hostname or IP as well as SSH Port
+        username: "rouser"                                                #   username
+        password: "password123"                                           #   password (optional) or
+        ssh_key: "/path/to/ssh_key"                                       #   SSH private key path (optional)
+        source4: "192.168.1.1"                                            #   IPv4 source, such as your rt's loopback (required)
+        source6: "2001:db8::1"                                            #   IPv6 source, such as your rt's loopback (required)
+        vrf: "vrf1"                                                       #   VRF name, most platforms use 'default' if no VRF is used (required)
+
+grpc:                                                                     # gRPC Server Settings
+    listen: ":8080"                                                       #   gRPC listener
+    tls:                                                                  #   TLS Settings often required for h2c
+        enabled: false                                                    #     Enable or disable TLS
+        self_signed: true                                                 #     Generate self-signed dummy certificate on-the-fly, this usually suffices for most ingress/proxy setups
+        cert: "/path/to/cert"                                             #     certificate path (becomes optional if self_signed is true)
+        key: "/path/to/key"                                               #     private key path (becomes optional if self_signed is true)
+
+web:                                                                      # WebUI Settings, Most if not all of these are entirely optional
+    enabled: true                                                         #   Enable or disable web interface
+    grpc_url: ""                                                          #   URI of the GRCP server; uses current host as viewed by the browser if not set (optional)
+    theme: "skeleton"                                                     #   Theme, possible options are: skeleton, wintry, modern, rocket, seafoam, vintage, sahara, hamlindingo, gold-nouveau, crimson (ref https://www.skeleton.dev/docs/themes)
+    title: "Example Web Page"                                             #   Freetext web page title (recommended)
+    header:                                                               #   Header navbar definitions (recommended)
+        text: "Welcome to Example Website"                                #     Freetext header text, will be centered (recommended)
+        logo: "/path/to/logo"                                             #     Header logo path (optional)
+        links:                                                            #     List of links to add to the topbar (optional)
+            - text: "Example Link"                                        #       Example link text
+                url: "https://example.com"                                #       Example link URL
+    footer:                                                               #   Footer navbar definitions (optional)
+        text: "© 2024 Example Company"                                    #     Freetext footer text, will be centered (optional)
+        logo: "/path/to/footer_logo"                                      #     Example footer logo path (optional)
+        links:                                                            #     List of links to add to the footer (optional)
+            - text: "Privacy Policy"                                      #       Example link text
+                url: "https://example.com/privacy"                        #       Example link URL
+
+security.txt:                                                             # See https://www.rfc-editor.org/rfc/rfc9116 for field descriptions
+    enabled: true                                                         # Enable or disable security.txt generation
+    acknowledgements: "https://example.com/hall-of-fame.html"
+    canonical: "https://example.com/.well-known/security.txt"
+    contact: "mailto:security@example.com"
+    csaf: "https://example.com/.well-known/csaf/provider-metadata.json"   # https://docs.oasis-open.org/csaf/csaf/v2.0/os/csaf-v2.0-os.html#718-requirement-8-securitytxt
+    encryption: "https://keybase.io/example.com"
+    expires: "2023-12-31T23:59:59Z"                                       # Optional expiration date, will auto-generate one within 1 year if not set
+    hiring: "https://example.com/careers"
+    policy: "https://example.com/security-policy"
+    preferred-languages: "en, fr"
