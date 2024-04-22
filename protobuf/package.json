@@ -6,6 +6,6 @@
     "type": "module",
     "dependencies": {
         "@bufbuild/protobuf": "^1.5.1",
-        "typescript": "^5.3.3"
+        "typescript": "^5.4.5"
     }
 }
