@@ -5,7 +5,7 @@
     "description": "Protocol Buffers for Node.js",
     "type": "module",
     "dependencies": {
-        "@bufbuild/protobuf": "^1.5.1",
-        "typescript": "^5.3.3"
+        "@bufbuild/protobuf": "^1.9.0",
+        "typescript": "^5.4.5"
     }
 }
