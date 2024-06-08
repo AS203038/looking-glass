@@ -1,0 +1,28 @@
+name: frrouting
+
+ping: 
+    # any:
+    #     - ping -n -c5 {{.IP.IP}}
+    ipv4:
+        - ping -n -4 -c5 -I {{.Cfg.Source4.IP}} {{.IP.IP}}
+    ipv6:
+        - ping -n -6 -c5 -I {{.Cfg.Source6.IP}} {{.IP.IP}}
+
+traceroute:
+    # any:
+    #     - traceroute -w 1 -q1 -I --back --mtu -e {{.IP.IP}}
+    ipv4:
+        - traceroute -4 -w 1 -q1 -I --back --mtu -e -s {{.Cfg.Source4.IP}} {{.IP.IP}}
+    ipv6:
+        - traceroute -6 -w 1 -q1 -I --back --mtu -e -s {{.Cfg.Source6.IP}} {{.IP.IP}}
+
+bgp:
+    route: 
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} {{.IP.Family}} unicast {{.IP.IP}}'
+    community:
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast community {{.Community}}'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast community {{.Community}}'
+    aspath:
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast regexp {{.ASPath}}'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}}'
+

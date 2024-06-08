@@ -9,11 +9,12 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var _version = "" // computed
+var _version = ""         // computed
+var release = "untracked" // set by build tools
 
 func Version() string {
 	if _version == "" {
-		_version = fmt.Sprintf("%x", time.Now().UnixNano())
+		_version = fmt.Sprintf("%s+%x", release, time.Now().UnixNano())
 	}
 	return _version
 }
@@ -39,8 +40,9 @@ type RouterConfig struct {
 }
 
 type GrpcConfig struct {
-	Listen string    `yaml:"listen"`
-	TLS    TLSConfig `yaml:"tls"`
+	Enabled bool      `yaml:"enabled"`
+	Listen  string    `yaml:"listen"`
+	TLS     TLSConfig `yaml:"tls"`
 }
 
 type TLSConfig struct {
@@ -51,12 +53,13 @@ type TLSConfig struct {
 }
 
 type WebConfig struct {
-	Enabled bool    `yaml:"enabled"`
-	GrpcURL string  `yaml:"grpc_url"`
-	Theme   string  `yaml:"theme"`
-	Title   string  `yaml:"title"`
-	Header  HFBlock `yaml:"header"`
-	Footer  HFBlock `yaml:"footer"`
+	Enabled   bool    `yaml:"enabled"`
+	GrpcURL   string  `yaml:"grpc_url"`
+	Theme     string  `yaml:"theme"`
+	Title     string  `yaml:"title"`
+	Header    HFBlock `yaml:"header"`
+	Footer    HFBlock `yaml:"footer"`
+	RtListMax int     `yaml:"rt_list_max"`
 }
 
 type HFBlock struct {

@@ -3,6 +3,8 @@
 syntax = "proto3";
 
 package lookingglass.v0;
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "gitlab.as203038.net/AS203038/looking-glass/protobuf/lookingglass/v0;lookingglass";
 option java_multiple_files = true;
@@ -11,6 +13,7 @@ option java_package = "lookingglass.v0";
 
 // Data Streaming Service
 service LookingGlassService {
+  rpc GetInfo(google.protobuf.Empty) returns (GetInfoResponse) {}
   rpc GetRouters(GetRoutersRequest) returns (GetRoutersResponse) {}
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc Traceroute(TracerouteRequest) returns (TracerouteResponse) {}
@@ -18,6 +21,13 @@ service LookingGlassService {
   rpc BGPRoute(BGPRouteRequest) returns (BGPRouteResponse) {}
   rpc BGPCommunity(BGPCommunityRequest) returns (BGPCommunityResponse) {}
   rpc BGPASPath(BGPASPathRequest) returns (BGPASPathResponse) {}
+}
+
+message RouterHealth {
+  // Time Checked
+  google.protobuf.Timestamp timestamp = 1;
+  // Status
+  bool healthy = 2;
 }
 
 // Router is a router.
@@ -28,6 +38,8 @@ message Router {
   string name = 2;
   // The Location of the router.
   string location = 4;
+  // Health of the router.
+  RouterHealth health = 5;
 }
 
 // BGPCommunity is a BGP community.g
@@ -36,6 +48,14 @@ message BGPCommunity {
   int32 asn = 1;
   // The value of the BGP community.
   int32 value = 2;
+}
+
+// GetInfoResponse is the response message for GetInfo.
+message GetInfoResponse {
+  // The hostname of the service.
+  string hostname = 1;
+  // The version of the service.
+  string version = 2;
 }
 
 // GetRoutersRequest is the request message for GetRouters.

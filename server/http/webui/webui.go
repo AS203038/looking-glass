@@ -17,6 +17,8 @@ type EnvJS struct {
 	FooterLinks string `json:"PUBLIC_FOOTER_LINKS"`
 	FooterLogo  string `json:"PUBLIC_FOOTER_LOGO"`
 	GrpcURL     string `json:"PUBLIC_GRPC_URL"`
+	LGVersion   string `json:"PUBLIC_LG_VERSION"`
+	RtListMax   int    `json:"PUBLIC_RT_LIST_MAX"`
 }
 
 func ConfigInjector(cfg utils.WebConfig) http.Handler {
@@ -30,6 +32,8 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 		FooterLinks: cfg.Footer.LinksString(),
 		FooterLogo:  cfg.Footer.Logo,
 		GrpcURL:     cfg.GrpcURL,
+		LGVersion:   utils.Version(),
+		RtListMax:   cfg.RtListMax,
 	})
 	if err != nil {
 		panic(err)

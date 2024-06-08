@@ -1,5 +1,7 @@
 package utils
 
+import "time"
+
 type Router interface {
 	Ping(*RouterConfig, *IPNet) ([]string, error)
 	Traceroute(*RouterConfig, *IPNet) ([]string, error)
@@ -9,8 +11,25 @@ type Router interface {
 }
 
 type RouterInstance struct {
-	Router Router
-	Config *RouterConfig
+	Router      Router
+	Config      *RouterConfig
+	HealthCheck *HealthCheck
+}
+
+type HealthCheck struct {
+	Checked time.Time
+	Healthy bool
+}
+
+func (rt *RouterInstance) Healthcheck() error {
+	_, err := SSHExec(rt.Config, []string{})
+	rt.HealthCheck.Checked = time.Now()
+	if err == nil {
+		rt.HealthCheck.Healthy = true
+	} else {
+		rt.HealthCheck.Healthy = false
+	}
+	return err
 }
 
 func (rt *RouterInstance) Ping(param *IPNet) ([]string, error) {
@@ -53,12 +72,12 @@ func (rt *RouterInstance) BGPASPath(param string) ([]string, error) {
 	return SSHExec(rt.Config, cmd)
 }
 
-type RouterMap []RouterInstance
+type RouterMap []*RouterInstance
 
 func (rm RouterMap) Get(name string) (*RouterInstance, bool) {
 	for _, v := range rm {
 		if v.Config.Name == name {
-			return &v, true
+			return v, true
 		}
 	}
 	return nil, false
@@ -69,5 +88,5 @@ func (rm RouterMap) GetByID(id int64) (*RouterInstance, bool) {
 	if id < 0 || id >= int64(len(rm)) {
 		return nil, false
 	}
-	return &rm[id], true
+	return rm[id], true
 }

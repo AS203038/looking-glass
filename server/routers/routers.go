@@ -33,10 +33,13 @@ func CreateRouterMap(cfg *utils.Config) utils.RouterMap {
 			log.Printf("Router Type %s not found (%s)\n", v.Type, v.Name)
 			continue
 		}
-		rm = append(rm, utils.RouterInstance{
-			Config: &v,
-			Router: Get(v.Type),
-		})
+		ri := &utils.RouterInstance{
+			Config:      &v,
+			Router:      Get(v.Type),
+			HealthCheck: &utils.HealthCheck{},
+		}
+		go ri.Healthcheck()
+		rm = append(rm, ri)
 	}
 	return rm
 }

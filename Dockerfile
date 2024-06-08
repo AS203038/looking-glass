@@ -15,13 +15,14 @@ RUN cd protobuf \
 
 FROM golang:alpine AS go-builder
 ENV CGO_ENABLED=0
+ENV VERSION=untracked
 WORKDIR /opt
 COPY server /opt/server
 COPY go.mod go.sum main.go /opt/.
 COPY --from=buf-builder /opt/protobuf /opt/protobuf
 COPY --from=node-builder /opt/dist /opt/dist
 RUN go mod tidy \
- && go build -o /opt/looking-glass
+ && go build -ldflags="-X gitlab.as203038.net/AS203038/looking-glass/server/utils.release=${VERSION}" -o /opt/looking-glass
 
 FROM scratch
 WORKDIR /

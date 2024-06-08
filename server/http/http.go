@@ -77,7 +77,9 @@ func SecurityTxtInjector(cfg utils.SecurityTxtConfig) http.Handler {
 
 func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap, webfs fs.FS) error {
 	mux := http.NewServeMux()
-	grpc.Mux(ctx, mux, rts)
+	if cfg.Grpc.Enabled {
+		grpc.Mux(ctx, mux, rts)
+	}
 	if cfg.SecurityTxt.Enabled {
 		mux.Handle("/.well-known/security.txt", HTTPHandler(SecurityTxtInjector(cfg.SecurityTxt)))
 	}

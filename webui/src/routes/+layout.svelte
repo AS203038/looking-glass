@@ -52,6 +52,7 @@
 
 <svelte:head>
 	<title>{title}</title>
+	<meta name="generator" content="r0cket-net/looking-glass {env.PUBLIC_LG_VERSION}" />
 </svelte:head>
 
 <!-- App Shell -->

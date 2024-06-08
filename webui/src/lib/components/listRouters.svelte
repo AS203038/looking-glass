@@ -4,7 +4,9 @@
     import { LookingGlassClient, type Pb } from "$lib/grpc";
     import { ProgressRadial } from "@skeletonlabs/skeleton";
     import { Accordion, AccordionItem } from "@skeletonlabs/skeleton";
+    import { popup } from "@skeletonlabs/skeleton";
     import Icon from "@iconify/svelte";
+	import { env } from "$env/dynamic/public";
 
     export let routers: Pb.Router[] = [];
     export let SelectedRouters: Pb.Router[] = [];
@@ -63,23 +65,54 @@
         <p><ProgressRadial /></p>
     {:else}
         <p class="capitalize font-medium mb-2">Available Routers:</p>
-        {#if routers.length <= 4}
+        {#if routers.length <= parseInt(env.PUBLIC_RT_LIST_MAX || "4")}
             <div class="flex flex-wrap justify-center gap-4">
                 {#each routers as rt}
-                    <button
-                        in:fade|global
-                        class="btn {SelectedRouters.indexOf(rt) > -1
-                            ? 'btn-xl variant-filled'
-                            : 'btn-lg variant-soft'}"
-                        on:click={() => selectRouter(rt)}
-                        on:keypress
-                    >
-                        {#if SelectedRouters.indexOf(rt) > -1}
-                            <Icon icon="ic:baseline-check" />
-                        {/if}
-                        <p class="font-medium">{rt.name}</p>
-                        <p class="capitalize">{rt.location}</p>
-                    </button>
+                    {#if rt.health.healthy === true}
+                        <button
+                            in:fade|global
+                            class="btn {SelectedRouters.indexOf(rt) > -1
+                                ? 'btn-xl variant-filled'
+                                : 'btn-lg variant-soft'}"
+                            on:click={() => selectRouter(rt)}
+                            on:keypress
+                        >
+                            {#if SelectedRouters.indexOf(rt) > -1}
+                                <Icon icon="ic:baseline-check" />
+                            {/if}
+                            <p class="font-medium">{rt.name}</p>
+                            <p class="capitalize">{rt.location}</p>
+                        </button>
+                    {:else}
+                        <button
+                            in:fade|global
+                            class="btn {SelectedRouters.indexOf(rt) > -1
+                                ? 'btn-xl variant-filled'
+                                : 'btn-lg variant-soft'}"
+                            on:click={() => false}
+                            on:keypress
+                            disabled
+                            use:popup={{
+                                event: "hover",
+                                target: "rt_" + rt.id,
+                            }}
+                        >
+                            <p class="font-medium">{rt.name}</p>
+                            <p class="capitalize">{rt.location}</p>
+                        </button>
+                        <div
+                            class="card p-4 variant-filled-secondary"
+                            data-popup={"rt_" + rt.id}
+                        >
+                            <p>
+                                Health Check failed at {new Date(
+                                    parseInt(
+                                        rt.health.timestamp.seconds.toString(),
+                                    ) * 1000,
+                                ).toISOString()}
+                            </p>
+                        </div>
+                    {/if}
                 {/each}
             </div>
         {:else}
@@ -99,21 +132,55 @@
                         <svelte:fragment slot="content">
                             <div class="flex flex-wrap justify-center gap-4">
                                 {#each getRouterByLocation(location) as rt}
-                                    <button
-                                        in:fade|global
-                                        class="btn {SelectedRouters.indexOf(
-                                            rt,
-                                        ) > -1
-                                            ? 'btn-xl variant-filled'
-                                            : 'btn-lg variant-soft'}"
-                                        on:click={() => selectRouter(rt)}
-                                        on:keypress
-                                    >
-                                        {#if SelectedRouters.indexOf(rt) > -1}
-                                            <Icon icon="ic:baseline-check" />
-                                        {/if}
-                                        <p class="font-medium">{rt.name}</p>
-                                    </button>
+                                    {#if rt.health.healthy === true}
+                                        <button
+                                            in:fade|global
+                                            class="btn {SelectedRouters.indexOf(
+                                                rt,
+                                            ) > -1
+                                                ? 'btn-xl variant-filled'
+                                                : 'btn-lg variant-soft'}"
+                                            on:click={() => selectRouter(rt)}
+                                            on:keypress
+                                        >
+                                            {#if SelectedRouters.indexOf(rt) > -1}
+                                                <Icon
+                                                    icon="ic:baseline-check"
+                                                />
+                                            {/if}
+                                            <p class="font-medium">{rt.name}</p>
+                                        </button>
+                                    {:else}
+                                        <button
+                                            in:fade|global
+                                            class="btn {SelectedRouters.indexOf(
+                                                rt,
+                                            ) > -1
+                                                ? 'btn-xl variant-filled'
+                                                : 'btn-lg variant-soft'}"
+                                            on:click={() => false}
+                                            on:keypress
+                                            disabled
+                                            use:popup={{
+                                                event: "hover",
+                                                target: "rt_" + rt.id,
+                                            }}
+                                        >
+                                            <p class="font-medium">{rt.name}</p>
+                                        </button>
+                                        <div
+                                            class="card p-4 variant-filled-secondary"
+                                            data-popup={"rt_" + rt.id}
+                                        >
+                                            <p>
+                                                Health Check failed at {new Date(
+                                                    parseInt(
+                                                        rt.health.timestamp.seconds.toString(),
+                                                    ) * 1000,
+                                                ).toISOString()}
+                                            </p>
+                                        </div>
+                                    {/if}
                                 {/each}
                             </div>
                         </svelte:fragment>

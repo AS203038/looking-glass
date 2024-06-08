@@ -11,6 +11,7 @@ devices:                                                                  # List
       vrf: "vrf1"                                                         #   VRF name, most platforms use 'default' if no VRF is used (required)
 
 grpc:                                                                     # gRPC Server Settings
+    enabled: true                                                         #   Enable or disable GRPC endpoints
     listen: ":8080"                                                       #   gRPC listener
     tls:                                                                  #   TLS Settings often required for h2c
         enabled: false                                                    #     Enable or disable TLS
@@ -23,6 +24,7 @@ web:                                                                      # WebU
     grpc_url: ""                                                          #   URI of the GRCP server; uses current host as viewed by the browser if not set (optional)
     theme: "skeleton"                                                     #   Theme, possible options are: skeleton, wintry, modern, rocket, seafoam, vintage, sahara, hamlindingo, gold-nouveau, crimson (ref https://www.skeleton.dev/docs/themes)
     title: "Example Web Page"                                             #   Freetext web page title (recommended)
+    rt_list_max: 4                                                        #   Maximum number of devices to display as list before grouping by location (optional, defaults to 4, use -1 to force grouping by location)
     header:                                                               #   Header navbar definitions (recommended)
         text: "Welcome to Example Website"                                #     Freetext header text, will be centered (recommended)
         logo: "/path/to/logo"                                             #     Header logo path (optional)

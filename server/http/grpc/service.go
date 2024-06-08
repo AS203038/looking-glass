@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,8 @@ import (
 	"gitlab.as203038.net/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
 	"gitlab.as203038.net/AS203038/looking-glass/server/errs"
 	"gitlab.as203038.net/AS203038/looking-glass/server/utils"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type LookingGlassService struct {
@@ -23,6 +26,17 @@ func NewLookingGlassService(ctx context.Context, rts utils.RouterMap) lookinggla
 		ctx: ctx,
 		rts: rts,
 	}
+}
+
+func (s *LookingGlassService) GetInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetInfoResponse], error) {
+	h, err := os.Hostname()
+	if err != nil {
+		h = "unknown"
+	}
+	return connect.NewResponse(&pb.GetInfoResponse{
+		Hostname: h,
+		Version:  utils.Version(),
+	}), nil
 }
 
 func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Request[pb.GetRoutersRequest]) (*connect.Response[pb.GetRoutersResponse], error) {
@@ -49,6 +63,13 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 			Name:     v.Config.Name,
 			Location: v.Config.Location,
 			Id:       int64(k + 1),
+			Health: &pb.RouterHealth{
+				Healthy: v.HealthCheck.Healthy,
+				Timestamp: &timestamppb.Timestamp{
+					Seconds: v.HealthCheck.Checked.Unix(),
+					Nanos:   int32(v.HealthCheck.Checked.Nanosecond()),
+				},
+			},
 		})
 	}
 	var nextPage uint32
