@@ -11,8 +11,11 @@ var (
 )
 
 func register(name string, rt utils.Router) bool {
+	if name == "" {
+		log.Panicln("Router name cannot be empty")
+	}
 	if _, ok := _routers[name]; ok {
-		panic("Router already registered")
+		log.Panicf("Router %s already registered", name)
 	}
 	_routers[name] = rt
 	return true

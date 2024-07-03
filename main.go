@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"io/fs"
+	"log"
 
 	"gitlab.as203038.net/AS203038/looking-glass/server"
 )
@@ -14,7 +15,7 @@ var webemned embed.FS
 func main() {
 	web, err := fs.Sub(webemned, "dist")
 	if err != nil {
-		panic(err)
+		log.Panicln(err)
 	}
 	server.Start(context.Background(), web)
 }

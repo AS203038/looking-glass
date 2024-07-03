@@ -15,3 +15,4 @@ vite.config.ts.timestamp-*
 !config.yaml.example
 protobuf/*
 install.yml
+.gitlab-ci.yml

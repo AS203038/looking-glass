@@ -1,6 +1,6 @@
 name: frrouting
 
-ping: 
+ping:
     # any:
     #     - ping -n -c5 {{.IP.IP}}
     ipv4:
@@ -17,7 +17,7 @@ traceroute:
         - traceroute -6 -w 1 -q1 -I --back --mtu -e -s {{.Cfg.Source6.IP}} {{.IP.IP}}
 
 bgp:
-    route: 
+    route:
         - vtysh -c 'show bgp vrf {{.Cfg.VRF}} {{.IP.Family}} unicast {{.IP.IP}}'
     community:
         - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast community {{.Community}}'
