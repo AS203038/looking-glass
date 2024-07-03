@@ -15,7 +15,7 @@ RUN cd protobuf \
 
 FROM golang:alpine AS go-builder
 ENV CGO_ENABLED=0
-ENV VERSION=untracked
+ARG VERSION=untracked
 WORKDIR /opt
 COPY server /opt/server
 COPY go.mod go.sum main.go /opt/.
