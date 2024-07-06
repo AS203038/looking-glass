@@ -16,3 +16,4 @@ vite.config.ts.timestamp-*
 protobuf/*
 install.yml
 .gitlab-ci.yml
+.devcontainer

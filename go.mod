@@ -1,4 +1,4 @@
-module gitlab.as203038.net/AS203038/looking-glass
+module github.com/AS203038/looking-glass
 
 go 1.22
 
