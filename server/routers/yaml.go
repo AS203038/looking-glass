@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/template"
 
-	"gitlab.as203038.net/AS203038/looking-glass/server/errs"
-	"gitlab.as203038.net/AS203038/looking-glass/server/utils"
+	"github.com/AS203038/looking-glass/server/errs"
+	"github.com/AS203038/looking-glass/server/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 

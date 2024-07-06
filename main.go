@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"log"
 
-	"gitlab.as203038.net/AS203038/looking-glass/server"
+	"github.com/AS203038/looking-glass/server"
 )
 
 //go:embed all:dist

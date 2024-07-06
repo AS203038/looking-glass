@@ -4,7 +4,7 @@ import (
 	"net"
 	"strings"
 
-	"gitlab.as203038.net/AS203038/looking-glass/server/errs"
+	"github.com/AS203038/looking-glass/server/errs"
 )
 
 type IPFamily string

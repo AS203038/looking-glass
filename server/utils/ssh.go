@@ -3,7 +3,7 @@ package utils
 import (
 	"os"
 
-	"gitlab.as203038.net/AS203038/looking-glass/server/errs"
+	"github.com/AS203038/looking-glass/server/errs"
 	"golang.org/x/crypto/ssh"
 )
 

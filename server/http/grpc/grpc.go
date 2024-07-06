@@ -9,8 +9,8 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpchealth"
-	"gitlab.as203038.net/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
-	"gitlab.as203038.net/AS203038/looking-glass/server/utils"
+	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
+	"github.com/AS203038/looking-glass/server/utils"
 )
 
 var Health = grpchealth.NewStaticChecker(lookingglassconnect.LookingGlassServiceName)

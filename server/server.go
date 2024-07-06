@@ -5,9 +5,9 @@ import (
 	"io/fs"
 	"log"
 
-	"gitlab.as203038.net/AS203038/looking-glass/server/http"
-	"gitlab.as203038.net/AS203038/looking-glass/server/routers"
-	"gitlab.as203038.net/AS203038/looking-glass/server/utils"
+	"github.com/AS203038/looking-glass/server/http"
+	"github.com/AS203038/looking-glass/server/routers"
+	"github.com/AS203038/looking-glass/server/utils"
 )
 
 func Start(ctx context.Context, web fs.FS) {

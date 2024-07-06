@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/AS203038/looking-glass/server/http/grpc"
+	"github.com/AS203038/looking-glass/server/http/webui"
+	"github.com/AS203038/looking-glass/server/utils"
 	"github.com/rs/cors"
-	"gitlab.as203038.net/AS203038/looking-glass/server/http/grpc"
-	"gitlab.as203038.net/AS203038/looking-glass/server/http/webui"
-	"gitlab.as203038.net/AS203038/looking-glass/server/utils"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

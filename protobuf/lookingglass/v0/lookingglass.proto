@@ -6,7 +6,7 @@ package lookingglass.v0;
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "gitlab.as203038.net/AS203038/looking-glass/protobuf/lookingglass/v0;lookingglass";
+option go_package = "github.com/AS203038/looking-glass/protobuf/lookingglass/v0;lookingglass";
 option java_multiple_files = true;
 option java_outer_classname = "LookingGlassProto";
 option java_package = "lookingglass.v0";

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"gitlab.as203038.net/AS203038/looking-glass/server/utils"
+	"github.com/AS203038/looking-glass/server/utils"
 )
 
 type EnvJS struct {
