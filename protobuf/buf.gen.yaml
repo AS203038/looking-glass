@@ -13,7 +13,7 @@ plugins:
   out: .
   opt:
     - paths=source_relative
-- plugin: buf.build/bufbuild/es
+- plugin: buf.build/bufbuild/es:v1.10.0
   out: .
-- plugin: buf.build/connectrpc/es
+- plugin: buf.build/connectrpc/es:v1.4.0
   out: .
