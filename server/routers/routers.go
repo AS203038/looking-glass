@@ -12,10 +12,10 @@ var (
 
 func register(name string, rt utils.Router) bool {
 	if name == "" {
-		log.Panicln("Router name cannot be empty")
+		log.Panicln("ERROR: Router name cannot be empty")
 	}
 	if _, ok := _routers[name]; ok {
-		log.Panicf("Router %s already registered", name)
+		log.Panicf("WARNING: Router %s already registered", name)
 	}
 	_routers[name] = rt
 	return true
@@ -33,7 +33,7 @@ func CreateRouterMap(cfg *utils.Config) utils.RouterMap {
 	for _, v := range cfg.Devices {
 		rt := Get(v.Type)
 		if rt == nil {
-			log.Printf("Router Type %s not found (%s)\n", v.Type, v.Name)
+			log.Printf("ERROR: Router Type %s not found (%s)\n", v.Type, v.Name)
 			continue
 		}
 		ri := &utils.RouterInstance{

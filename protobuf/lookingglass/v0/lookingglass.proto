@@ -74,12 +74,16 @@ message GetRoutersResponse {
 
   // The next page token.
   uint32 next_page = 2;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 // PingRequest is the request message for Ping.
 message PingRequest {
   // The ID of the router.
   int64 router_id = 1;
+
   // The IP address to ping.
   string target = 2;
 }
@@ -88,12 +92,16 @@ message PingRequest {
 message PingResponse {
   // The result of the ping.
   string result = 1;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 // TracerouteRequest is the request message for Traceroute.
 message TracerouteRequest {
   // The ID of the router.
   int64 router_id = 1;
+
   // The IP address to traceroute.
   string target = 2;
 }
@@ -102,6 +110,9 @@ message TracerouteRequest {
 message TracerouteResponse {
   // The result of the traceroute.
   string result = 1;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 // BGPSummaryRequest is the request message for BGPSummary.
@@ -114,12 +125,16 @@ message BGPSummaryRequest {
 message BGPSummaryResponse {
   // The BGP summary.
   string result = 1;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 // BGPRouteRequest is the request message for BGPRoute.
 message BGPRouteRequest {
   // The ID of the router.
   int64 router_id = 1;
+
   // The IP address to look up.
   string target = 2;
 }
@@ -128,6 +143,9 @@ message BGPRouteRequest {
 message BGPRouteResponse {
   // The BGP route.
   string result = 1;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 // BGPCommunityRequest is the request message for BGPCommunity.
@@ -142,12 +160,16 @@ message BGPCommunityRequest {
 message BGPCommunityResponse {
   // The BGP community.
   string result = 1;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 // BGPASPathRequest is the request message for BGPASPath.
 message BGPASPathRequest {
   // The ID of the router.
   int64 router_id = 1;
+
   // The IP address to look up.
   string pattern = 2;
 }
@@ -156,5 +178,7 @@ message BGPASPathRequest {
 message BGPASPathResponse {
   // The BGP AS path.
   string result = 1;
-}
 
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
+}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
@@ -97,8 +98,13 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	if err != nil {
 		return nil, err
 	}
+	ts := time.Now()
 	return connect.NewResponse(&pb.PingResponse{
 		Result: strings.Join(ret, "\n"),
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: ts.Unix(),
+			Nanos:   int32(ts.Nanosecond()),
+		},
 	}), nil
 }
 
@@ -116,8 +122,13 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	if err != nil {
 		return nil, err
 	}
+	ts := time.Now()
 	return connect.NewResponse(&pb.TracerouteResponse{
 		Result: strings.Join(ret, "\n"),
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: ts.Unix(),
+			Nanos:   int32(ts.Nanosecond()),
+		},
 	}), nil
 }
 
@@ -135,8 +146,13 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, err
 	}
+	ts := time.Now()
 	return connect.NewResponse(&pb.BGPRouteResponse{
 		Result: strings.Join(ret, "\n"),
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: ts.Unix(),
+			Nanos:   int32(ts.Nanosecond()),
+		},
 	}), nil
 }
 
@@ -151,8 +167,13 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	if err != nil {
 		return nil, err
 	}
+	ts := time.Now()
 	return connect.NewResponse(&pb.BGPCommunityResponse{
 		Result: strings.Join(ret, "\n"),
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: ts.Unix(),
+			Nanos:   int32(ts.Nanosecond()),
+		},
 	}), nil
 }
 
@@ -170,7 +191,12 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	if err != nil {
 		return nil, err
 	}
+	ts := time.Now()
 	return connect.NewResponse(&pb.BGPASPathResponse{
 		Result: strings.Join(ret, "\n"),
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: ts.Unix(),
+			Nanos:   int32(ts.Nanosecond()),
+		},
 	}), nil
 }

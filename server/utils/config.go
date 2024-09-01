@@ -24,6 +24,7 @@ type Config struct {
 	Grpc        GrpcConfig        `yaml:"grpc"`
 	Web         WebConfig         `yaml:"web"`
 	SecurityTxt SecurityTxtConfig `yaml:"security.txt"`
+	Redis       RedisConfig       `yaml:"redis"`
 }
 
 type RouterConfig struct {
@@ -50,6 +51,12 @@ type TLSConfig struct {
 	Cert       string `yaml:"cert"`
 	Key        string `yaml:"key"`
 	SelfSigned bool   `yaml:"self_signed"`
+}
+
+type RedisConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	URI     string `yaml:"uri"`
+	TTL     string `yaml:"ttl"`
 }
 
 type WebConfig struct {

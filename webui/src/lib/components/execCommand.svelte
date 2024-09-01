@@ -7,7 +7,7 @@
 
     export let routers: Pb.Router[];
 
-    let outputs: Record<string, string | undefined> = {};
+    let outputs: Record<string, { result: string; timestamp: Date } | undefined> = {};
     let fire: boolean = false;
     let _command: string;
     let _parameter: string;
@@ -19,8 +19,10 @@
         _command = command;
         _parameter = parameter;
         for (let router of routers) {
-            outputs[router.id.toString()] =
-                router.name + " $ " + _command + " '" + _parameter + "'\n";
+            outputs[router.id.toString()] = {
+                result: router.name + " $ " + _command + " '" + _parameter + "'\n",
+                timestamp: 0,
+            }
             switch (command) {
                 case "ping":
                     LookingGlassClient()
@@ -29,10 +31,11 @@
                             target: parameter,
                         })
                         .then((res) => {
-                            outputs[router.id.toString()] += res.result;
+                            outputs[router.id.toString()].result = res.result;
+                            outputs[router.id.toString()].timestamp = new Date(parseInt(res.timestamp.seconds.toString()) * 1000);
                         })
                         .catch((err) => {
-                            outputs[router.id.toString()] += err;
+                            outputs[router.id.toString()].result += err;
                         });
                     break;
                 case "traceroute":
@@ -42,10 +45,11 @@
                             target: parameter,
                         })
                         .then((res) => {
-                            outputs[router.id.toString()] += res.result;
+                            outputs[router.id.toString()].result = res.result;
+                            outputs[router.id.toString()].timestamp = new Date(parseInt(res.timestamp.seconds.toString()) * 1000);
                         })
                         .catch((err) => {
-                            outputs[router.id.toString()] += err;
+                            outputs[router.id.toString()].result += err;
                         });
                     break;
                 case "bgp_route":
@@ -55,10 +59,11 @@
                             target: parameter,
                         })
                         .then((res) => {
-                            outputs[router.id.toString()] += res.result;
+                            outputs[router.id.toString()].result = res.result;
+                            outputs[router.id.toString()].timestamp = new Date(parseInt(res.timestamp.seconds.toString()) * 1000);
                         })
                         .catch((err) => {
-                            outputs[router.id.toString()] += err;
+                            outputs[router.id.toString()].result += err;
                         });
                     break;
                 case "bgp_community":
@@ -71,10 +76,11 @@
                             },
                         })
                         .then((res) => {
-                            outputs[router.id.toString()] += res.result;
+                            outputs[router.id.toString()].result = res.result;
+                            outputs[router.id.toString()].timestamp = new Date(parseInt(res.timestamp.seconds.toString()) * 1000);
                         })
                         .catch((err) => {
-                            outputs[router.id.toString()] += err;
+                            outputs[router.id.toString()].result += err;
                         });
                     break;
                 case "bgp_aspath_regex":
@@ -84,10 +90,11 @@
                             pattern: parameter,
                         })
                         .then((res) => {
-                            outputs[router.id.toString()] += res.result;
+                            outputs[router.id.toString()].result = res.result;
+                            outputs[router.id.toString()].timestamp = new Date(parseInt(res.timestamp.seconds.toString()) * 1000);
                         })
                         .catch((err) => {
-                            outputs[router.id.toString()] += err;
+                            outputs[router.id.toString()].result += err;
                         });
                     break;
                 default:
@@ -117,7 +124,7 @@
                     <p class="capitalize">Location: {router.location}</p>
                 </header>
                 <section class="p-4 relative">
-                    {#if outputs[router.id.toString()] == "" || outputs[router.id.toString()] == router.name + " $ " + _command + " '" + _parameter + "'\n"}
+                    {#if outputs[router.id.toString()]?.result == "" || outputs[router.id.toString()]?.result == router.name + " $ " + _command + " '" + _parameter + "'\n"}
                         <div
                             in:fade|global
                             class="text-center flex flex-col items-center w-full max-w-64"
@@ -130,7 +137,10 @@
                             class="pre text-left max-h-80 h-max"
                             data-clipboard={router.id.toString()}>{outputs[
                                 router.id.toString()
-                            ]}</pre>
+                            ]?.result}</pre>
+                        <pre class="text-right text-xs">
+                            Timestamp: {outputs[router.id.toString()]?.timestamp.toISOString()}
+                        </pre>
                         <button
                             class="btn-icon variant-filled-primary absolute top-0 right-0"
                             use:clipboard={{ element: router.id.toString() }}

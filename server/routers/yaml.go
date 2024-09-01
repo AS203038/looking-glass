@@ -60,9 +60,9 @@ func init() {
 		// Load all routers from ROUTER_DIR
 		files, err := os.ReadDir(rd)
 		if err != nil {
-			log.Panicf("Could not Read directory %s: %+v", rd, err)
+			log.Panicf("ERROR: Could not Read directory %s: %+v", rd, err)
 		}
-		log.Printf("Loading routers from %s\n", rd)
+		log.Printf("NOTICE: Loading routers from %s\n", rd)
 		for _, file := range files {
 			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yml") && !strings.HasSuffix(file.Name(), ".yaml")) {
 				continue
@@ -71,41 +71,41 @@ func init() {
 			y := &Yaml{Path: file.Name()}
 			yamlFile, err := os.ReadFile(rd + "/" + y.Path)
 			if err != nil {
-				log.Panicf("Could not Read file %s/%s: %+v", rd, y.Path, err)
+				log.Panicf("ERROR: Could not Read file %s/%s: %+v", rd, y.Path, err)
 			}
 			err = yaml.Unmarshal(yamlFile, &y.Template)
 			if err != nil {
-				log.Panicf("Could not Unmarshal file %s/%s: %+v", rd, y.Path, err)
+				log.Panicf("ERROR: Could not Unmarshal file %s/%s: %+v", rd, y.Path, err)
 			}
 			if y.Template.Name == "" {
-				log.Printf("Router name cannot be empty (%s/%s)", rd, y.Path)
+				log.Printf("ERROR: Router name cannot be empty (%s/%s)", rd, y.Path)
 				continue
 			}
 			register(y.Template.Name, y)
-			log.Printf("Router %s (%s/%s) registered\n", y.Template.Name, rd, y.Path)
+			log.Printf("NOTICE: Router %s (%s/%s) registered\n", y.Template.Name, rd, y.Path)
 		}
 	}
 
 	// Load all bundled routers
 	files, err := compiledRouters.ReadDir(".")
 	if err != nil {
-		log.Panicf("Could not Read builtin directory: %+v", err)
+		log.Panicf("ERROR: Could not Read builtin directory: %+v", err)
 	}
 	for _, file := range files {
 		y := &Yaml{Path: file.Name()}
 		yamlFile, err := compiledRouters.ReadFile(y.Path)
 		if err != nil {
-			log.Panicf("Could not Read file builtin:%s: %+v", y.Path, err)
+			log.Panicf("ERROR: Could not Read file builtin:%s: %+v", y.Path, err)
 		}
 		err = yaml.Unmarshal(yamlFile, &y.Template)
 		if err != nil {
-			log.Panicf("Could not Unmarshal file builtin:%s: %+v", y.Path, err)
+			log.Panicf("ERROR: Could not Unmarshal file builtin:%s: %+v", y.Path, err)
 		}
 		if _, ok := _routers[y.Template.Name]; !ok {
 			register(y.Template.Name, y)
-			log.Printf("Router %s (builtin:%s) registered\n", y.Template.Name, y.Path)
+			log.Printf("NOTICE: Router %s (builtin:%s) registered\n", y.Template.Name, y.Path)
 		} else {
-			log.Printf("Router %s already registered\n", y.Template.Name)
+			log.Printf("WARNING: Router %s already registered\n", y.Template.Name)
 		}
 	}
 }
