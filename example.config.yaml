@@ -19,6 +19,11 @@ grpc:                                                                     # gRPC
         cert: "/path/to/cert"                                             #     certificate path (becomes optional if self_signed is true)
         key: "/path/to/key"                                               #     private key path (becomes optional if self_signed is true)
 
+redis:                                                                    #   Redis Cache Settings
+    enabled: true                                                         #     Enable or disable cache
+    ttl: 5m                                                               #     Cache TTL in seconds
+    uri: "redis://redis-svc:6379/0?protocol=3"                            #     Redis host URI
+
 web:                                                                      # WebUI Settings, Most if not all of these are entirely optional
     enabled: true                                                         #   Enable or disable web interface
     grpc_url: ""                                                          #   URI of the GRCP server; uses current host as viewed by the browser if not set (optional)

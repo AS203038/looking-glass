@@ -36,7 +36,6 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 		if err != nil {
 			return nil, errs.ExecFailed
 		}
-		// log.Println(c)
 		output, err := session.Output(c)
 		if err != nil {
 			return nil, errs.ExecFailed
