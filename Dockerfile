@@ -25,7 +25,9 @@ RUN go mod tidy \
  && go build -ldflags="-X github.com/AS203038/looking-glass/server/utils.release=${VERSION}" -o /opt/looking-glass
 
 FROM scratch
+LABEL org.opencontainers.image.source https://github.com/AS203038/looking-glass
+LABEL org.opencontainers.image.description Yet another looking glass project
+LABEL org.opencontainers.image.licenses GPL-3.0-or-later
 WORKDIR /
 COPY --from=go-builder /opt/looking-glass /looking-glass
-
 ENTRYPOINT ["/looking-glass"]
