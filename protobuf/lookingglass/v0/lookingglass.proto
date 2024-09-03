@@ -91,7 +91,7 @@ message PingRequest {
 // PingResponse is the response message for Ping.
 message PingResponse {
   // The result of the ping.
-  string result = 1;
+  bytes result = 1;
 
   // Age of Response
   google.protobuf.Timestamp timestamp = 2;
@@ -109,7 +109,7 @@ message TracerouteRequest {
 // TracerouteResponse is the response message for Traceroute.
 message TracerouteResponse {
   // The result of the traceroute.
-  string result = 1;
+  bytes result = 1;
 
   // Age of Response
   google.protobuf.Timestamp timestamp = 2;
@@ -124,7 +124,7 @@ message BGPSummaryRequest {
 // BGPSummaryResponse is the response message for BGPSummary.
 message BGPSummaryResponse {
   // The BGP summary.
-  string result = 1;
+  bytes result = 1;
 
   // Age of Response
   google.protobuf.Timestamp timestamp = 2;
@@ -142,7 +142,7 @@ message BGPRouteRequest {
 // BGPRouteResponse is the response message for BGPRoute.
 message BGPRouteResponse {
   // The BGP route.
-  string result = 1;
+  bytes result = 1;
 
   // Age of Response
   google.protobuf.Timestamp timestamp = 2;
@@ -159,7 +159,7 @@ message BGPCommunityRequest {
 // BGPCommunityResponse is the response message for BGPCommunity.
 message BGPCommunityResponse {
   // The BGP community.
-  string result = 1;
+  bytes result = 1;
 
   // Age of Response
   google.protobuf.Timestamp timestamp = 2;
@@ -177,7 +177,7 @@ message BGPASPathRequest {
 // BGPASPathResponse is the response message for BGPASPath.
 message BGPASPathResponse {
   // The BGP AS path.
-  string result = 1;
+  bytes result = 1;
 
   // Age of Response
   google.protobuf.Timestamp timestamp = 2;

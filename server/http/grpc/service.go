@@ -100,7 +100,7 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.PingResponse{
-		Result: strings.Join(ret, "\n"),
+		Result: []byte(strings.Join(ret, "\n")),
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: ts.Unix(),
 			Nanos:   int32(ts.Nanosecond()),
@@ -124,7 +124,7 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.TracerouteResponse{
-		Result: strings.Join(ret, "\n"),
+		Result: []byte(strings.Join(ret, "\n")),
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: ts.Unix(),
 			Nanos:   int32(ts.Nanosecond()),
@@ -148,7 +148,7 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.BGPRouteResponse{
-		Result: strings.Join(ret, "\n"),
+		Result: []byte(strings.Join(ret, "\n")),
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: ts.Unix(),
 			Nanos:   int32(ts.Nanosecond()),
@@ -169,7 +169,7 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.BGPCommunityResponse{
-		Result: strings.Join(ret, "\n"),
+		Result: []byte(strings.Join(ret, "\n")),
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: ts.Unix(),
 			Nanos:   int32(ts.Nanosecond()),
@@ -193,7 +193,7 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.BGPASPathResponse{
-		Result: strings.Join(ret, "\n"),
+		Result: []byte(strings.Join(ret, "\n")),
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: ts.Unix(),
 			Nanos:   int32(ts.Nanosecond()),
