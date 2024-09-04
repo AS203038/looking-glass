@@ -49,45 +49,54 @@
         | Pb.BGPRouteResponse
         | Pb.BGPCommunityResponse
         | Pb.BGPASPathResponse;
-      switch (command) {
-        case "ping":
-          res = await LookingGlassClient().ping(<Pb.PingRequest>{
-            routerId: router.id,
-            target: parameter,
-          });
-          break;
-        case "traceroute":
-          res = await LookingGlassClient().traceroute(<Pb.TracerouteRequest>{
-            routerId: router.id,
-            target: parameter,
-          });
-          break;
-        case "bgp_route":
-          res = await LookingGlassClient().bGPRoute(<Pb.BGPRouteRequest>{
-            routerId: router.id,
-            target: parameter,
-          });
-          break;
-        case "bgp_community":
-          res = await LookingGlassClient().bGPCommunity(<
-            Pb.BGPCommunityRequest
-          >{
-            routerId: router.id,
-            community: <Pb.BGPCommunity>{
-              asn: parseInt(parameter.split(":")[0]),
-              value: parseInt(parameter.split(":")[1]),
-            },
-          });
-          break;
-        case "bgp_aspath_regex":
-          res = await LookingGlassClient().bGPASPath(<Pb.BGPASPathRequest>{
-            routerId: router.id,
-            pattern: parameter,
-          });
-          break;
-        default:
-          console.log("Unknown command");
-          return;
+      try {
+        switch (command) {
+          case "ping":
+            res = await LookingGlassClient().ping(<Pb.PingRequest>{
+              routerId: router.id,
+              target: parameter,
+            });
+            break;
+          case "traceroute":
+            res = await LookingGlassClient().traceroute(<Pb.TracerouteRequest>{
+              routerId: router.id,
+              target: parameter,
+            });
+            break;
+          case "bgp_route":
+            res = await LookingGlassClient().bGPRoute(<Pb.BGPRouteRequest>{
+              routerId: router.id,
+              target: parameter,
+            });
+            break;
+          case "bgp_community":
+            res = await LookingGlassClient().bGPCommunity(<
+              Pb.BGPCommunityRequest
+            >{
+              routerId: router.id,
+              community: <Pb.BGPCommunity>{
+                asn: parseInt(parameter.split(":")[0]),
+                value: parseInt(parameter.split(":")[1]),
+              },
+            });
+            break;
+          case "bgp_aspath_regex":
+            res = await LookingGlassClient().bGPASPath(<Pb.BGPASPathRequest>{
+              routerId: router.id,
+              pattern: parameter,
+            });
+            break;
+          default:
+            console.log("Unknown command");
+            return;
+        }
+      } catch (e) {
+        outputs[routerId].result = new TextEncoder().encode(
+          `Error: ${e.message}`,
+        );
+        outputs[routerId].timestamp = new Date();
+        outputs[routerId].ready = true;
+        continue;
       }
       outputs[routerId].length = res.result.length;
       if (res.result.length > outputs[routerId].pageSize) {

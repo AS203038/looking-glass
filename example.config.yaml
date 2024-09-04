@@ -42,6 +42,9 @@ web:                                                                      # WebU
         links:                                                            #     List of links to add to the footer (optional)
             - text: "Privacy Policy"                                      #       Example link text
               url: "https://example.com/privacy"                          #       Example link URL
+    sentry:                                                               #   Sentry error reporting settings (optional)
+        enabled: false                                                    #     Enable or disable Sentry error reporting
+        dsn: "https://xxx.sentry.io/yyy"                                  #     Sentry DSN (optional, URL is not validated for correctness)
 
 security.txt:                                                             # See https://www.rfc-editor.org/rfc/rfc9116 for field descriptions
     enabled: true                                                         # Enable or disable security.txt generation

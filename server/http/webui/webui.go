@@ -18,6 +18,7 @@ type EnvJS struct {
 	FooterLogo  string `json:"PUBLIC_FOOTER_LOGO"`
 	GrpcURL     string `json:"PUBLIC_GRPC_URL"`
 	LGVersion   string `json:"PUBLIC_LG_VERSION"`
+	SentryDSN   string `json:"PUBLIC_SENTRY_DSN"`
 	RtListMax   int    `json:"PUBLIC_RT_LIST_MAX"`
 }
 
@@ -33,6 +34,7 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 		FooterLogo:  cfg.Footer.Logo,
 		GrpcURL:     cfg.GrpcURL,
 		LGVersion:   utils.Version(),
+		SentryDSN:   cfg.Sentry.DSN,
 		RtListMax:   cfg.RtListMax,
 	})
 	if err != nil {

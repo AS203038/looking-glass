@@ -43,6 +43,22 @@
     env.PUBLIC_FOOTER_LOGO != "" ||
     env.PUBLIC_FOOTER_TEXT != "";
 
+  let sentry_enabled = env.PUBLIC_SENTRY_DSN != "";
+  if (sentry_enabled) {
+    import("@sentry/svelte").then(
+      ({ init, browserTracingIntegration, replayIntegration }) => {
+        init({
+          dsn: env.PUBLIC_SENTRY_DSN,
+          integrations: [browserTracingIntegration(), replayIntegration()],
+          // tracePropagationTargets: [env.PUBLIC_GRPC_URL],
+          tracesSampleRate: 1.0,
+          replaysSessionSampleRate: 0.1,
+          replaysOnErrorSampleRate: 1.0,
+        });
+      },
+    );
+  }
+
   onMount(() => {
     // Set Theme
     document.body.setAttribute("data-theme", env.PUBLIC_THEME);
