@@ -35,8 +35,6 @@
       outputs[routerId] = {
         result: undefined,
         timestamp: undefined,
-        download: false,
-        blob: undefined,
         length: 0,
         ready: false,
         pages: [],
@@ -147,6 +145,7 @@
       outputs[routerId].currentPage--;
     }
   }
+
 </script>
 
 <div class="flex flex-wrap justify-evenly gap-4 mt-2">
@@ -161,7 +160,7 @@
           {#if outputs[router.id.toString()].ready === false}
             <div
               in:fade|global
-              class="text-center flex flex-col items-center max-h-80 h-max max-w-3xl w-max"
+              class="text-center flex flex-col items-center max-h-80 h-max max-w-3xl w-full"
             >
               <ProgressRadial />
             </div>
@@ -169,14 +168,14 @@
             {#if outputs[router.id.toString()]?.pages.length === 0}
               <pre
                 in:fade|global
-                class="pre text-left max-h-80 h-max max-w-3xl w-max overflow-scroll"
+                class="pre text-left max-h-80 h-max max-w-3xl w-full overflow-scroll"
                 data-clipboard={router.id.toString()}>{new TextDecoder().decode(
                   outputs[router.id.toString()].result,
                 )}</pre>
             {:else}
               <pre
                 in:fade|global
-                class="pre text-left max-h-80 h-max max-w-3xl w-max overflow-scroll"
+                class="pre text-left max-h-80 h-max max-w-3xl w-full overflow-scroll"
                 data-clipboard={router.id.toString()}>{new TextDecoder().decode(
                   outputs[router.id.toString()].pages[
                     outputs[router.id.toString()].currentPage
