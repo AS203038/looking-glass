@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/AS203038/looking-glass/pkg/errs"
+	"github.com/AS203038/looking-glass/pkg/utils"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
-	"github.com/AS203038/looking-glass/server/errs"
-	"github.com/AS203038/looking-glass/server/utils"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )

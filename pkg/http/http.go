@@ -13,9 +13,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/AS203038/looking-glass/server/http/grpc"
-	"github.com/AS203038/looking-glass/server/http/webui"
-	"github.com/AS203038/looking-glass/server/utils"
+	"github.com/AS203038/looking-glass/pkg/http/grpc"
+	"github.com/AS203038/looking-glass/pkg/http/webui"
+	"github.com/AS203038/looking-glass/pkg/utils"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"

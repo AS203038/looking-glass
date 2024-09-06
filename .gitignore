@@ -1,6 +1,6 @@
 protobuf/buf-*
 **/node_modules
-dist/
+**/dist/
 config.yaml
 .DS_Store
 **/node_modules
@@ -17,3 +17,6 @@ protobuf/*
 install.yml
 .gitlab-ci.yml
 .devcontainer
+/looking-glass
+/server
+/cli
