@@ -17,12 +17,13 @@ FROM golang:alpine AS go-builder
 ENV CGO_ENABLED=0
 ARG VERSION=untracked
 WORKDIR /opt
-COPY server /opt/server
-COPY go.mod go.sum main.go /opt/.
+COPY pkg /opt/pkg
+COPY cmd/server /opt/cmd/server
+COPY go.mod go.sum /opt/.
 COPY --from=buf-builder /opt/protobuf /opt/protobuf
-COPY --from=node-builder /opt/dist /opt/dist
+COPY --from=node-builder /opt/cmd/server/dist /opt/cmd/server/dist
 RUN go mod tidy \
- && go build -ldflags="-X github.com/AS203038/looking-glass/server/utils.release=${VERSION}" -o /opt/looking-glass
+ && go build -ldflags="-X github.com/AS203038/looking-glass/pkg/utils.release=${VERSION}" -o /opt/looking-glass /opt/cmd/server
 
 FROM scratch
 LABEL org.opencontainers.image.source https://github.com/AS203038/looking-glass

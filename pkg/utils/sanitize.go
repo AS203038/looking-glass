@@ -3,7 +3,7 @@ package utils
 import (
 	"regexp"
 
-	"github.com/AS203038/looking-glass/server/errs"
+	"github.com/AS203038/looking-glass/pkg/errs"
 )
 
 var (

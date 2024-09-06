@@ -3,7 +3,7 @@ package routers
 import (
 	"log"
 
-	"github.com/AS203038/looking-glass/server/utils"
+	"github.com/AS203038/looking-glass/pkg/utils"
 )
 
 var (

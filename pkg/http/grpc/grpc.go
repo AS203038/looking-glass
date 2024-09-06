@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/grpchealth"
+	"github.com/AS203038/looking-glass/pkg/utils"
 	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
-	"github.com/AS203038/looking-glass/server/utils"
 )
 
 var Health = grpchealth.NewStaticChecker(lookingglassconnect.LookingGlassServiceName)
