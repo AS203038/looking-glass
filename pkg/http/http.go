@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/AS203038/looking-glass/pkg/http/grpc"
@@ -177,6 +178,8 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 			"Grpc-Timeout",             // Used for gRPC-web
 			"X-Grpc-Web",               // Used for gRPC-web
 			"X-User-Agent",             // Used for gRPC-web
+			"baggage",                  // Used for sentry
+			"sentry-trace",             // Used for sentry
 		},
 		ExposedHeaders: []string{
 			"Content-Encoding",         // Unused in web browsers, but added for future-proofing
@@ -209,7 +212,7 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 			EnableTracing:      true,
 			TracesSampleRate:   cfg.Web.Sentry.SampleRate,
 			ProfilesSampleRate: 1.0,
-			Release:            utils.Version(),
+			Release:            strings.Split(utils.Version(), "+")[0],
 			Environment:        cfg.Web.Sentry.Environment,
 		})
 		if err != nil {

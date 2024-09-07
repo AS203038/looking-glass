@@ -54,7 +54,7 @@
         init({
           dsn: env.PUBLIC_SENTRY_DSN,
           environment: env.PUBLIC_SENTRY_ENV,
-          release: env.PUBLIC_LG_VERSION,
+          release: env.PUBLIC_LG_VERSION?.split("+")[0],
           integrations: [browserTracingIntegration(), replayIntegration()],
           // tracePropagationTargets: [env.PUBLIC_GRPC_URL],
           tracesSampleRate: parseFloat(env.PUBLIC_SENTRY_SAMPLE_RATE || "0.0"),
