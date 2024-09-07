@@ -71,8 +71,10 @@ type WebConfig struct {
 }
 
 type SentryConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	DSN     string `yaml:"dsn"`
+	Enabled     bool    `yaml:"enabled"`
+	DSN         string  `yaml:"dsn"`
+	Environment string  `yaml:"environment"`
+	SampleRate  float64 `yaml:"sample_rate"`
 }
 
 type HFBlock struct {

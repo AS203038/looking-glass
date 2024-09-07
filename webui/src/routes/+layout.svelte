@@ -49,9 +49,11 @@
       ({ init, browserTracingIntegration, replayIntegration }) => {
         init({
           dsn: env.PUBLIC_SENTRY_DSN,
+          environment: env.PUBLIC_SENTRY_ENV,
+          release: env.PUBLIC_LG_VERSION,
           integrations: [browserTracingIntegration(), replayIntegration()],
           // tracePropagationTargets: [env.PUBLIC_GRPC_URL],
-          tracesSampleRate: 1.0,
+          tracesSampleRate: parseFloat(env.PUBLIC_SENTRY_SAMPLE_RATE || "0.0"),
           replaysSessionSampleRate: 0.1,
           replaysOnErrorSampleRate: 1.0,
         });
