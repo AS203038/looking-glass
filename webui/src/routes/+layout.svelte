@@ -33,6 +33,10 @@
       return { name, href };
     });
   }
+  footer_links.push({
+    name: "Version " + env.PUBLIC_LG_VERSION?.split("+")[0],
+    href: "https://github.com/AS203038/looking-glass",
+  });
 
   // Set Page Title
   export let title =
@@ -142,68 +146,60 @@
   <!-- Page Route Content -->
   <slot />
   <svelte:fragment slot="footer">
-    {#if footer_enabled}
-      <!-- App Bar -->
-      <AppBar
-        gridColumns="grid-cols-3"
-        slotDefault="place-self-center"
-        slotTrail="place-content-end"
-      >
-        <svelte:fragment slot="lead">
-          {#if env.PUBLIC_FOOTER_LOGO}
-            <a class="text-xl uppercase" href="/">
-              <img
-                class="w-16 h-full"
-                alt="Logo"
-                src={env.PUBLIC_FOOTER_LOGO}
-              />
-            </a>
-          {/if}
-        </svelte:fragment>
-        {#if env.PUBLIC_FOOTER_TEXT}
-          <a class="uppercase" href="/">{env.PUBLIC_FOOTER_TEXT}</a>
+    <!-- App Bar -->
+    <AppBar
+      gridColumns="grid-cols-3"
+      slotDefault="place-self-center"
+      slotTrail="place-content-end"
+    >
+      <svelte:fragment slot="lead">
+        {#if env.PUBLIC_FOOTER_LOGO}
+          <a class="text-xl uppercase" href="/">
+            <img class="w-16 h-full" alt="Logo" src={env.PUBLIC_FOOTER_LOGO} />
+          </a>
         {/if}
-        <svelte:fragment slot="trail">
-          {#if env.PUBLIC_FOOTER_LINKS}
-            <button
-              use:popup={{
-                event: "click",
-                target: "footer_links",
-              }}
-              class="btn-icon btn-sm lg:!hidden"
+      </svelte:fragment>
+      {#if env.PUBLIC_FOOTER_TEXT}
+        <a class="uppercase" href="/">{env.PUBLIC_FOOTER_TEXT}</a>
+      {/if}
+      <svelte:fragment slot="trail">
+        <button
+          use:popup={{
+            event: "click",
+            target: "footer_links",
+          }}
+          class="btn-icon btn-sm lg:!hidden"
+        >
+          <Icon icon="ic:baseline-menu" class="text-xl" />
+        </button>
+        <span class="relative hidden lg:block space-x-2">
+          {#each footer_links as { name, href }}
+            <a
+              class="btn btn-sm variant-ghost inline"
+              {href}
+              target="_blank"
+              rel="noreferrer"
             >
-              <Icon icon="ic:baseline-menu" class="text-xl" />
-            </button>
-            <span class="relative hidden lg:block space-x-2">
-              {#each footer_links as { name, href }}
-                <a
-                  class="btn btn-sm variant-ghost inline"
-                  {href}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>{name}</span>
-                </a>
-              {/each}
-            </span>
-            <div class="card p-4 w-60 shadow-xl" data-popup="footer_links">
-              <div class="space-y-4">
-                <nav class="list-nav">
-                  <ul>
-                    {#each footer_links as { name, href }}
-                      <li>
-                        <a {href} target="_blank" rel="noreferrer">
-                          <span>{name}</span>
-                        </a>
-                      </li>
-                    {/each}
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          {/if}
-        </svelte:fragment>
-      </AppBar>
-    {/if}
+              <span>{name}</span>
+            </a>
+          {/each}
+        </span>
+        <div class="card p-4 w-60 shadow-xl" data-popup="footer_links">
+          <div class="space-y-4">
+            <nav class="list-nav">
+              <ul>
+                {#each footer_links as { name, href }}
+                  <li>
+                    <a {href} target="_blank" rel="noreferrer">
+                      <span>{name}</span>
+                    </a>
+                  </li>
+                {/each}
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </svelte:fragment>
+    </AppBar>
   </svelte:fragment>
 </AppShell>
