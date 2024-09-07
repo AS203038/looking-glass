@@ -44,7 +44,9 @@ web:                                                                      # WebU
               url: "https://example.com/privacy"                          #       Example link URL
     sentry:                                                               #   Sentry error reporting settings (optional)
         enabled: false                                                    #     Enable or disable Sentry error reporting
-        dsn: "https://xxx.sentry.io/yyy"                                  #     Sentry DSN (optional, URL is not validated for correctness)
+        dsn: "https://xxx.sentry.io/yyy"                                  #     DSN (optional, URL is not validated for correctness)
+        environment: "production"                                         #     Environment (optional, defaults to nothing which is interpreted by sentry as 'production')
+        sample_rate: 1.0                                                  #     Trace sample rate (optional, defaults to 0.0 which disables trace sampling but not error reporting)
 
 security.txt:                                                             # See https://www.rfc-editor.org/rfc/rfc9116 for field descriptions
     enabled: true                                                         # Enable or disable security.txt generation

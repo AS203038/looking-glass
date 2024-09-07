@@ -8,34 +8,38 @@ import (
 )
 
 type EnvJS struct {
-	Theme       string `json:"PUBLIC_THEME"`
-	PageTitle   string `json:"PUBLIC_PAGE_TITLE"`
-	HeaderText  string `json:"PUBLIC_HEADER_TEXT"`
-	HeaderLinks string `json:"PUBLIC_HEADER_LINKS"`
-	HeaderLogo  string `json:"PUBLIC_HEADER_LOGO"`
-	FooterText  string `json:"PUBLIC_FOOTER_TEXT"`
-	FooterLinks string `json:"PUBLIC_FOOTER_LINKS"`
-	FooterLogo  string `json:"PUBLIC_FOOTER_LOGO"`
-	GrpcURL     string `json:"PUBLIC_GRPC_URL"`
-	LGVersion   string `json:"PUBLIC_LG_VERSION"`
-	SentryDSN   string `json:"PUBLIC_SENTRY_DSN"`
-	RtListMax   int    `json:"PUBLIC_RT_LIST_MAX"`
+	Theme            string  `json:"PUBLIC_THEME"`
+	PageTitle        string  `json:"PUBLIC_PAGE_TITLE"`
+	HeaderText       string  `json:"PUBLIC_HEADER_TEXT"`
+	HeaderLinks      string  `json:"PUBLIC_HEADER_LINKS"`
+	HeaderLogo       string  `json:"PUBLIC_HEADER_LOGO"`
+	FooterText       string  `json:"PUBLIC_FOOTER_TEXT"`
+	FooterLinks      string  `json:"PUBLIC_FOOTER_LINKS"`
+	FooterLogo       string  `json:"PUBLIC_FOOTER_LOGO"`
+	GrpcURL          string  `json:"PUBLIC_GRPC_URL"`
+	LGVersion        string  `json:"PUBLIC_LG_VERSION"`
+	SentryDSN        string  `json:"PUBLIC_SENTRY_DSN"`
+	SentryEnv        string  `json:"PUBLIC_SENTRY_ENV"`
+	SentrySampleRate float64 `json:"PUBLIC_SENTRY_SAMPLE_RATE"`
+	RtListMax        int     `json:"PUBLIC_RT_LIST_MAX"`
 }
 
 func ConfigInjector(cfg utils.WebConfig) http.Handler {
 	envjson, err := json.Marshal(EnvJS{
-		Theme:       cfg.Theme,
-		PageTitle:   cfg.Title,
-		HeaderText:  cfg.Header.Text,
-		HeaderLinks: cfg.Header.LinksString(),
-		HeaderLogo:  cfg.Header.Logo,
-		FooterText:  cfg.Footer.Text,
-		FooterLinks: cfg.Footer.LinksString(),
-		FooterLogo:  cfg.Footer.Logo,
-		GrpcURL:     cfg.GrpcURL,
-		LGVersion:   utils.Version(),
-		SentryDSN:   cfg.Sentry.DSN,
-		RtListMax:   cfg.RtListMax,
+		Theme:            cfg.Theme,
+		PageTitle:        cfg.Title,
+		HeaderText:       cfg.Header.Text,
+		HeaderLinks:      cfg.Header.LinksString(),
+		HeaderLogo:       cfg.Header.Logo,
+		FooterText:       cfg.Footer.Text,
+		FooterLinks:      cfg.Footer.LinksString(),
+		FooterLogo:       cfg.Footer.Logo,
+		GrpcURL:          cfg.GrpcURL,
+		LGVersion:        utils.Version(),
+		SentryDSN:        cfg.Sentry.DSN,
+		SentryEnv:        cfg.Sentry.Environment,
+		SentrySampleRate: cfg.Sentry.SampleRate,
+		RtListMax:        cfg.RtListMax,
 	})
 	if err != nil {
 		panic(err)

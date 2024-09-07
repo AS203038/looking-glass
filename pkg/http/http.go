@@ -16,6 +16,8 @@ import (
 	"github.com/AS203038/looking-glass/pkg/http/grpc"
 	"github.com/AS203038/looking-glass/pkg/http/webui"
 	"github.com/AS203038/looking-glass/pkg/utils"
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
@@ -190,7 +192,7 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 		// Create a Redis client
 		opts, err := redis.ParseURL(cfg.Redis.URI)
 		if err != nil {
-			log.Println("ERROR: Failed to parse Redis URL:", err)
+			log.Println("ERROR: Failed to parse Redis URL:", err, "disabling Redis cache")
 		} else {
 			log.Println("NOTICE: Connecting to Redis at", cfg.Redis.URI)
 			redisClient = redis.NewClient(opts)
@@ -200,6 +202,29 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 	}
 
 	handler = loggingHandler(corsHandler.Handler(handler))
+
+	if cfg.Web.Sentry.Enabled {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:                cfg.Web.Sentry.DSN,
+			EnableTracing:      true,
+			TracesSampleRate:   cfg.Web.Sentry.SampleRate,
+			ProfilesSampleRate: 1.0,
+			Release:            utils.Version(),
+			Environment:        cfg.Web.Sentry.Environment,
+		})
+		if err != nil {
+			log.Println("WARNING: Failed to initialize Sentry:", err, "disabling Sentry middleware")
+		} else {
+			log.Println("NOTICE: Sentry initialized")
+			handler = sentryhttp.New(
+				sentryhttp.Options{
+					Repanic:         true,
+					WaitForDelivery: true,
+				},
+			).Handle(handler)
+		}
+	}
+
 	srv := &http.Server{
 		Addr:     cfg.Grpc.Listen,
 		ErrorLog: log.Default(),
