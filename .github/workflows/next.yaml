@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - next
+  release:
+    types: [prereleased]
 
 permissions:
     contents: write
@@ -35,7 +37,9 @@ jobs:
       uses: docker/metadata-action@v5
       with:
         images: ghcr.io/as203038/looking-glass
-        tags: next
+        tags: |
+          next
+          ${{ github.event.release.tag_name }}
     - name: Build and Push
       uses: docker/build-push-action@v5
       with:
