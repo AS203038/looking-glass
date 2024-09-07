@@ -22,7 +22,8 @@ COPY cmd/server /opt/cmd/server
 COPY go.mod go.sum /opt/.
 COPY --from=buf-builder /opt/protobuf /opt/protobuf
 COPY --from=node-builder /opt/cmd/server/dist /opt/cmd/server/dist
-RUN go mod tidy \
+RUN apk --no-cache add ca-certificates \
+ && go mod tidy \
  && go build -ldflags="-X github.com/AS203038/looking-glass/pkg/utils.release=${VERSION}" -o /opt/looking-glass /opt/cmd/server
 
 FROM scratch
@@ -30,5 +31,6 @@ LABEL org.opencontainers.image.source https://github.com/AS203038/looking-glass
 LABEL org.opencontainers.image.description Yet another looking glass project
 LABEL org.opencontainers.image.licenses GPL-3.0-or-later
 WORKDIR /
+COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=go-builder /opt/looking-glass /looking-glass
 ENTRYPOINT ["/looking-glass"]
