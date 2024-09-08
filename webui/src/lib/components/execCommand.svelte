@@ -10,7 +10,6 @@
   let outputs: Record<
     string,
     {
-      result: Uint8Array | undefined;
       timestamp: Date | undefined;
       length: number;
       ready: boolean;
@@ -25,103 +24,104 @@
 
   export let exec = (a: string, b: string) => {};
 
+  async function execCommand(
+    router: Pb.Router,
+    command: string,
+    parameter: string,
+  ) {
+    const routerId = router.id.toString();
+    outputs[routerId] = {
+      timestamp: undefined,
+      length: 0,
+      ready: false,
+      pages: [],
+      currentPage: 0,
+      pageSize: 1024 * 1024 * 1, // 1MB per page
+    };
+    let res:
+      | Pb.PingResponse
+      | Pb.TracerouteResponse
+      | Pb.BGPRouteResponse
+      | Pb.BGPCommunityResponse
+      | Pb.BGPASPathResponse;
+    try {
+      switch (command) {
+        case "ping":
+          res = await LookingGlassClient().ping(<Pb.PingRequest>{
+            routerId: router.id,
+            target: parameter,
+          });
+          break;
+        case "traceroute":
+          res = await LookingGlassClient().traceroute(<Pb.TracerouteRequest>{
+            routerId: router.id,
+            target: parameter,
+          });
+          break;
+        case "bgp_route":
+          res = await LookingGlassClient().bGPRoute(<Pb.BGPRouteRequest>{
+            routerId: router.id,
+            target: parameter,
+          });
+          break;
+        case "bgp_community":
+          res = await LookingGlassClient().bGPCommunity(<
+            Pb.BGPCommunityRequest
+          >{
+            routerId: router.id,
+            community: <Pb.BGPCommunity>{
+              asn: parseInt(parameter.split(":")[0]),
+              value: parseInt(parameter.split(":")[1]),
+            },
+          });
+          break;
+        case "bgp_aspath_regex":
+          res = await LookingGlassClient().bGPASPath(<Pb.BGPASPathRequest>{
+            routerId: router.id,
+            pattern: parameter,
+          });
+          break;
+        default:
+          console.log("Unknown command");
+          return;
+      }
+    } catch (e) {
+      outputs[routerId].result = new TextEncoder().encode(
+        `Error: ${e.message}`,
+      );
+      outputs[routerId].timestamp = new Date();
+      outputs[routerId].ready = true;
+      console.error(e); // Log the error potentially for sentry
+      return;
+    }
+    outputs[routerId].length = res.result.length;
+    // Split result into pages
+    for (let i = 0; i < res.result.length; ) {
+      let end = i + outputs[routerId].pageSize;
+      if (end < res.result.length) {
+        // Find the next newline character after the pageSize
+        while (end < res.result.length && res.result[end] !== 10) {
+          // 10 is the ASCII code for newline
+          end++;
+        }
+        end++; // Include the newline character in the chunk
+      }
+      outputs[routerId].pages.push(res.result.slice(i, end));
+      i = end;
+    }
+    outputs[routerId].timestamp = new Date(
+      parseInt(res.timestamp.seconds.toString()) * 1000,
+    );
+    outputs[routerId].ready = true;
+  }
+
   async function _exec(command: string, parameter: string) {
     fire = true;
     outputs = {};
     _command = command;
     _parameter = parameter;
     for (let router of routers) {
-      const routerId = router.id.toString();
-      outputs[routerId] = {
-        result: undefined,
-        timestamp: undefined,
-        download: false,
-        blob: undefined,
-        length: 0,
-        ready: false,
-        pages: [],
-        currentPage: 0,
-        pageSize: 1024 * 1024 * 1, // 1MB per page
-      };
-      let res:
-        | Pb.PingResponse
-        | Pb.TracerouteResponse
-        | Pb.BGPRouteResponse
-        | Pb.BGPCommunityResponse
-        | Pb.BGPASPathResponse;
-      try {
-        switch (command) {
-          case "ping":
-            res = await LookingGlassClient().ping(<Pb.PingRequest>{
-              routerId: router.id,
-              target: parameter,
-            });
-            break;
-          case "traceroute":
-            res = await LookingGlassClient().traceroute(<Pb.TracerouteRequest>{
-              routerId: router.id,
-              target: parameter,
-            });
-            break;
-          case "bgp_route":
-            res = await LookingGlassClient().bGPRoute(<Pb.BGPRouteRequest>{
-              routerId: router.id,
-              target: parameter,
-            });
-            break;
-          case "bgp_community":
-            res = await LookingGlassClient().bGPCommunity(<
-              Pb.BGPCommunityRequest
-            >{
-              routerId: router.id,
-              community: <Pb.BGPCommunity>{
-                asn: parseInt(parameter.split(":")[0]),
-                value: parseInt(parameter.split(":")[1]),
-              },
-            });
-            break;
-          case "bgp_aspath_regex":
-            res = await LookingGlassClient().bGPASPath(<Pb.BGPASPathRequest>{
-              routerId: router.id,
-              pattern: parameter,
-            });
-            break;
-          default:
-            console.log("Unknown command");
-            return;
-        }
-      } catch (e) {
-        outputs[routerId].result = new TextEncoder().encode(
-          `Error: ${e.message}`,
-        );
-        outputs[routerId].timestamp = new Date();
-        outputs[routerId].ready = true;
-        continue;
-      }
-      outputs[routerId].length = res.result.length;
-      if (res.result.length > outputs[routerId].pageSize) {
-        // Split result into pages
-        for (let i = 0; i < res.result.length; ) {
-          let end = i + outputs[routerId].pageSize;
-          if (end < res.result.length) {
-            // Find the next newline character after the pageSize
-            while (end < res.result.length && res.result[end] !== 10) {
-              // 10 is the ASCII code for newline
-              end++;
-            }
-            end++; // Include the newline character in the chunk
-          }
-          outputs[routerId].pages.push(res.result.slice(i, end));
-          i = end;
-        }
-      } else {
-        outputs[routerId].result = res.result;
-      }
-      // }
-      outputs[routerId].timestamp = new Date(
-        parseInt(res.timestamp.seconds.toString()) * 1000,
-      );
-      outputs[routerId].ready = true;
+      execCommand(router, command, parameter);
     }
   }
   $: exec = _exec;
@@ -152,7 +152,7 @@
 <div class="flex flex-wrap justify-evenly gap-4 mt-2">
   {#each routers as router}
     {#if outputs[router.id.toString()] !== undefined}
-      <div transition:fade|global class="card text-left p-4">
+      <div transition:fade|global class="card text-left p-4 max-w-screen">
         <header class="card-header">
           <p class="font-medium">Router: {router.name}</p>
           <p class="capitalize">Location: {router.location}</p>
@@ -161,27 +161,20 @@
           {#if outputs[router.id.toString()].ready === false}
             <div
               in:fade|global
-              class="text-center flex flex-col items-center max-h-80 h-max max-w-3xl w-max"
+              class="text-center flex flex-col items-center max-h-80 h-max max-w-3xl min-w-3xl w-full"
             >
               <ProgressRadial />
             </div>
           {:else}
-            {#if outputs[router.id.toString()]?.pages.length === 0}
-              <pre
-                in:fade|global
-                class="pre text-left max-h-80 h-max max-w-3xl w-max overflow-scroll"
-                data-clipboard={router.id.toString()}>{new TextDecoder().decode(
-                  outputs[router.id.toString()].result,
-                )}</pre>
-            {:else}
-              <pre
-                in:fade|global
-                class="pre text-left max-h-80 h-max max-w-3xl w-max overflow-scroll"
-                data-clipboard={router.id.toString()}>{new TextDecoder().decode(
-                  outputs[router.id.toString()].pages[
-                    outputs[router.id.toString()].currentPage
-                  ],
-                )}</pre>
+            <pre
+              in:fade|global
+              class="pre text-left max-h-80 h-max max-w-3xl min-w-3xl w-full overflow-scroll"
+              data-clipboard={router.id.toString()}>{new TextDecoder().decode(
+                outputs[router.id.toString()].pages[
+                  outputs[router.id.toString()].currentPage
+                ],
+              )}</pre>
+            {#if outputs[router.id.toString()].pages.length > 1}
               <div class="flex justify-between mt-2">
                 <button
                   class="btn variant-filled-primary"
