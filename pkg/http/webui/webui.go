@@ -25,22 +25,25 @@ type EnvJS struct {
 }
 
 func ConfigInjector(cfg utils.WebConfig) http.Handler {
-	envjson, err := json.Marshal(EnvJS{
-		Theme:            cfg.Theme,
-		PageTitle:        cfg.Title,
-		HeaderText:       cfg.Header.Text,
-		HeaderLinks:      cfg.Header.LinksString(),
-		HeaderLogo:       cfg.Header.Logo,
-		FooterText:       cfg.Footer.Text,
-		FooterLinks:      cfg.Footer.LinksString(),
-		FooterLogo:       cfg.Footer.Logo,
-		GrpcURL:          cfg.GrpcURL,
-		LGVersion:        utils.Version(),
-		SentryDSN:        cfg.Sentry.DSN,
-		SentryEnv:        cfg.Sentry.Environment,
-		SentrySampleRate: cfg.Sentry.SampleRate,
-		RtListMax:        cfg.RtListMax,
-	})
+	envobj := EnvJS{
+		Theme:       cfg.Theme,
+		PageTitle:   cfg.Title,
+		HeaderText:  cfg.Header.Text,
+		HeaderLinks: cfg.Header.LinksString(),
+		HeaderLogo:  cfg.Header.Logo,
+		FooterText:  cfg.Footer.Text,
+		FooterLinks: cfg.Footer.LinksString(),
+		FooterLogo:  cfg.Footer.Logo,
+		GrpcURL:     cfg.GrpcURL,
+		LGVersion:   utils.Version(),
+		RtListMax:   cfg.RtListMax,
+	}
+	if cfg.Sentry.Enabled {
+		envobj.SentryDSN = cfg.Sentry.DSN
+		envobj.SentryEnv = cfg.Sentry.Environment
+		envobj.SentrySampleRate = cfg.Sentry.SampleRate
+	}
+	envjson, err := json.Marshal(envobj)
 	if err != nil {
 		panic(err)
 	}
