@@ -3,9 +3,9 @@ module github.com/AS203038/looking-glass
 go 1.22
 
 require (
-	connectrpc.com/connect v1.16.2
+	connectrpc.com/connect v1.17.0
 	connectrpc.com/grpchealth v1.3.0
-	github.com/getsentry/sentry-go v0.28.1
+	github.com/getsentry/sentry-go v0.29.0
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rs/cors v1.11.1
 	golang.org/x/crypto v0.27.0
