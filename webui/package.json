@@ -39,6 +39,6 @@
   },
   "type": "module",
   "dependencies": {
-    "@sentry/svelte": "^8.28.0"
+    "@sentry/svelte": "^8.29.0"
   }
 }
