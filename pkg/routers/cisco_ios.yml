@@ -1,0 +1,24 @@
+name: cisco_ios
+
+ping:
+    ipv4:
+        - ping vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source4.IP}} repeat 5
+    ipv6:
+        - ping vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source6.IP}} repeat 5
+
+traceroute:
+    ipv4:
+        - traceroute vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source4.IP}}
+    ipv6:
+        - traceroute vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source6.IP}}
+
+bgp:
+    route:
+        - show ip bgp vrf {{.Cfg.VRF}} {{.IP.IP}}
+        - show bgp ipv6 unicast vrf {{.Cfg.VRF}} {{.IP.IP}}
+    community:
+        - show ip bgp community {{.Community}}
+        - show bgp ipv6 unicast community {{.Community}}
+    aspath:
+        - show ip bgp regexp {{.ASPath}}
+        - show bgp ipv6 unicast regexp {{.ASPath}}

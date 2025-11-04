@@ -1,0 +1,21 @@
+name: nokia_sros
+
+ping:
+    ipv4:
+        - ping {{.IP.IP}} source {{.Cfg.Source4.IP}} count 5 router {{.Cfg.VRF}}
+    ipv6:
+        - ping {{.IP.IP}} source {{.Cfg.Source6.IP}} count 5 router {{.Cfg.VRF}}
+
+traceroute:
+    ipv4:
+        - traceroute {{.IP.IP}} source {{.Cfg.Source4.IP}} router {{.Cfg.VRF}}
+    ipv6:
+        - traceroute {{.IP.IP}} source {{.Cfg.Source6.IP}} router {{.Cfg.VRF}}
+
+bgp:
+    route:
+        - show router {{.Cfg.VRF}} bgp routes {{.IP.IP}} hunt
+    community:
+        - show router {{.Cfg.VRF}} bgp routes community {{.Community}}
+    aspath:
+        - show router {{.Cfg.VRF}} bgp routes aspath-regex "{{.ASPath}}"

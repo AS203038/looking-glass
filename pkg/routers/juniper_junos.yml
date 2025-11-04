@@ -1,0 +1,24 @@
+name: juniper_junos
+
+ping:
+    ipv4:
+        - ping {{.IP.IP}} source {{.Cfg.Source4.IP}} count 5 rapid routing-instance {{.Cfg.VRF}}
+    ipv6:
+        - ping {{.IP.IP}} source {{.Cfg.Source6.IP}} count 5 rapid routing-instance {{.Cfg.VRF}}
+
+traceroute:
+    ipv4:
+        - traceroute {{.IP.IP}} source {{.Cfg.Source4.IP}} routing-instance {{.Cfg.VRF}}
+    ipv6:
+        - traceroute {{.IP.IP}} source {{.Cfg.Source6.IP}} routing-instance {{.Cfg.VRF}}
+
+bgp:
+    route:
+        - show route protocol bgp {{.IP.IP}} table {{.Cfg.VRF}}.inet.0 detail
+        - show route protocol bgp {{.IP.IP}} table {{.Cfg.VRF}}.inet6.0 detail
+    community:
+        - show route protocol bgp community {{.Community}} table {{.Cfg.VRF}}.inet.0
+        - show route protocol bgp community {{.Community}} table {{.Cfg.VRF}}.inet6.0
+    aspath:
+        - show route protocol bgp aspath-regex "{{.ASPath}}" table {{.Cfg.VRF}}.inet.0
+        - show route protocol bgp aspath-regex "{{.ASPath}}" table {{.Cfg.VRF}}.inet6.0

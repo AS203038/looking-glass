@@ -1,0 +1,21 @@
+name: mikrotik_routeros
+
+ping:
+    ipv4:
+        - /ping {{.IP.IP}} src-address={{.Cfg.Source4.IP}} count=5
+    ipv6:
+        - /ping {{.IP.IP}} src-address={{.Cfg.Source6.IP}} count=5
+
+traceroute:
+    ipv4:
+        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}}
+    ipv6:
+        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}}
+
+bgp:
+    route:
+        - /routing bgp advertisements print detail where dst-address~"{{.IP.IP}}"
+    community:
+        - /routing bgp advertisements print detail where communities~"{{.Community}}"
+    aspath:
+        - /routing bgp advertisements print detail where as-path~"{{.ASPath}}"
