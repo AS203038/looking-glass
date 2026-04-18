@@ -15,9 +15,21 @@
     { value: "ping", label: "Ping" },
     { value: "traceroute", label: "Traceroute" },
     { value: "bgp_route", label: "BGP Route" },
-    { value: "bgp_community", label: "BGP Community" },
+    {
+      value: "bgp_community",
+      label: "BGP Community (auto-detects Standard / Large)",
+    },
     { value: "bgp_aspath_regex", label: "BGP ASPath Regex" },
   ];
+
+  // Suggest the expected format depending on the selected action.
+  //   bgp_community → "ASN:VALUE" (standard) or "GLOBAL:LOCAL1:LOCAL2" (large)
+  //   others        → generic "Parameter..."
+  $: parameterPlaceholder =
+    _cmd === "bgp_community"
+      ? "e.g. 65000:100 or 214503:8:3607"
+      : "Parameter...";
+
   let popupSettings: PopupSettings = {
     event: "focus-click",
     target: "popupAutocomplete",
@@ -85,7 +97,7 @@
         type="text"
         name="parameter"
         bind:value={_param}
-        placeholder="Parameter..."
+        placeholder={parameterPlaceholder}
       />
     </div>
     <div transition:fade|global class="p-2 my-2 w-full">

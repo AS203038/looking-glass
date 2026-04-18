@@ -4,21 +4,23 @@ ping:
     ipv4:
         - ping vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source4.IP}} repeat 5
     ipv6:
-        - ping vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source6.IP}} repeat 5
+        - ping vrf {{.Cfg.VRF}} ipv6 {{.IP.IP}} source {{.Cfg.Source6.IP}} repeat 5
 
 traceroute:
     ipv4:
         - traceroute vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source4.IP}}
     ipv6:
-        - traceroute vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source6.IP}}
+        - traceroute vrf {{.Cfg.VRF}} ipv6 {{.IP.IP}} source {{.Cfg.Source6.IP}}
 
 bgp:
     route:
-        - show ip bgp vrf {{.Cfg.VRF}} {{.IP.IP}}
-        - show bgp ipv6 unicast vrf {{.Cfg.VRF}} {{.IP.IP}}
+        - show bgp vrf {{.Cfg.VRF}} {{.IP.Family}} unicast {{.IP.IP}}
     community:
-        - show ip bgp community {{.Community}}
-        - show bgp ipv6 unicast community {{.Community}}
+        - show bgp vrf {{.Cfg.VRF}} ipv4 unicast community {{.Community}}
+        - show bgp vrf {{.Cfg.VRF}} ipv6 unicast community {{.Community}}
+    largecommunity:
+        - show bgp vrf {{.Cfg.VRF}} ipv4 unicast large-community {{.LargeCommunity}}
+        - show bgp vrf {{.Cfg.VRF}} ipv6 unicast large-community {{.LargeCommunity}}
     aspath:
-        - show ip bgp regexp {{.ASPath}}
-        - show bgp ipv6 unicast regexp {{.ASPath}}
+        - show bgp vrf {{.Cfg.VRF}} ipv4 unicast regexp {{.ASPath}}
+        - show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}}

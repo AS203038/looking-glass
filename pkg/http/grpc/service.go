@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -15,6 +16,25 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// rpcLogTag builds a compact server-side log tag for a handler failure.
+// It intentionally excludes any client-supplied free-form values that
+// could be sensitive; only structured identifiers are surfaced.
+func rpcLogTag(op string, routerID int64, ri *utils.RouterInstance) string {
+	tag := "op=" + op + " router_id=" + strconv.FormatInt(routerID, 10)
+	if ri != nil && ri.Config != nil {
+		tag += " router=" + ri.Config.Name + " type=" + ri.Config.Type
+	}
+	return tag
+}
+
+// logRPCError writes a detailed server-side line describing a failed RPC
+// invocation. The underlying Go error (which may carry extra context
+// written by SSHExec / template rendering) is included verbatim. The
+// caller still returns a generic sentinel error to the client.
+func logRPCError(tag, stage string, err error) {
+	log.Printf("RPC: %s stage=%s: %v", tag, stage, err)
+}
 
 type LookingGlassService struct {
 	lookingglassconnect.UnimplementedLookingGlassServiceHandler
@@ -88,15 +108,19 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	rt := req.Msg.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
+		logRPCError(rpcLogTag("Ping", rt, nil), "router_lookup", errs.UnknownRouter)
 		return nil, errs.UnknownRouter
 	}
+	tag := rpcLogTag("Ping", rt, ri)
 	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "parse_target", err)
+		return nil, errs.IPInvalid
 	}
 	ret, err := ri.Ping(target)
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "ping_exec", err)
+		return nil, errs.ExecFailed
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.PingResponse{
@@ -112,15 +136,19 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	rt := req.Msg.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
+		logRPCError(rpcLogTag("Traceroute", rt, nil), "router_lookup", errs.UnknownRouter)
 		return nil, errs.UnknownRouter
 	}
+	tag := rpcLogTag("Traceroute", rt, ri)
 	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "parse_target", err)
+		return nil, errs.IPInvalid
 	}
 	ret, err := ri.Traceroute(target)
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "traceroute_exec", err)
+		return nil, errs.ExecFailed
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.TracerouteResponse{
@@ -136,15 +164,19 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	rt := req.Msg.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
+		logRPCError(rpcLogTag("BGPRoute", rt, nil), "router_lookup", errs.UnknownRouter)
 		return nil, errs.UnknownRouter
 	}
+	tag := rpcLogTag("BGPRoute", rt, ri)
 	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "parse_target", err)
+		return nil, errs.IPInvalid
 	}
 	ret, err := ri.BGPRoute(target)
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "bgp_route_exec", err)
+		return nil, errs.ExecFailed
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.BGPRouteResponse{
@@ -160,15 +192,53 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	rt := req.Msg.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
+		logRPCError(rpcLogTag("BGPCommunity", rt, nil), "router_lookup", errs.UnknownRouter)
 		return nil, errs.UnknownRouter
 	}
+	tag := rpcLogTag("BGPCommunity", rt, ri)
 	community := req.Msg.GetCommunity()
+	if community == nil {
+		logRPCError(tag, "community_nil", errs.OperationUnknown)
+		return nil, errs.OperationUnknown
+	}
 	ret, err := ri.BGPCommunity(strconv.Itoa(int(community.Asn)) + ":" + strconv.Itoa(int(community.Value)))
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "bgp_community_exec", err)
+		return nil, errs.ExecFailed
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.BGPCommunityResponse{
+		Result: []byte(strings.Join(ret, "\n")),
+		Timestamp: &timestamppb.Timestamp{
+			Seconds: ts.Unix(),
+			Nanos:   int32(ts.Nanosecond()),
+		},
+	}), nil
+}
+
+func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connect.Request[pb.BGPLargeCommunityRequest]) (*connect.Response[pb.BGPLargeCommunityResponse], error) {
+	rt := req.Msg.GetRouterId()
+	ri, ok := s.rts.GetByID(rt)
+	if !ok {
+		logRPCError(rpcLogTag("BGPLargeCommunity", rt, nil), "router_lookup", errs.UnknownRouter)
+		return nil, errs.UnknownRouter
+	}
+	tag := rpcLogTag("BGPLargeCommunity", rt, ri)
+	community := req.Msg.GetCommunity()
+	if community == nil {
+		logRPCError(tag, "community_nil", errs.OperationUnknown)
+		return nil, errs.OperationUnknown
+	}
+	lc := strconv.FormatUint(uint64(community.GetGlobalAdmin()), 10) + ":" +
+		strconv.FormatUint(uint64(community.GetLocalData1()), 10) + ":" +
+		strconv.FormatUint(uint64(community.GetLocalData2()), 10)
+	ret, err := ri.BGPLargeCommunity(lc)
+	if err != nil {
+		logRPCError(tag, "bgp_largecommunity_exec", err)
+		return nil, errs.ExecFailed
+	}
+	ts := time.Now()
+	return connect.NewResponse(&pb.BGPLargeCommunityResponse{
 		Result: []byte(strings.Join(ret, "\n")),
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: ts.Unix(),
@@ -181,15 +251,19 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	rt := req.Msg.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
+		logRPCError(rpcLogTag("BGPASPath", rt, nil), "router_lookup", errs.UnknownRouter)
 		return nil, errs.UnknownRouter
 	}
+	tag := rpcLogTag("BGPASPath", rt, ri)
 	aspath, err := utils.SanitizeASPathRegex(req.Msg.GetPattern())
 	if err != nil {
+		logRPCError(tag, "sanitize_aspath", err)
 		return nil, err
 	}
 	ret, err := ri.BGPASPath(aspath)
 	if err != nil {
-		return nil, err
+		logRPCError(tag, "bgp_aspath_exec", err)
+		return nil, errs.ExecFailed
 	}
 	ts := time.Now()
 	return connect.NewResponse(&pb.BGPASPathResponse{

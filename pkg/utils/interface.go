@@ -7,6 +7,7 @@ type Router interface {
 	Traceroute(*RouterConfig, *IPNet) ([]string, error)
 	BGPRoute(*RouterConfig, *IPNet) ([]string, error)
 	BGPCommunity(*RouterConfig, string) ([]string, error)
+	BGPLargeCommunity(*RouterConfig, string) ([]string, error)
 	BGPASPath(*RouterConfig, string) ([]string, error)
 }
 
@@ -58,6 +59,14 @@ func (rt *RouterInstance) BGPRoute(param *IPNet) ([]string, error) {
 
 func (rt *RouterInstance) BGPCommunity(param string) ([]string, error) {
 	cmd, err := rt.Router.BGPCommunity(rt.Config, param)
+	if err != nil {
+		return nil, err
+	}
+	return SSHExec(rt.Config, cmd)
+}
+
+func (rt *RouterInstance) BGPLargeCommunity(param string) ([]string, error) {
+	cmd, err := rt.Router.BGPLargeCommunity(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}

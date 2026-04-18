@@ -2,20 +2,22 @@ name: mikrotik_routeros
 
 ping:
     ipv4:
-        - /ping {{.IP.IP}} src-address={{.Cfg.Source4.IP}} count=5
+        - /ping {{.IP.IP}} src-address={{.Cfg.Source4.IP}} count=5 routing-table={{.Cfg.VRF}}
     ipv6:
-        - /ping {{.IP.IP}} src-address={{.Cfg.Source6.IP}} count=5
+        - /ping {{.IP.IP}} src-address={{.Cfg.Source6.IP}} count=5 routing-table={{.Cfg.VRF}}
 
 traceroute:
     ipv4:
-        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}}
+        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}} routing-table={{.Cfg.VRF}}
     ipv6:
-        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}}
+        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}} routing-table={{.Cfg.VRF}}
 
 bgp:
     route:
         - /routing bgp advertisements print detail where dst-address~"{{.IP.IP}}"
     community:
         - /routing bgp advertisements print detail where communities~"{{.Community}}"
+    largecommunity:
+        - /routing bgp advertisements print detail where large-communities~"{{.LargeCommunity}}"
     aspath:
         - /routing bgp advertisements print detail where as-path~"{{.ASPath}}"

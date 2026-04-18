@@ -13,12 +13,24 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// tplLogTag builds a short, loggable identifier for the current render
+// attempt. It includes the template name (router type), the operation,
+// and the router config name if available. Kept credential-free.
+func tplLogTag(routerType, op string, cfg *utils.RouterConfig) string {
+	tag := "router_type=" + routerType + " op=" + op
+	if cfg != nil {
+		tag += " router=" + cfg.Name + " vrf=" + cfg.VRF
+	}
+	return tag
+}
+
 // _tpl_data represents the template data used in the router YAML file.
 type _tpl_data struct {
-	Cfg       *utils.RouterConfig // Cfg holds the router configuration.
-	IP        *utils.IPNet        // IP holds the IP network information.
-	Community string              // Community holds the community string.
-	ASPath    string              // ASPath holds the AS path information.
+	Cfg            *utils.RouterConfig // Cfg holds the router configuration.
+	IP             *utils.IPNet        // IP holds the IP network information.
+	Community      string              // Community holds the standard (RFC 1997) community string (ASN:VALUE).
+	LargeCommunity string              // LargeCommunity holds the Large (RFC 8092) community string (GLOBAL:LOCAL1:LOCAL2).
+	ASPath         string              // ASPath holds the AS path information.
 }
 
 // Yaml represents the structure of a YAML file.
@@ -37,9 +49,10 @@ type Yaml struct {
 			IPv6 []string `yaml:"ipv6"` // IPv6 represents the list of traceroute targets for IPv6 addresses.
 		} `yaml:"traceroute"` // Traceroute represents the traceroute section in the template.
 		BGP struct {
-			Route     []string `yaml:"route"`     // Route represents the list of BGP routes.
-			Community []string `yaml:"community"` // Community represents the list of BGP communities.
-			ASPath    []string `yaml:"aspath"`    // ASPath represents the list of BGP AS paths.
+			Route          []string `yaml:"route"`          // Route represents the list of BGP routes.
+			Community      []string `yaml:"community"`      // Community represents the list of BGP standard (RFC 1997) communities.
+			LargeCommunity []string `yaml:"largecommunity"` // LargeCommunity represents the list of BGP Large (RFC 8092) communities.
+			ASPath         []string `yaml:"aspath"`         // ASPath represents the list of BGP AS paths.
 		} `yaml:"bgp"` // BGP represents the BGP section in the template.
 	}
 }
@@ -137,21 +150,29 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 		tpl = rt.Template.BGP.Route
 	case "bgp.community":
 		tpl = rt.Template.BGP.Community
+	case "bgp.largecommunity":
+		tpl = rt.Template.BGP.LargeCommunity
 	case "bgp.aspath":
 		tpl = rt.Template.BGP.ASPath
 	}
 	if tpl == nil {
+		log.Printf("TPL: operation not defined for router (%s)",
+			tplLogTag(rt.Template.Name, name, data.Cfg))
 		return nil, errs.OperationUnknown
 	}
-	for _, t := range tpl {
+	for i, t := range tpl {
 		var buf bytes.Buffer
 		tt, err := template.New(t).Parse(t)
 		if err != nil {
-			return nil, err
+			log.Printf("TPL: parse failed (%s cmd_index=%d raw=%q): %v",
+				tplLogTag(rt.Template.Name, name, data.Cfg), i, t, err)
+			return nil, errs.OperationUnknown
 		}
 		err = tt.Execute(&buf, data)
 		if err != nil {
-			return nil, err
+			log.Printf("TPL: execute failed (%s cmd_index=%d raw=%q): %v",
+				tplLogTag(rt.Template.Name, name, data.Cfg), i, t, err)
+			return nil, errs.OperationUnknown
 		}
 		ret = append(ret, buf.String())
 	}
@@ -179,6 +200,12 @@ func (rt *Yaml) BGPRoute(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, er
 // BGPCommunity returns a list of strings representing the BGP community values for the given router configuration and community.
 func (rt *Yaml) BGPCommunity(cfg *utils.RouterConfig, community string) ([]string, error) {
 	return rt._tpl("bgp.community", _tpl_data{Cfg: cfg, Community: community})
+}
+
+// BGPLargeCommunity returns a list of strings representing the BGP Large Community (RFC 8092)
+// lookup commands for the given router configuration and large community string.
+func (rt *Yaml) BGPLargeCommunity(cfg *utils.RouterConfig, largeCommunity string) ([]string, error) {
+	return rt._tpl("bgp.largecommunity", _tpl_data{Cfg: cfg, LargeCommunity: largeCommunity})
 }
 
 // BGPASPath returns a slice of strings representing the BGP AS path for the given router configuration and AS path string.

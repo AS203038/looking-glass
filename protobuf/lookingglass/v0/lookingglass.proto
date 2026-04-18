@@ -20,6 +20,7 @@ service LookingGlassService {
   rpc BGPSummary(BGPSummaryRequest) returns (BGPSummaryResponse) {}
   rpc BGPRoute(BGPRouteRequest) returns (BGPRouteResponse) {}
   rpc BGPCommunity(BGPCommunityRequest) returns (BGPCommunityResponse) {}
+  rpc BGPLargeCommunity(BGPLargeCommunityRequest) returns (BGPLargeCommunityResponse) {}
   rpc BGPASPath(BGPASPathRequest) returns (BGPASPathResponse) {}
 }
 
@@ -42,12 +43,23 @@ message Router {
   RouterHealth health = 5;
 }
 
-// BGPCommunity is a BGP community.g
+// BGPCommunity is a standard (RFC 1997) BGP community.
 message BGPCommunity {
   // The ASN of the BGP community.
   int32 asn = 1;
   // The value of the BGP community.
   int32 value = 2;
+}
+
+// BGPLargeCommunity is a Large (RFC 8092) BGP community
+// formatted as global_admin:local_data1:local_data2.
+message BGPLargeCommunity {
+  // The Global Administrator (typically an ASN) of the Large Community.
+  uint32 global_admin = 1;
+  // The Local Data Part 1 of the Large Community.
+  uint32 local_data1 = 2;
+  // The Local Data Part 2 of the Large Community.
+  uint32 local_data2 = 3;
 }
 
 // GetInfoResponse is the response message for GetInfo.
@@ -159,6 +171,23 @@ message BGPCommunityRequest {
 // BGPCommunityResponse is the response message for BGPCommunity.
 message BGPCommunityResponse {
   // The BGP community.
+  bytes result = 1;
+
+  // Age of Response
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+// BGPLargeCommunityRequest is the request message for BGPLargeCommunity.
+message BGPLargeCommunityRequest {
+  // The ID of the router.
+  int64 router_id = 1;
+  // The BGP Large Community to look up.
+  BGPLargeCommunity community = 2;
+}
+
+// BGPLargeCommunityResponse is the response message for BGPLargeCommunity.
+message BGPLargeCommunityResponse {
+  // The BGP Large Community lookup result.
   bytes result = 1;
 
   // Age of Response

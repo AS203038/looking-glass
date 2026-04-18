@@ -17,5 +17,7 @@ bgp:
         - show router {{.Cfg.VRF}} bgp routes {{.IP.IP}} hunt
     community:
         - show router {{.Cfg.VRF}} bgp routes community {{.Community}}
+    largecommunity:
+        - show router {{.Cfg.VRF}} bgp routes community large:{{.LargeCommunity}}
     aspath:
         - show router {{.Cfg.VRF}} bgp routes aspath-regex "{{.ASPath}}"

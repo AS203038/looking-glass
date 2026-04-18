@@ -1,21 +1,57 @@
 package utils
 
 import (
+	"bytes"
+	"log"
 	"os"
 
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"golang.org/x/crypto/ssh"
 )
 
+// sshLogPrefix is prepended to every SSH-related server-side log line
+// so operators can easily grep for SSH issues.
+const sshLogPrefix = "SSH"
+
+// routerTag returns a short identifier for a router suitable for log lines.
+// It avoids leaking credentials and keeps the line compact.
+func routerTag(router *RouterConfig) string {
+	if router == nil {
+		return "router=<nil>"
+	}
+	return "router=" + router.Name + " host=" + router.Hostname + " user=" + router.Username
+}
+
+// SSHExec opens an SSH connection to the configured router and runs each
+// command sequentially, returning a slice of stdout strings (one per
+// command) in the same order.
+//
+// Error-handling philosophy:
+//
+//   - Callers (and ultimately RPC clients) only ever see the coarse
+//     sentinel errors defined in pkg/errs (AuthFailed, ConnectionFailed,
+//     ExecFailed). This prevents information disclosure (hostnames,
+//     credentials, internal command text) to external users.
+//
+//   - The server operator, however, needs the full picture to diagnose
+//     issues. Every failure path therefore logs a detailed line via the
+//     standard logger (writes to stderr / stdout depending on log
+//     configuration) that includes the router identity, the specific
+//     stage that failed, the underlying Go error, and — crucially —
+//     any stderr captured from the remote session.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	auths := []ssh.AuthMethod{ssh.Password(router.Password)}
 	if router.SSHKey != "" {
 		k, err := os.ReadFile(router.SSHKey)
 		if err != nil {
+			log.Printf("%s: read ssh key failed (%s key=%s): %v",
+				sshLogPrefix, routerTag(router), router.SSHKey, err)
 			return nil, errs.AuthFailed
 		}
 		key, err := ssh.ParsePrivateKey(k)
 		if err != nil {
+			log.Printf("%s: parse ssh key failed (%s key=%s): %v",
+				sshLogPrefix, routerTag(router), router.SSHKey, err)
 			return nil, errs.AuthFailed
 		}
 		auths = append(auths, ssh.PublicKeys(key))
@@ -27,6 +63,8 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	}
 	client, err := ssh.Dial("tcp", router.Hostname, config)
 	if err != nil {
+		log.Printf("%s: dial failed (%s): %v",
+			sshLogPrefix, routerTag(router), err)
 		return nil, errs.ConnectionFailed
 	}
 	defer client.Close()
@@ -34,14 +72,34 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	for i, c := range cmd {
 		session, err := client.NewSession()
 		if err != nil {
+			log.Printf("%s: new session failed (%s cmd_index=%d cmd=%q): %v",
+				sshLogPrefix, routerTag(router), i, c, err)
 			return nil, errs.ExecFailed
 		}
+		// Capture stderr separately so we can surface it in the server
+		// log when a command exits non-zero or the session blows up.
+		var stderr bytes.Buffer
+		session.Stderr = &stderr
 		output, err := session.Output(c)
 		if err != nil {
+			log.Printf("%s: command failed (%s cmd_index=%d cmd=%q stderr=%q): %v",
+				sshLogPrefix, routerTag(router), i, c,
+				truncate(stderr.String(), 512), err)
+			session.Close()
 			return nil, errs.ExecFailed
 		}
 		ret[i] = string(output)
 		session.Close()
 	}
 	return ret, nil
+}
+
+// truncate shortens s to at most n bytes, appending an ellipsis marker
+// if truncation occurred. Used to keep log lines bounded for noisy
+// router stderr output.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…(truncated)"
 }

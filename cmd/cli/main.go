@@ -233,29 +233,58 @@ func handleBGPRoute(client lookingglassconnect.LookingGlassServiceClient) (strin
 }
 
 func handleBGPCommunity(client lookingglassconnect.LookingGlassServiceClient) (string, time.Time, error) {
-	params := strings.SplitN(lgRequest.Params, ":", 2)
-	if len(params) != 2 {
-		return "", time.Time{}, fmt.Errorf("invalid parameter: %s", lgRequest.Params)
+	// Auto-detect standard (ASN:VALUE) vs Large (GLOBAL:LOCAL1:LOCAL2) community
+	// based on the number of colon-separated parts in the parameter.
+	params := strings.Split(lgRequest.Params, ":")
+	switch len(params) {
+	case 2:
+		asn, err := strconv.ParseInt(params[0], 10, 32)
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		val, err := strconv.ParseInt(params[1], 10, 32)
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		bgpCommunity, err := client.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+			RouterId: lgRequest.RouterID,
+			Community: &pb.BGPCommunity{
+				Asn:   int32(asn),
+				Value: int32(val),
+			},
+		}))
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		return string(bgpCommunity.Msg.GetResult()), bgpCommunity.Msg.Timestamp.AsTime(), nil
+	case 3:
+		global, err := strconv.ParseUint(params[0], 10, 32)
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		local1, err := strconv.ParseUint(params[1], 10, 32)
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		local2, err := strconv.ParseUint(params[2], 10, 32)
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		bgpLarge, err := client.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+			RouterId: lgRequest.RouterID,
+			Community: &pb.BGPLargeCommunity{
+				GlobalAdmin: uint32(global),
+				LocalData1:  uint32(local1),
+				LocalData2:  uint32(local2),
+			},
+		}))
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		return string(bgpLarge.Msg.GetResult()), bgpLarge.Msg.Timestamp.AsTime(), nil
+	default:
+		return "", time.Time{}, fmt.Errorf("invalid community parameter %q: expected ASN:VALUE (standard) or GLOBAL:LOCAL1:LOCAL2 (large)", lgRequest.Params)
 	}
-	asn, err := strconv.ParseInt(params[0], 10, 32)
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	val, err := strconv.ParseInt(params[1], 10, 32)
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	bgpCommunity, err := client.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
-		RouterId: lgRequest.RouterID,
-		Community: &pb.BGPCommunity{
-			Asn:   int32(asn),
-			Value: int32(val),
-		},
-	}))
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	return string(bgpCommunity.Msg.GetResult()), bgpCommunity.Msg.Timestamp.AsTime(), nil
 }
 
 func handleBGPASPath(client lookingglassconnect.LookingGlassServiceClient) (string, time.Time, error) {

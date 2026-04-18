@@ -14,11 +14,15 @@ traceroute:
 
 bgp:
     route:
-        - show route protocol bgp {{.IP.IP}} table {{.Cfg.VRF}}.inet.0 detail
-        - show route protocol bgp {{.IP.IP}} table {{.Cfg.VRF}}.inet6.0 detail
+        # Exact target → single-table lookup chosen by {{.IP.Family}}.
+        # JunOS table naming: <VRF>.inet.0 for IPv4, <VRF>.inet6.0 for IPv6.
+        - 'show route protocol bgp {{.IP.IP}} table {{.Cfg.VRF}}.{{if eq .IP.Family "ipv4"}}inet{{else}}inet6{{end}}.0 detail'
     community:
         - show route protocol bgp community {{.Community}} table {{.Cfg.VRF}}.inet.0
         - show route protocol bgp community {{.Community}} table {{.Cfg.VRF}}.inet6.0
+    largecommunity:
+        - show route protocol bgp large-community {{.LargeCommunity}} table {{.Cfg.VRF}}.inet.0
+        - show route protocol bgp large-community {{.LargeCommunity}} table {{.Cfg.VRF}}.inet6.0
     aspath:
         - show route protocol bgp aspath-regex "{{.ASPath}}" table {{.Cfg.VRF}}.inet.0
         - show route protocol bgp aspath-regex "{{.ASPath}}" table {{.Cfg.VRF}}.inet6.0

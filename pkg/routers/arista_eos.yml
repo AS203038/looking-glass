@@ -2,7 +2,7 @@ name: arista_eos
 
 ping:
     ipv4:
-        - ping vrf {{.Cfg.VRF}} {{.IP.IP}} source {{.Cfg.Source4.IP}} repeat 5
+        - ping vrf {{.Cfg.VRF}} ip {{.IP.IP}} source {{.Cfg.Source4.IP}} repeat 5
     ipv6:
         - ping vrf {{.Cfg.VRF}} ipv6 {{.IP.IP}} source {{.Cfg.Source6.IP}} repeat 5
 
@@ -14,11 +14,13 @@ traceroute:
 
 bgp:
     route:
-        - show ip bgp {{.IP.IP}} vrf {{.Cfg.VRF}}
-        - show ipv6 bgp {{.IP.IP}} vrf {{.Cfg.VRF}}
+        - 'show {{if eq .IP.Family "ipv4"}}ip{{else}}ipv6{{end}} bgp {{.IP.IP}} vrf {{.Cfg.VRF}}'
     community:
-        - show ip bgp community {{.Community}}
-        - show ipv6 bgp community {{.Community}}
+        - show ip bgp community {{.Community}} vrf {{.Cfg.VRF}}
+        - show ipv6 bgp community {{.Community}} vrf {{.Cfg.VRF}}
+    largecommunity:
+        - show ip bgp large-community {{.LargeCommunity}} vrf {{.Cfg.VRF}}
+        - show ipv6 bgp large-community {{.LargeCommunity}} vrf {{.Cfg.VRF}}
     aspath:
-        - show ip bgp regexp {{.ASPath}}
-        - show ipv6 bgp regexp {{.ASPath}}
+        - show ip bgp regexp {{.ASPath}} vrf {{.Cfg.VRF}}
+        - show ipv6 bgp regexp {{.ASPath}} vrf {{.Cfg.VRF}}

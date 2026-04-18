@@ -43,6 +43,7 @@
       | Pb.TracerouteResponse
       | Pb.BGPRouteResponse
       | Pb.BGPCommunityResponse
+      | Pb.BGPLargeCommunityResponse
       | Pb.BGPASPathResponse;
     try {
       switch (command) {
@@ -64,17 +65,40 @@
             target: parameter,
           });
           break;
-        case "bgp_community":
-          res = await LookingGlassClient().bGPCommunity(<
-            Pb.BGPCommunityRequest
-          >{
-            routerId: router.id,
-            community: <Pb.BGPCommunity>{
-              asn: parseInt(parameter.split(":")[0]),
-              value: parseInt(parameter.split(":")[1]),
-            },
-          });
+        case "bgp_community": {
+          // Auto-detect standard (RFC 1997) vs Large (RFC 8092) BGP community
+          // based on the colon-separated part count:
+          //   2 parts  → standard BGPCommunity (ASN:VALUE)
+          //   3 parts  → BGPLargeCommunity     (GLOBAL:LOCAL1:LOCAL2)
+          const parts = parameter.split(":");
+          if (parts.length === 2) {
+            res = await LookingGlassClient().bGPCommunity(<
+              Pb.BGPCommunityRequest
+            >{
+              routerId: router.id,
+              community: <Pb.BGPCommunity>{
+                asn: parseInt(parts[0]),
+                value: parseInt(parts[1]),
+              },
+            });
+          } else if (parts.length === 3) {
+            res = await LookingGlassClient().bGPLargeCommunity(<
+              Pb.BGPLargeCommunityRequest
+            >{
+              routerId: router.id,
+              community: <Pb.BGPLargeCommunity>{
+                globalAdmin: parseInt(parts[0]),
+                localData1: parseInt(parts[1]),
+                localData2: parseInt(parts[2]),
+              },
+            });
+          } else {
+            throw new Error(
+              `Invalid community "${parameter}": expected ASN:VALUE (standard) or GLOBAL:LOCAL1:LOCAL2 (large)`,
+            );
+          }
           break;
+        }
         case "bgp_aspath_regex":
           res = await LookingGlassClient().bGPASPath(<Pb.BGPASPathRequest>{
             routerId: router.id,
