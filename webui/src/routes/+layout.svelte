@@ -75,7 +75,24 @@
         r = window.matchMedia("(prefers-color-scheme: dark)").matches;
       t || (n && r) ? e.add("dark") : e.remove("dark");
     })();
+
+    // Tear down the pre-hydration loading overlay injected by app.html.
+    // We fade it out via a CSS class transition, then remove the node
+    // from the DOM once the transition has finished so it cannot
+    // interfere with layout, focus, or pointer events.
+    const overlay = document.getElementById("lds-overlay");
+    if (overlay) {
+      const cleanup = () => overlay.remove();
+      overlay.addEventListener("transitionend", cleanup, { once: true });
+      // Safety net in case the transitionend event never fires
+      // (e.g. reduced motion, interrupted transition, stacking bugs).
+      setTimeout(cleanup, 1000);
+      // Defer one frame so the browser registers the starting state
+      // before we toggle the class and kick off the fade-out.
+      requestAnimationFrame(() => overlay.classList.add("lds-hide"));
+    }
   });
+
 </script>
 
 <svelte:head>

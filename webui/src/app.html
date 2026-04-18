@@ -20,38 +20,275 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     %sveltekit.head%
     <style>
-      .lds-dual-ring,
-      .lds-dual-ring:after {
-        box-sizing: border-box;
+      /* ------------------------------------------------------------------
+       * Pre-hydration loading overlay.
+       *
+       * Rendered from the static HTML shell before any JS/CSS framework
+       * has loaded, so all styles here must be self-contained (no
+       * Tailwind / Skeleton tokens) and framework-free.
+       *
+       * The root layout's onMount handler toggles `.lds-hide` to fade
+       * the overlay out, then removes it from the DOM on transitionend.
+       * ------------------------------------------------------------------ */
+
+      #lds-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8fafc;
+        color: #0f172a;
+        z-index: 9999;
+        opacity: 1;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          sans-serif;
+        transition:
+          opacity 250ms ease-out,
+          visibility 0s linear 0s;
       }
-      .lds-dual-ring {
-        display: inline-block;
-        width: 80px;
-        height: 80px;
+      #lds-overlay.lds-hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 250ms ease-out,
+          visibility 0s linear 250ms;
       }
-      .lds-dual-ring:after {
-        content: " ";
-        display: block;
-        width: 64px;
-        height: 64px;
-        margin: 8px;
+      html.dark #lds-overlay,
+      html[data-theme-mode="dark"] #lds-overlay {
+        background-color: #0f172a;
+        color: #e2e8f0;
+      }
+      @media (prefers-color-scheme: dark) {
+        html:not(.light) #lds-overlay {
+          background-color: #0f172a;
+          color: #e2e8f0;
+        }
+      }
+
+      /* ---- Traceroute loader ------------------------------------------- */
+
+      .lg-loader {
+        --hop-count: 5;
+        --hop-size: 14px;
+        --track-width: min(72vw, 360px);
+        --cycle: 2.4s;
+        --accent: #38bdf8; /* sky-400 */
+        --accent-glow: rgba(56, 189, 248, 0.55);
+        --muted: rgba(15, 23, 42, 0.25);
+        --line: rgba(15, 23, 42, 0.15);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        user-select: none;
+      }
+      html.dark .lg-loader,
+      html[data-theme-mode="dark"] .lg-loader {
+        --muted: rgba(226, 232, 240, 0.25);
+        --line: rgba(226, 232, 240, 0.18);
+      }
+      @media (prefers-color-scheme: dark) {
+        html:not(.light) .lg-loader {
+          --muted: rgba(226, 232, 240, 0.25);
+          --line: rgba(226, 232, 240, 0.18);
+        }
+      }
+
+      .lg-loader__track {
+        position: relative;
+        width: var(--track-width);
+        height: calc(var(--hop-size) * 2.2);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      /* The connecting wire between hops */
+      .lg-loader__track::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: calc(var(--hop-size) / 2);
+        right: calc(var(--hop-size) / 2);
+        height: 2px;
+        transform: translateY(-50%);
+        background: var(--line);
+        border-radius: 2px;
+      }
+
+      .lg-hop {
+        position: relative;
+        width: var(--hop-size);
+        height: var(--hop-size);
         border-radius: 50%;
-        border: 6.4px solid currentColor;
-        border-color: currentColor transparent currentColor transparent;
-        animation: lds-dual-ring 1.2s linear infinite;
+        background: var(--muted);
+        box-shadow: 0 0 0 0 var(--accent-glow);
+        animation: lg-hop-pulse var(--cycle) ease-in-out infinite;
+        animation-delay: calc(var(--i) * (var(--cycle) / var(--hop-count)));
+        z-index: 1;
       }
-      @keyframes lds-dual-ring {
+
+      /* The packet that travels along the line */
+      .lg-packet {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: calc(var(--hop-size) * 0.55);
+        height: calc(var(--hop-size) * 0.55);
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow:
+          0 0 8px 2px var(--accent-glow),
+          0 0 16px 4px var(--accent-glow);
+        transform: translate(-50%, -50%);
+        animation: lg-packet-travel var(--cycle) ease-in-out infinite;
+        z-index: 2;
+      }
+
+      .lg-loader__title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        opacity: 0.9;
+      }
+
+      .lg-loader__subtitle {
+        font-size: 0.8125rem;
+        letter-spacing: 0.04em;
+        opacity: 0.6;
+        font-variant-numeric: tabular-nums;
+      }
+      /* Animated trailing dots on the subtitle */
+      .lg-loader__subtitle::after {
+        content: "";
+        display: inline-block;
+        width: 1.2em;
+        text-align: left;
+        animation: lg-ellipsis 1.4s steps(4, end) infinite;
+      }
+
+      @keyframes lg-hop-pulse {
+        0%,
+        100% {
+          background: var(--muted);
+          transform: scale(1);
+          box-shadow: 0 0 0 0 var(--accent-glow);
+        }
+        /* Hop "lights up" for roughly one slot of the cycle */
+        10%,
+        25% {
+          background: var(--accent);
+          transform: scale(1.35);
+          box-shadow: 0 0 10px 2px var(--accent-glow);
+        }
+        40% {
+          background: var(--muted);
+          transform: scale(1);
+          box-shadow: 0 0 0 0 var(--accent-glow);
+        }
+      }
+
+      @keyframes lg-packet-travel {
         0% {
-          transform: rotate(0deg);
+          left: 0%;
+          opacity: 0;
+        }
+        5% {
+          opacity: 1;
+        }
+        95% {
+          opacity: 1;
         }
         100% {
-          transform: rotate(360deg);
+          left: 100%;
+          opacity: 0;
+        }
+      }
+
+      @keyframes lg-ellipsis {
+        0% {
+          content: "";
+        }
+        25% {
+          content: ".";
+        }
+        50% {
+          content: "..";
+        }
+        75%,
+        100% {
+          content: "...";
+        }
+      }
+
+      /* Accessibility: honor reduced-motion preference.
+       * Replace the travelling packet and scaling hops with a gentle
+       * cross-fade so the loader still reads as "active" without motion. */
+      @media (prefers-reduced-motion: reduce) {
+        .lg-hop {
+          animation: lg-hop-fade 2s ease-in-out infinite;
+        }
+        .lg-packet {
+          display: none;
+        }
+        .lg-loader__subtitle::after {
+          animation: none;
+          content: "...";
+        }
+        @keyframes lg-hop-fade {
+          0%,
+          100% {
+            background: var(--muted);
+          }
+          50% {
+            background: var(--accent);
+          }
         }
       }
     </style>
+    <script>
+      // Bootstrap the user's explicit theme preference before first paint
+      // so the overlay doesn't flash the wrong background on reload.
+      // Skeleton's LightSwitch stores "modeUserPrefers" in localStorage:
+      //   "true"  => light mode, "false" => dark mode.
+      (function () {
+        try {
+          var pref = localStorage.getItem("modeUserPrefers");
+          var prefersDark =
+            pref === "false" ||
+            (pref === null &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (prefersDark) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {
+          /* localStorage may be unavailable (private mode, sandbox, etc.) */
+        }
+      })();
+    </script>
   </head>
   <body data-sveltekit-preload-data="hover" data-theme="">
-    <div class="lds-dual-ring"></div>
+    <div id="lds-overlay" role="status" aria-label="Loading">
+      <div class="lg-loader">
+        <div class="lg-loader__track" aria-hidden="true">
+          <span class="lg-hop" style="--i: 0"></span>
+          <span class="lg-hop" style="--i: 1"></span>
+          <span class="lg-hop" style="--i: 2"></span>
+          <span class="lg-hop" style="--i: 3"></span>
+          <span class="lg-hop" style="--i: 4"></span>
+          <span class="lg-packet"></span>
+        </div>
+        <div class="lg-loader__title">Looking Glass</div>
+        <div class="lg-loader__subtitle">tracing route</div>
+      </div>
+    </div>
     <div style="display: contents" class="h-full overflow-hidden">
       %sveltekit.body%
     </div>

@@ -22,12 +22,9 @@
     { value: "bgp_aspath_regex", label: "BGP ASPath Regex" },
   ];
 
-  // Suggest the expected format depending on the selected action.
-  //   bgp_community → "ASN:VALUE" (standard) or "GLOBAL:LOCAL1:LOCAL2" (large)
-  //   others        → generic "Parameter..."
   $: parameterPlaceholder =
     _cmd === "bgp_community"
-      ? "e.g. 65000:100 or 214503:8:3607"
+      ? "e.g. 65000:100 or 65000:123:456"
       : "Parameter...";
 
   let popupSettings: PopupSettings = {
