@@ -32,7 +32,10 @@ jobs:
         node-version: 20
         cache: 'pnpm'
         cache-dependency-path: webui/pnpm-lock.yaml
-    - uses: bufbuild/buf-setup-action@v1.30.1
+    - uses: bufbuild/buf-setup-action@v1
+      with:
+        version: latest
+        github_token: ${{ secrets.GITHUB_TOKEN }}
     - name: Generate Protobuf
       run: |
         cd protobuf
