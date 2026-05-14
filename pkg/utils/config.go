@@ -60,14 +60,12 @@ type RedisConfig struct {
 }
 
 type WebConfig struct {
-	Enabled   bool         `yaml:"enabled"`
-	GrpcURL   string       `yaml:"grpc_url"`
-	Theme     string       `yaml:"theme"`
-	Title     string       `yaml:"title"`
-	Header    HFBlock      `yaml:"header"`
-	Footer    HFBlock      `yaml:"footer"`
-	RtListMax int          `yaml:"rt_list_max"`
-	Sentry    SentryConfig `yaml:"sentry"`
+	Enabled bool         `yaml:"enabled"`
+	GrpcURL string       `yaml:"grpc_url"`
+	Title   string       `yaml:"title"`
+	Header  HFBlock      `yaml:"header"`
+	Footer  HFBlock      `yaml:"footer"`
+	Sentry  SentryConfig `yaml:"sentry"`
 }
 
 type SentryConfig struct {

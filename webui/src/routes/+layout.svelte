@@ -1,222 +1,61 @@
 <script lang="ts">
-  import "../app.postcss";
-  import { AppShell, AppBar, LightSwitch } from "@skeletonlabs/skeleton";
-  import { env } from "$env/dynamic/public";
-  import {
-    computePosition,
-    autoUpdate,
-    offset,
-    shift,
-    flip,
-    arrow,
-  } from "@floating-ui/dom";
-  import { storePopup, popup } from "@skeletonlabs/skeleton";
-  import Icon from "@iconify/svelte";
-  import { onMount } from "svelte";
+	import './layout.css';
+	import { onMount } from 'svelte';
+	import { getEnv } from '$lib/env';
+	import Header from '$lib/components/layout/Header.svelte';
+	import Footer from '$lib/components/layout/Footer.svelte';
+	import ResultsSheet from '$lib/components/ResultsSheet.svelte';
+	import CommandDock from '$lib/components/CommandDock.svelte';
+	import Toasts from '$lib/components/Toasts.svelte';
 
-  storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
+	let { children } = $props();
 
-  // Generate iterable Link List
-  export let header_links: any[] = [];
-  if (env.PUBLIC_HEADER_LINKS) {
-    header_links = env.PUBLIC_HEADER_LINKS.split(",").map((link) => {
-      const [name, href] = link.split("|");
-      return { name, href };
-    });
-  }
+	const env = getEnv();
+	const title = env.PUBLIC_PAGE_TITLE || env.PUBLIC_HEADER_TEXT || 'Looking Glass';
 
-  // Generate iterable Link List
-  export let footer_links: any[] = [];
-  if (env.PUBLIC_FOOTER_LINKS) {
-    footer_links = env.PUBLIC_FOOTER_LINKS.split(",").map((link) => {
-      const [name, href] = link.split("|");
-      return { name, href };
-    });
-  }
-  footer_links.push({
-    name: "Version " + env.PUBLIC_LG_VERSION?.split("+")[0],
-    href: "https://github.com/AS203038/looking-glass",
-  });
-
-  // Set Page Title
-  export let title =
-    env.PUBLIC_PAGE_TITLE || env.PUBLIC_HEADER_TEXT || "Looking Glass NG+";
-
-  let footer_enabled =
-    env.PUBLIC_FOOTER_LINKS != "" ||
-    env.PUBLIC_FOOTER_LOGO != "" ||
-    env.PUBLIC_FOOTER_TEXT != "";
-
-  let sentry_enabled = env.PUBLIC_SENTRY_DSN != "";
-  if (sentry_enabled) {
-    import("@sentry/svelte").then(
-      ({ init, browserTracingIntegration, replayIntegration }) => {
-        init({
-          dsn: env.PUBLIC_SENTRY_DSN,
-          environment: env.PUBLIC_SENTRY_ENV,
-          release: env.PUBLIC_LG_VERSION?.split("+")[0],
-          integrations: [browserTracingIntegration(), replayIntegration()],
-          // tracePropagationTargets: [env.PUBLIC_GRPC_URL],
-          tracesSampleRate: parseFloat(env.PUBLIC_SENTRY_SAMPLE_RATE || "0.0"),
-          replaysSessionSampleRate: 0.1,
-          replaysOnErrorSampleRate: 1.0,
-        });
-      },
-    );
-  }
-
-  onMount(() => {
-    // Set Theme
-    document.body.setAttribute("data-theme", env.PUBLIC_THEME);
-    (function Gn() {
-      const e = document.documentElement.classList,
-        t = localStorage.getItem("modeUserPrefers") === "false",
-        n = !("modeUserPrefers" in localStorage),
-        r = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      t || (n && r) ? e.add("dark") : e.remove("dark");
-    })();
-
-    // Tear down the pre-hydration loading overlay injected by app.html.
-    // We fade it out via a CSS class transition, then remove the node
-    // from the DOM once the transition has finished so it cannot
-    // interfere with layout, focus, or pointer events.
-    const overlay = document.getElementById("lds-overlay");
-    if (overlay) {
-      const cleanup = () => overlay.remove();
-      overlay.addEventListener("transitionend", cleanup, { once: true });
-      // Safety net in case the transitionend event never fires
-      // (e.g. reduced motion, interrupted transition, stacking bugs).
-      setTimeout(cleanup, 1000);
-      // Defer one frame so the browser registers the starting state
-      // before we toggle the class and kick off the fade-out.
-      requestAnimationFrame(() => overlay.classList.add("lds-hide"));
-    }
-  });
-
+	onMount(() => {
+		// Tear down the pre-hydration overlay defined in app.html.
+		const overlay = document.getElementById('lg-boot');
+		if (!overlay) return;
+		const cleanup = () => overlay.remove();
+		overlay.addEventListener('transitionend', cleanup, { once: true });
+		setTimeout(cleanup, 1000); // safety net
+		requestAnimationFrame(() => overlay.classList.add('lg-hide'));
+	});
 </script>
 
 <svelte:head>
-  <title>{title}</title>
-  <meta
-    name="generator"
-    content="r0cket-net/looking-glass {env.PUBLIC_LG_VERSION}"
-  />
+	<title>{title}</title>
+	<meta name="generator" content={`AS203038/looking-glass ${env.PUBLIC_LG_VERSION}`} />
 </svelte:head>
 
-<!-- App Shell -->
-<AppShell>
-  <svelte:fragment slot="header">
-    <!-- App Bar -->
-    <AppBar
-      gridColumns="grid-cols-3"
-      slotDefault="place-self-center"
-      slotTrail="place-content-end"
-    >
-      <svelte:fragment slot="lead">
-        <a class="text-xl uppercase" href="/">
-          <img class="w-16 h-full" alt="Logo" src={env.PUBLIC_HEADER_LOGO} />
-        </a>
-      </svelte:fragment>
-      <a class="text-xl uppercase" href="/">{env.PUBLIC_HEADER_TEXT}</a>
-      <svelte:fragment slot="trail">
-        {#if env.PUBLIC_HEADER_LINKS}
-          <button
-            use:popup={{ event: "click", target: "header_links" }}
-            class="btn-icon btn-sm lg:!hidden"
-          >
-            <Icon icon="ic:baseline-menu" class="text-xl" />
-          </button>
-          <span class="relative hidden lg:block space-x-2">
-            {#each header_links as { name, href }}
-              <a
-                class="btn btn-sm variant-ghost inline"
-                {href}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span>{name}</span>
-              </a>
-            {/each}
-          </span>
-          <div class="card p-4 w-60 shadow-xl" data-popup="header_links">
-            <div class="space-y-4">
-              <nav class="list-nav">
-                <ul>
-                  {#each header_links as { name, href }}
-                    <li>
-                      <a {href} target="_blank" rel="noreferrer">
-                        <span>{name}</span>
-                      </a>
-                    </li>
-                  {/each}
-                </ul>
-              </nav>
-            </div>
-          </div>
-        {/if}
-        <div class="ml-4">
-          <LightSwitch />
-        </div>
-      </svelte:fragment>
-    </AppBar>
-  </svelte:fragment>
-  <!-- Page Route Content -->
-  <slot />
-  <svelte:fragment slot="footer">
-    <!-- App Bar -->
-    <AppBar
-      gridColumns="grid-cols-3"
-      slotDefault="place-self-center"
-      slotTrail="place-content-end"
-    >
-      <svelte:fragment slot="lead">
-        {#if env.PUBLIC_FOOTER_LOGO}
-          <a class="text-xl uppercase" href="/">
-            <img class="w-16 h-full" alt="Logo" src={env.PUBLIC_FOOTER_LOGO} />
-          </a>
-        {/if}
-      </svelte:fragment>
-      {#if env.PUBLIC_FOOTER_TEXT}
-        <a class="uppercase" href="/">{env.PUBLIC_FOOTER_TEXT}</a>
-      {/if}
-      <svelte:fragment slot="trail">
-        <button
-          use:popup={{
-            event: "click",
-            target: "footer_links",
-          }}
-          class="btn-icon btn-sm lg:!hidden"
-        >
-          <Icon icon="ic:baseline-menu" class="text-xl" />
-        </button>
-        <span class="relative hidden lg:block space-x-2">
-          {#each footer_links as { name, href }}
-            <a
-              class="btn btn-sm variant-ghost inline"
-              {href}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span>{name}</span>
-            </a>
-          {/each}
-        </span>
-        <div class="card p-4 w-60 shadow-xl" data-popup="footer_links">
-          <div class="space-y-4">
-            <nav class="list-nav">
-              <ul>
-                {#each footer_links as { name, href }}
-                  <li>
-                    <a {href} target="_blank" rel="noreferrer">
-                      <span>{name}</span>
-                    </a>
-                  </li>
-                {/each}
-              </ul>
-            </nav>
-          </div>
-        </div>
-      </svelte:fragment>
-    </AppBar>
-  </svelte:fragment>
-</AppShell>
+<!--
+	Layout (document-scroll model, no nested overflow):
+
+	  Header       — sticky top: 0      (always visible)
+	  <main>       — flex-1, scrolls with document
+	  ResultsSheet — sticky bottom: 0   (above the dock; hidden/peek/expand)
+	  CommandDock  — sticky bottom: 0   (always reachable)
+	  Footer       — normal flow at the document's end
+
+	Both sticky-bottom elements live in the same flex column. Because the
+	ResultsSheet is rendered *before* the dock in source order, when both
+	have `bottom: 0` they naturally stack — the dock at the very bottom,
+	the sheet directly above it. The sheet's height is controlled by its
+	internal state (hidden / peek / expand+px) so the picker behind it
+	always has room.
+-->
+<div
+	class="flex min-h-screen flex-col"
+	style="background-color: var(--color-bg); color: var(--color-fg);"
+>
+	<Header />
+	<main class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 pt-6 pb-2 sm:px-6 sm:pt-8">
+		{@render children()}
+	</main>
+	<ResultsSheet />
+	<CommandDock />
+	<Footer />
+</div>
+
+<Toasts />

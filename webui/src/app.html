@@ -1,296 +1,238 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%sveltekit.assets%/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="%sveltekit.assets%/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="%sveltekit.assets%/favicon-16x16.png"
-    />
-    <link rel="manifest" href="/site.webmanifest" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    %sveltekit.head%
-    <style>
-      /* ------------------------------------------------------------------
-       * Pre-hydration loading overlay.
-       *
-       * Rendered from the static HTML shell before any JS/CSS framework
-       * has loaded, so all styles here must be self-contained (no
-       * Tailwind / Skeleton tokens) and framework-free.
-       *
-       * The root layout's onMount handler toggles `.lds-hide` to fade
-       * the overlay out, then removes it from the DOM on transitionend.
-       * ------------------------------------------------------------------ */
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="%sveltekit.assets%/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="%sveltekit.assets%/favicon-16x16.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="text-scale" content="scale" />
+		%sveltekit.head%
+		<style>
+			/* ------------------------------------------------------------------
+			 * Pre-hydration loading overlay (framework-free).
+			 *
+			 * Rendered from the static HTML shell before any JS has executed,
+			 * so all styles here must be self-contained — no Tailwind tokens,
+			 * no component imports. We *do* read the resolved Catppuccin
+			 * Base / Crust / Text via CSS vars on :root so the overlay
+			 * matches the user's mode without flashing.
+			 *
+			 * The bootstrap script below sets `.dark` and `data-flavor` on
+			 * <html> before first paint. layout.css then provides the
+			 * matching --lg-base / --lg-crust / --lg-text values for the
+			 * overlay to consume.
+			 * ------------------------------------------------------------------ */
 
-      #lds-overlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #f8fafc;
-        color: #0f172a;
-        z-index: 9999;
-        opacity: 1;
-        font-family:
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          "Segoe UI",
-          Roboto,
-          "Helvetica Neue",
-          sans-serif;
-        transition:
-          opacity 250ms ease-out,
-          visibility 0s linear 0s;
-      }
-      #lds-overlay.lds-hide {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition:
-          opacity 250ms ease-out,
-          visibility 0s linear 250ms;
-      }
-      html.dark #lds-overlay,
-      html[data-theme-mode="dark"] #lds-overlay {
-        background-color: #0f172a;
-        color: #e2e8f0;
-      }
-      @media (prefers-color-scheme: dark) {
-        html:not(.light) #lds-overlay {
-          background-color: #0f172a;
-          color: #e2e8f0;
-        }
-      }
+			:root {
+				/* Latte (default-light) Catppuccin tokens used pre-hydration */
+				--lg-base: #eff1f5;
+				--lg-crust: #dce0e8;
+				--lg-text: #4c4f69;
+				--lg-accent: #1e66f5;
+				--lg-overlay: rgba(76, 79, 105, 0.18);
+			}
+			html.dark {
+				/* Mocha (default-dark) */
+				--lg-base: #1e1e2e;
+				--lg-crust: #11111b;
+				--lg-text: #cdd6f4;
+				--lg-accent: #89b4fa;
+				--lg-overlay: rgba(205, 214, 244, 0.16);
+			}
 
-      /* ---- Traceroute loader ------------------------------------------- */
+			html,
+			body {
+				margin: 0;
+				background: var(--lg-base);
+				color: var(--lg-text);
+			}
 
-      .lg-loader {
-        --hop-count: 5;
-        --hop-size: 14px;
-        --track-width: min(72vw, 360px);
-        --cycle: 2.4s;
-        --accent: #38bdf8; /* sky-400 */
-        --accent-glow: rgba(56, 189, 248, 0.55);
-        --muted: rgba(15, 23, 42, 0.25);
-        --line: rgba(15, 23, 42, 0.15);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-        user-select: none;
-      }
-      html.dark .lg-loader,
-      html[data-theme-mode="dark"] .lg-loader {
-        --muted: rgba(226, 232, 240, 0.25);
-        --line: rgba(226, 232, 240, 0.18);
-      }
-      @media (prefers-color-scheme: dark) {
-        html:not(.light) .lg-loader {
-          --muted: rgba(226, 232, 240, 0.25);
-          --line: rgba(226, 232, 240, 0.18);
-        }
-      }
+			#lg-boot {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 1.25rem;
+				background: var(--lg-base);
+				color: var(--lg-text);
+				z-index: 9999;
+				opacity: 1;
+				font-family:
+					ui-sans-serif,
+					system-ui,
+					-apple-system,
+					'Segoe UI',
+					Roboto,
+					'Helvetica Neue',
+					sans-serif;
+				transition: opacity 250ms ease-out;
+			}
+			#lg-boot.lg-hide {
+				opacity: 0;
+				pointer-events: none;
+			}
 
-      .lg-loader__track {
-        position: relative;
-        width: var(--track-width);
-        height: calc(var(--hop-size) * 2.2);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      /* The connecting wire between hops */
-      .lg-loader__track::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: calc(var(--hop-size) / 2);
-        right: calc(var(--hop-size) / 2);
-        height: 2px;
-        transform: translateY(-50%);
-        background: var(--line);
-        border-radius: 2px;
-      }
+			.lg-track {
+				--hop-size: 14px;
+				--track-w: min(72vw, 360px);
+				position: relative;
+				width: var(--track-w);
+				height: calc(var(--hop-size) * 2.2);
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+			.lg-track::before {
+				content: '';
+				position: absolute;
+				top: 50%;
+				left: calc(var(--hop-size) / 2);
+				right: calc(var(--hop-size) / 2);
+				height: 2px;
+				transform: translateY(-50%);
+				background: var(--lg-overlay);
+				border-radius: 2px;
+			}
+			.lg-hop {
+				position: relative;
+				width: var(--hop-size);
+				height: var(--hop-size);
+				border-radius: 50%;
+				background: var(--lg-overlay);
+				animation: lg-hop-pulse 2.4s ease-in-out infinite;
+				animation-delay: calc(var(--i) * 0.48s);
+				z-index: 1;
+			}
+			.lg-packet {
+				position: absolute;
+				top: 50%;
+				left: 0;
+				width: calc(var(--hop-size) * 0.55);
+				height: calc(var(--hop-size) * 0.55);
+				border-radius: 50%;
+				background: var(--lg-accent);
+				transform: translate(-50%, -50%);
+				animation: lg-packet 2.4s ease-in-out infinite;
+				z-index: 2;
+			}
+			.lg-title {
+				font-size: 1.125rem;
+				font-weight: 600;
+				letter-spacing: 0.02em;
+				opacity: 0.9;
+			}
+			.lg-sub {
+				font-size: 0.8125rem;
+				letter-spacing: 0.04em;
+				opacity: 0.6;
+				font-variant-numeric: tabular-nums;
+			}
+			.lg-sub::after {
+				content: '';
+				display: inline-block;
+				width: 1.2em;
+				text-align: left;
+				animation: lg-dots 1.4s steps(4, end) infinite;
+			}
 
-      .lg-hop {
-        position: relative;
-        width: var(--hop-size);
-        height: var(--hop-size);
-        border-radius: 50%;
-        background: var(--muted);
-        box-shadow: 0 0 0 0 var(--accent-glow);
-        animation: lg-hop-pulse var(--cycle) ease-in-out infinite;
-        animation-delay: calc(var(--i) * (var(--cycle) / var(--hop-count)));
-        z-index: 1;
-      }
+			@keyframes lg-hop-pulse {
+				0%,
+				40%,
+				100% {
+					background: var(--lg-overlay);
+					transform: scale(1);
+				}
+				10%,
+				25% {
+					background: var(--lg-accent);
+					transform: scale(1.35);
+				}
+			}
+			@keyframes lg-packet {
+				0% {
+					left: 0%;
+					opacity: 0;
+				}
+				5% {
+					opacity: 1;
+				}
+				95% {
+					opacity: 1;
+				}
+				100% {
+					left: 100%;
+					opacity: 0;
+				}
+			}
+			@keyframes lg-dots {
+				0% {
+					content: '';
+				}
+				25% {
+					content: '.';
+				}
+				50% {
+					content: '..';
+				}
+				75%,
+				100% {
+					content: '...';
+				}
+			}
 
-      /* The packet that travels along the line */
-      .lg-packet {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        width: calc(var(--hop-size) * 0.55);
-        height: calc(var(--hop-size) * 0.55);
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow:
-          0 0 8px 2px var(--accent-glow),
-          0 0 16px 4px var(--accent-glow);
-        transform: translate(-50%, -50%);
-        animation: lg-packet-travel var(--cycle) ease-in-out infinite;
-        z-index: 2;
-      }
-
-      .lg-loader__title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        opacity: 0.9;
-      }
-
-      .lg-loader__subtitle {
-        font-size: 0.8125rem;
-        letter-spacing: 0.04em;
-        opacity: 0.6;
-        font-variant-numeric: tabular-nums;
-      }
-      /* Animated trailing dots on the subtitle */
-      .lg-loader__subtitle::after {
-        content: "";
-        display: inline-block;
-        width: 1.2em;
-        text-align: left;
-        animation: lg-ellipsis 1.4s steps(4, end) infinite;
-      }
-
-      @keyframes lg-hop-pulse {
-        0%,
-        100% {
-          background: var(--muted);
-          transform: scale(1);
-          box-shadow: 0 0 0 0 var(--accent-glow);
-        }
-        /* Hop "lights up" for roughly one slot of the cycle */
-        10%,
-        25% {
-          background: var(--accent);
-          transform: scale(1.35);
-          box-shadow: 0 0 10px 2px var(--accent-glow);
-        }
-        40% {
-          background: var(--muted);
-          transform: scale(1);
-          box-shadow: 0 0 0 0 var(--accent-glow);
-        }
-      }
-
-      @keyframes lg-packet-travel {
-        0% {
-          left: 0%;
-          opacity: 0;
-        }
-        5% {
-          opacity: 1;
-        }
-        95% {
-          opacity: 1;
-        }
-        100% {
-          left: 100%;
-          opacity: 0;
-        }
-      }
-
-      @keyframes lg-ellipsis {
-        0% {
-          content: "";
-        }
-        25% {
-          content: ".";
-        }
-        50% {
-          content: "..";
-        }
-        75%,
-        100% {
-          content: "...";
-        }
-      }
-
-      /* Accessibility: honor reduced-motion preference.
-       * Replace the travelling packet and scaling hops with a gentle
-       * cross-fade so the loader still reads as "active" without motion. */
-      @media (prefers-reduced-motion: reduce) {
-        .lg-hop {
-          animation: lg-hop-fade 2s ease-in-out infinite;
-        }
-        .lg-packet {
-          display: none;
-        }
-        .lg-loader__subtitle::after {
-          animation: none;
-          content: "...";
-        }
-        @keyframes lg-hop-fade {
-          0%,
-          100% {
-            background: var(--muted);
-          }
-          50% {
-            background: var(--accent);
-          }
-        }
-      }
-    </style>
-    <script>
-      // Bootstrap the user's explicit theme preference before first paint
-      // so the overlay doesn't flash the wrong background on reload.
-      // Skeleton's LightSwitch stores "modeUserPrefers" in localStorage:
-      //   "true"  => light mode, "false" => dark mode.
-      (function () {
-        try {
-          var pref = localStorage.getItem("modeUserPrefers");
-          var prefersDark =
-            pref === "false" ||
-            (pref === null &&
-              window.matchMedia("(prefers-color-scheme: dark)").matches);
-          if (prefersDark) {
-            document.documentElement.classList.add("dark");
-          }
-        } catch (e) {
-          /* localStorage may be unavailable (private mode, sandbox, etc.) */
-        }
-      })();
-    </script>
-  </head>
-  <body data-sveltekit-preload-data="hover" data-theme="">
-    <div id="lds-overlay" role="status" aria-label="Loading">
-      <div class="lg-loader">
-        <div class="lg-loader__track" aria-hidden="true">
-          <span class="lg-hop" style="--i: 0"></span>
-          <span class="lg-hop" style="--i: 1"></span>
-          <span class="lg-hop" style="--i: 2"></span>
-          <span class="lg-hop" style="--i: 3"></span>
-          <span class="lg-hop" style="--i: 4"></span>
-          <span class="lg-packet"></span>
-        </div>
-        <div class="lg-loader__title">Looking Glass</div>
-        <div class="lg-loader__subtitle">tracing route</div>
-      </div>
-    </div>
-    <div style="display: contents" class="h-full overflow-hidden">
-      %sveltekit.body%
-    </div>
-  </body>
+			@media (prefers-reduced-motion: reduce) {
+				.lg-hop {
+					animation: none;
+					background: var(--lg-accent);
+					opacity: 0.4;
+				}
+				.lg-packet {
+					display: none;
+				}
+				.lg-sub::after {
+					animation: none;
+					content: '...';
+				}
+			}
+		</style>
+		<script>
+			// Bootstrap the user's theme preference before first paint so the
+			// overlay (and subsequent UI) doesn't flash the wrong palette.
+			//
+			// Two-mode model: `lg-mode` is 'light' | 'dark' | null (=system).
+			// We only set `.dark` on <html>; the rest of the theming is driven
+			// from CSS by the dark variant in layout.css.
+			(function () {
+				try {
+					var mode = localStorage.getItem('lg-mode');
+					var prefersDark =
+						mode === 'dark' ||
+						(mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+					if (prefersDark) document.documentElement.classList.add('dark');
+				} catch (e) {
+					/* localStorage unavailable — fall through with no-op */
+				}
+			})();
+		</script>
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div id="lg-boot" role="status" aria-label="Loading">
+			<div class="lg-track" aria-hidden="true">
+				<span class="lg-hop" style="--i: 0"></span>
+				<span class="lg-hop" style="--i: 1"></span>
+				<span class="lg-hop" style="--i: 2"></span>
+				<span class="lg-hop" style="--i: 3"></span>
+				<span class="lg-hop" style="--i: 4"></span>
+				<span class="lg-packet"></span>
+			</div>
+			<div class="lg-title">Looking Glass</div>
+			<div class="lg-sub">tracing route</div>
+		</div>
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
 </html>

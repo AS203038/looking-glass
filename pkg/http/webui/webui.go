@@ -8,7 +8,6 @@ import (
 )
 
 type EnvJS struct {
-	Theme            string  `json:"PUBLIC_THEME"`
 	PageTitle        string  `json:"PUBLIC_PAGE_TITLE"`
 	HeaderText       string  `json:"PUBLIC_HEADER_TEXT"`
 	HeaderLinks      string  `json:"PUBLIC_HEADER_LINKS"`
@@ -21,12 +20,10 @@ type EnvJS struct {
 	SentryDSN        string  `json:"PUBLIC_SENTRY_DSN"`
 	SentryEnv        string  `json:"PUBLIC_SENTRY_ENV"`
 	SentrySampleRate float64 `json:"PUBLIC_SENTRY_SAMPLE_RATE"`
-	RtListMax        int     `json:"PUBLIC_RT_LIST_MAX"`
 }
 
 func ConfigInjector(cfg utils.WebConfig) http.Handler {
 	envobj := EnvJS{
-		Theme:       cfg.Theme,
 		PageTitle:   cfg.Title,
 		HeaderText:  cfg.Header.Text,
 		HeaderLinks: cfg.Header.LinksString(),
@@ -36,7 +33,6 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 		FooterLogo:  cfg.Footer.Logo,
 		GrpcURL:     cfg.GrpcURL,
 		LGVersion:   utils.Version(),
-		RtListMax:   cfg.RtListMax,
 	}
 	if cfg.Sentry.Enabled {
 		envobj.SentryDSN = cfg.Sentry.DSN

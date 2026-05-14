@@ -1,0 +1,290 @@
+/* ------------------------------------------------------------------------
+ * Looking Glass — Catppuccin theming (Tailwind v4, CSS-first).
+ *
+ * Two-mode model:
+ *   - light  → Latte
+ *   - dark   → Mocha   (toggled via `.dark` on <html>)
+ *
+ * We expose three layers of CSS custom properties:
+ *
+ *   1. Raw Catppuccin palette tokens — `--color-ctp-<name>` per flavor.
+ *      Available as Tailwind utilities (e.g. `text-ctp-mauve`, `bg-ctp-base`)
+ *      because Tailwind v4 promotes any `@theme` `--color-*` token to a
+ *      utility class automatically.
+ *
+ *   2. Semantic aliases — `--color-bg`, `--color-fg`, `--color-accent`, …
+ *      These swap per mode and are what app components should normally
+ *      consume (e.g. `bg-bg`, `text-fg`, `border-border`). This keeps
+ *      component markup mode-agnostic.
+ *
+ *   3. Pre-hydration overlay tokens (`--lg-base` etc. on :root) live in
+ *      `app.html` so the boot screen can paint before this stylesheet
+ *      has even parsed. layout.css does NOT override them — they're
+ *      framework-free by design.
+ *
+ * Reference palettes: https://github.com/catppuccin/catppuccin/blob/main/docs/style-guide.md
+ * ------------------------------------------------------------------------ */
+
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/* Make `.dark` on any ancestor (we put it on <html>) the dark-variant trigger.
+ * The default v4 variant is `prefers-color-scheme`, which we override here
+ * because we want explicit user control (set in localStorage before paint). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	/* ---- Catppuccin Latte (light mode) — palette tokens ------------------ */
+	--color-ctp-rosewater: #dc8a78;
+	--color-ctp-flamingo: #dd7878;
+	--color-ctp-pink: #ea76cb;
+	--color-ctp-mauve: #8839ef;
+	--color-ctp-red: #d20f39;
+	--color-ctp-maroon: #e64553;
+	--color-ctp-peach: #fe640b;
+	--color-ctp-yellow: #df8e1d;
+	--color-ctp-green: #40a02b;
+	--color-ctp-teal: #179299;
+	--color-ctp-sky: #04a5e5;
+	--color-ctp-sapphire: #209fb5;
+	--color-ctp-blue: #1e66f5;
+	--color-ctp-lavender: #7287fd;
+
+	--color-ctp-text: #4c4f69;
+	--color-ctp-subtext-1: #5c5f77;
+	--color-ctp-subtext-0: #6c6f85;
+	--color-ctp-overlay-2: #7c7f93;
+	--color-ctp-overlay-1: #8c8fa1;
+	--color-ctp-overlay-0: #9ca0b0;
+	--color-ctp-surface-2: #acb0be;
+	--color-ctp-surface-1: #bcc0cc;
+	--color-ctp-surface-0: #ccd0da;
+	--color-ctp-base: #eff1f5;
+	--color-ctp-mantle: #e6e9ef;
+	--color-ctp-crust: #dce0e8;
+
+	/* ---- Semantic aliases — Latte defaults -------------------------------- */
+	--color-bg: var(--color-ctp-base);
+	--color-bg-mantle: var(--color-ctp-mantle);
+	--color-bg-crust: var(--color-ctp-crust);
+	--color-bg-elevated: var(--color-ctp-mantle);
+	--color-bg-inset: var(--color-ctp-crust);
+
+	--color-surface: var(--color-ctp-surface-0);
+	--color-surface-hover: var(--color-ctp-surface-1);
+	--color-surface-active: var(--color-ctp-surface-2);
+
+	--color-overlay: var(--color-ctp-overlay-0);
+	--color-border: var(--color-ctp-surface-1);
+	--color-border-strong: var(--color-ctp-overlay-0);
+
+	--color-fg: var(--color-ctp-text);
+	--color-fg-muted: var(--color-ctp-subtext-1);
+	--color-fg-subtle: var(--color-ctp-subtext-0);
+
+	--color-accent: var(--color-ctp-mauve);
+	--color-accent-hover: var(--color-ctp-blue);
+	--color-on-accent: var(--color-ctp-base);
+
+	--color-success: var(--color-ctp-green);
+	--color-warning: var(--color-ctp-yellow);
+	--color-danger: var(--color-ctp-red);
+	--color-info: var(--color-ctp-sapphire);
+
+	/* Focus ring tracks the accent at low alpha. */
+	--color-ring: color-mix(in oklab, var(--color-accent) 55%, transparent);
+
+	/* Typography */
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+	--font-mono: ui-monospace, 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+
+	/* Radii (Catppuccin design tends to favour soft, generous corners) */
+	--radius-sm: 0.375rem;
+	--radius-md: 0.625rem;
+	--radius-lg: 0.875rem;
+	--radius-xl: 1.25rem;
+}
+
+/* ---- Catppuccin Mocha (dark mode) — palette + semantic overrides ---------
+ * Tailwind v4 lets us re-declare `@theme` tokens inside a selector; the
+ * resolved value flows through to every utility that referenced the token. */
+.dark {
+	--color-ctp-rosewater: #f5e0dc;
+	--color-ctp-flamingo: #f2cdcd;
+	--color-ctp-pink: #f5c2e7;
+	--color-ctp-mauve: #cba6f7;
+	--color-ctp-red: #f38ba8;
+	--color-ctp-maroon: #eba0ac;
+	--color-ctp-peach: #fab387;
+	--color-ctp-yellow: #f9e2af;
+	--color-ctp-green: #a6e3a1;
+	--color-ctp-teal: #94e2d5;
+	--color-ctp-sky: #89dceb;
+	--color-ctp-sapphire: #74c7ec;
+	--color-ctp-blue: #89b4fa;
+	--color-ctp-lavender: #b4befe;
+
+	--color-ctp-text: #cdd6f4;
+	--color-ctp-subtext-1: #bac2de;
+	--color-ctp-subtext-0: #a6adc8;
+	--color-ctp-overlay-2: #9399b2;
+	--color-ctp-overlay-1: #7f849c;
+	--color-ctp-overlay-0: #6c7086;
+	--color-ctp-surface-2: #585b70;
+	--color-ctp-surface-1: #45475a;
+	--color-ctp-surface-0: #313244;
+	--color-ctp-base: #1e1e2e;
+	--color-ctp-mantle: #181825;
+	--color-ctp-crust: #11111b;
+
+	--color-bg: var(--color-ctp-base);
+	--color-bg-mantle: var(--color-ctp-mantle);
+	--color-bg-crust: var(--color-ctp-crust);
+	--color-bg-elevated: var(--color-ctp-surface-0);
+	--color-bg-inset: var(--color-ctp-mantle);
+
+	--color-surface: var(--color-ctp-surface-0);
+	--color-surface-hover: var(--color-ctp-surface-1);
+	--color-surface-active: var(--color-ctp-surface-2);
+
+	--color-overlay: var(--color-ctp-overlay-0);
+	--color-border: var(--color-ctp-surface-1);
+	--color-border-strong: var(--color-ctp-overlay-0);
+
+	--color-fg: var(--color-ctp-text);
+	--color-fg-muted: var(--color-ctp-subtext-1);
+	--color-fg-subtle: var(--color-ctp-subtext-0);
+
+	--color-accent: var(--color-ctp-mauve);
+	--color-accent-hover: var(--color-ctp-lavender);
+	--color-on-accent: var(--color-ctp-base);
+
+	--color-success: var(--color-ctp-green);
+	--color-warning: var(--color-ctp-yellow);
+	--color-danger: var(--color-ctp-red);
+	--color-info: var(--color-ctp-sapphire);
+
+	--color-ring: color-mix(in oklab, var(--color-accent) 60%, transparent);
+}
+
+/* ---- Global base resets ---------------------------------------------------- */
+
+html,
+body {
+	height: 100%;
+	background-color: var(--color-bg);
+	color: var(--color-fg);
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* Native focus rings tinted by the active accent. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+
+/* Selection color follows the accent (low-contrast on its own background). */
+::selection {
+	background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+	color: var(--color-fg);
+}
+
+/* Scrollbars match the surface stack rather than the OS default. */
+* {
+	scrollbar-color: var(--color-overlay) transparent;
+	scrollbar-width: thin;
+}
+
+/* ---- Component utility classes -------------------------------------------
+ * Small set of reusable patterns; everything else stays as Tailwind utilities
+ * in component markup. We keep these centralised so per-flavor restyling
+ * stays trivial.
+ * ------------------------------------------------------------------------- */
+
+@layer components {
+	.lg-card {
+		@apply rounded-xl border bg-(--color-bg-elevated) text-(--color-fg) shadow-sm;
+		border-color: var(--color-border);
+	}
+
+	.lg-btn {
+		@apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors;
+	}
+	.lg-btn:disabled,
+	.lg-btn[aria-disabled='true'] {
+		@apply cursor-not-allowed opacity-50;
+	}
+
+	.lg-btn-primary {
+		background-color: var(--color-accent);
+		color: var(--color-on-accent);
+	}
+	.lg-btn-primary:hover:not(:disabled):not([aria-disabled='true']) {
+		background-color: var(--color-accent-hover);
+	}
+
+	.lg-btn-ghost {
+		background-color: transparent;
+		color: var(--color-fg);
+	}
+	.lg-btn-ghost:hover:not(:disabled):not([aria-disabled='true']) {
+		background-color: var(--color-surface-hover);
+	}
+
+	.lg-btn-outline {
+		background-color: transparent;
+		color: var(--color-fg);
+		border: 1px solid var(--color-border);
+	}
+	.lg-btn-outline:hover:not(:disabled):not([aria-disabled='true']) {
+		background-color: var(--color-surface);
+		border-color: var(--color-border-strong);
+	}
+
+	.lg-input {
+		@apply w-full rounded-lg px-3 py-2 text-sm transition-colors;
+		background-color: var(--color-bg-elevated);
+		color: var(--color-fg);
+		border: 1px solid var(--color-border);
+	}
+	.lg-input::placeholder {
+		color: var(--color-fg-subtle);
+	}
+	.lg-input:focus {
+		border-color: var(--color-accent);
+		outline: none;
+		box-shadow: 0 0 0 3px var(--color-ring);
+	}
+
+	.lg-badge {
+		@apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+		background-color: var(--color-bg-elevated);
+		color: var(--color-fg-muted);
+		border: 1px solid var(--color-border);
+	}
+	.lg-badge-success {
+		background-color: color-mix(in oklab, var(--color-success) 18%, transparent);
+		color: var(--color-success);
+		border-color: color-mix(in oklab, var(--color-success) 35%, transparent);
+	}
+	.lg-badge-danger {
+		background-color: color-mix(in oklab, var(--color-danger) 18%, transparent);
+		color: var(--color-danger);
+		border-color: color-mix(in oklab, var(--color-danger) 35%, transparent);
+	}
+	.lg-badge-warning {
+		background-color: color-mix(in oklab, var(--color-warning) 18%, transparent);
+		color: var(--color-warning);
+		border-color: color-mix(in oklab, var(--color-warning) 35%, transparent);
+	}
+	.lg-badge-info {
+		background-color: color-mix(in oklab, var(--color-info) 18%, transparent);
+		color: var(--color-info);
+		border-color: color-mix(in oklab, var(--color-info) 35%, transparent);
+	}
+}
