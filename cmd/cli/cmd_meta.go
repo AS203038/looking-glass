@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newVersionCmd builds the `version` subcommand, which reports the
+// CLI's own version plus the Go toolchain it was built with. The
+// version string is the package-level Version, overridable at link
+// time via `-ldflags "-X main.Version=…"`.
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
@@ -34,6 +38,11 @@ func newVersionCmd() *cobra.Command {
 	}
 }
 
+// newCompletionCmd builds the `completion` subcommand, which emits
+// the shell-completion script for the requested shell to stdout.
+// Cobra's `MatchAll(ExactArgs(1), OnlyValidArgs)` rejects typos
+// like `lg-cli completion sh` rather than silently producing
+// nothing — much friendlier than the stock cobra behaviour.
 func newCompletionCmd() *cobra.Command {
 	completion := &cobra.Command{
 		Use:                   "completion [bash|zsh|fish|powershell]",

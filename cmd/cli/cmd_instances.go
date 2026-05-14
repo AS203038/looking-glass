@@ -8,6 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newInstancesCmd builds the `instances` subcommand, which prints
+// every Looking Glass entry in the configured public index.
+//
+// The index is fetched through [fetchIndex] (with its own tight
+// timeout, independent of --timeout) so a slow registry never eats
+// into the RPC budget. Output respects --output: pretty renders a
+// columnar table, json dumps the raw index entries, and raw prints
+// one instance name per line for easy scripting.
 func newInstancesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "instances",

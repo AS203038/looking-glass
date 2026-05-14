@@ -1,3 +1,10 @@
+// Looking Glass gRPC / ConnectRPC service contract.
+//
+// Comments in this file are propagated by `buf generate` into the
+// generated Go (godoc) and TypeScript (TSDoc) sources, so they
+// double as the canonical documentation for both client surfaces.
+// Keep them concrete and operator-focused.
+//
 // (-- api-linter: core::0191::proto-package=disabled
 //     aip.dev/not-precedent: We need to do this because go module structures. --)
 syntax = "proto3";
@@ -11,203 +18,268 @@ option java_multiple_files = true;
 option java_outer_classname = "LookingGlassProto";
 option java_package = "lookingglass.v0";
 
-// Data Streaming Service
+// LookingGlassService is the operator-facing gRPC contract exposed
+// by every Looking Glass instance. Every method is a unary RPC; no
+// streaming endpoints are defined.
+//
+// Methods fall into two families:
+//
+//   - "Catalogue": GetInfo, GetRouters. Cheap, cacheable, used by
+//     the WebUI to populate the picker and the CLI to resolve
+//     router names.
+//   - "Operations": Ping, Traceroute, BGP*. Trigger a live SSH
+//     session against the chosen router; latency-bound, cacheable
+//     by request body via the Redis middleware.
 service LookingGlassService {
+  // GetInfo returns the hostname and version of the running
+  // instance. Used as a connectivity probe and for the WebUI
+  // footer's "running <version>" label.
   rpc GetInfo(google.protobuf.Empty) returns (GetInfoResponse) {}
+
+  // GetRouters returns one page of the router catalogue including
+  // the latest health snapshot for each entry.
   rpc GetRouters(GetRoutersRequest) returns (GetRoutersResponse) {}
+
+  // Ping issues the vendor-template ping command against the
+  // chosen router.
   rpc Ping(PingRequest) returns (PingResponse) {}
+
+  // Traceroute issues the vendor-template traceroute command
+  // against the chosen router.
   rpc Traceroute(TracerouteRequest) returns (TracerouteResponse) {}
+
+  // BGPSummary prints the BGP neighbour summary table for the
+  // chosen router.
   rpc BGPSummary(BGPSummaryRequest) returns (BGPSummaryResponse) {}
+
+  // BGPRoute looks up the best (and, where supported, alternate)
+  // BGP path(s) for a prefix or address.
   rpc BGPRoute(BGPRouteRequest) returns (BGPRouteResponse) {}
+
+  // BGPCommunity lists every route tagged with the supplied
+  // RFC 1997 standard BGP community.
   rpc BGPCommunity(BGPCommunityRequest) returns (BGPCommunityResponse) {}
+
+  // BGPLargeCommunity lists every route tagged with the supplied
+  // RFC 8092 large BGP community.
   rpc BGPLargeCommunity(BGPLargeCommunityRequest) returns (BGPLargeCommunityResponse) {}
+
+  // BGPASPath lists every route whose AS-path matches the supplied
+  // regular expression. The server validates the regex with a
+  // narrow allow-list before forwarding it to the router.
   rpc BGPASPath(BGPASPathRequest) returns (BGPASPathResponse) {}
 }
 
+// RouterHealth captures the outcome of the most recent reachability
+// probe performed by the server's background health-check goroutine.
 message RouterHealth {
-  // Time Checked
+  // timestamp is the time the probe completed.
   google.protobuf.Timestamp timestamp = 1;
-  // Status
+  // healthy is true when the probe completed without an SSH error.
   bool healthy = 2;
 }
 
-// Router is a router.
+// Router describes a single managed device. The `id` is a stable,
+// 1-based identifier minted by the server from the device's
+// position in the configured catalogue; clients use it as the
+// `router_id` argument to operation RPCs.
 message Router {
-  // The ID of the router.
+  // id is the stable, 1-based router identifier.
   int64 id = 1;
-  // The name of the router.
+  // name is the operator-supplied display name.
   string name = 2;
-  // The Location of the router.
+  // location is the operator-supplied site label.
   string location = 4;
-  // Health of the router.
+  // health is the latest reachability snapshot.
   RouterHealth health = 5;
 }
 
-// BGPCommunity is a standard (RFC 1997) BGP community.
+// BGPCommunity is an RFC 1997 standard BGP community in
+// "ASN:VALUE" form.
 message BGPCommunity {
-  // The ASN of the BGP community.
+  // asn is the autonomous-system number that owns the community.
   int32 asn = 1;
-  // The value of the BGP community.
+  // value is the 16-bit local value assigned by the owning AS.
   int32 value = 2;
 }
 
-// BGPLargeCommunity is a Large (RFC 8092) BGP community
-// formatted as global_admin:local_data1:local_data2.
+// BGPLargeCommunity is an RFC 8092 large BGP community in
+// "GLOBAL:LOCAL1:LOCAL2" form, all three fields 32 bits wide.
 message BGPLargeCommunity {
-  // The Global Administrator (typically an ASN) of the Large Community.
+  // global_admin is the Global Administrator (typically an ASN).
   uint32 global_admin = 1;
-  // The Local Data Part 1 of the Large Community.
+  // local_data1 is the first 32-bit Local Data Part.
   uint32 local_data1 = 2;
-  // The Local Data Part 2 of the Large Community.
+  // local_data2 is the second 32-bit Local Data Part.
   uint32 local_data2 = 3;
 }
 
-// GetInfoResponse is the response message for GetInfo.
+// GetInfoResponse carries the server identity for GetInfo.
 message GetInfoResponse {
-  // The hostname of the service.
+  // hostname is the OS-reported hostname of the server, or
+  // "unknown" if the lookup fails.
   string hostname = 1;
-  // The version of the service.
+  // version is the build's release identifier; see Go's
+  // utils.Version() for the format.
   string version = 2;
 }
 
-// GetRoutersRequest is the request message for GetRouters.
+// GetRoutersRequest selects one page of the router catalogue.
 message GetRoutersRequest {
-  // The number of routers to return.
+  // limit is the maximum number of rows to return. Server-side
+  // default is 10 when zero or unset.
   uint32 limit = 1;
 
-  // The page token.
+  // page_token is the 1-based page index. Zero is treated as 1.
   uint32 page_token = 2;
 }
 
-// GetRoutersResponse is the response message for GetRouters.
+// GetRoutersResponse carries one page of routers plus pagination
+// metadata.
 message GetRoutersResponse {
-  // The routers.
+  // routers are the rows for this page, in stable catalogue order.
   repeated Router routers = 1;
 
-  // The next page token.
+  // next_page is the token to pass back for the next page, or 0
+  // when no further pages are available.
   uint32 next_page = 2;
 
-  // Age of Response
+  // timestamp is the response generation time, useful for cache
+  // freshness checks in the client.
   google.protobuf.Timestamp timestamp = 3;
 }
 
-// PingRequest is the request message for Ping.
+// PingRequest selects the router and target for a Ping RPC.
 message PingRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
 
-  // The IP address to ping.
+  // target is the destination address, CIDR, or hostname.
   string target = 2;
 }
 
-// PingResponse is the response message for Ping.
+// PingResponse carries the raw, vendor-formatted ping output.
 message PingResponse {
-  // The result of the ping.
+  // result is the concatenated stdout of every command issued by
+  // the vendor template, newline-joined.
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }
 
-// TracerouteRequest is the request message for Traceroute.
+// TracerouteRequest selects the router and target for a
+// Traceroute RPC.
 message TracerouteRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
 
-  // The IP address to traceroute.
+  // target is the destination address, CIDR, or hostname.
   string target = 2;
 }
 
-// TracerouteResponse is the response message for Traceroute.
+// TracerouteResponse carries the raw, vendor-formatted traceroute
+// output.
 message TracerouteResponse {
-  // The result of the traceroute.
+  // result is the concatenated stdout of every command issued by
+  // the vendor template, newline-joined.
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }
 
-// BGPSummaryRequest is the request message for BGPSummary.
+// BGPSummaryRequest selects the router for a BGPSummary RPC.
 message BGPSummaryRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
 }
 
-// BGPSummaryResponse is the response message for BGPSummary.
+// BGPSummaryResponse carries the raw, vendor-formatted BGP
+// neighbour summary output.
 message BGPSummaryResponse {
-  // The BGP summary.
+  // result is the concatenated stdout of the summary command(s).
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }
 
-// BGPRouteRequest is the request message for BGPRoute.
+// BGPRouteRequest selects the router and prefix for a BGPRoute RPC.
 message BGPRouteRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
 
-  // The IP address to look up.
+  // target is the prefix or address to look up.
   string target = 2;
 }
 
-// BGPRouteResponse is the response message for BGPRoute.
+// BGPRouteResponse carries the raw, vendor-formatted route lookup
+// output.
 message BGPRouteResponse {
-  // The BGP route.
+  // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }
 
-// BGPCommunityRequest is the request message for BGPCommunity.
+// BGPCommunityRequest selects the router and community for a
+// BGPCommunity RPC.
 message BGPCommunityRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
-  // The BGP community to look up.
+  // community is the RFC 1997 standard community to look up.
   BGPCommunity community = 2;
 }
 
-// BGPCommunityResponse is the response message for BGPCommunity.
+// BGPCommunityResponse carries the raw, vendor-formatted community
+// lookup output.
 message BGPCommunityResponse {
-  // The BGP community.
+  // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }
 
-// BGPLargeCommunityRequest is the request message for BGPLargeCommunity.
+// BGPLargeCommunityRequest selects the router and large community
+// for a BGPLargeCommunity RPC.
 message BGPLargeCommunityRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
-  // The BGP Large Community to look up.
+  // community is the RFC 8092 large community to look up.
   BGPLargeCommunity community = 2;
 }
 
-// BGPLargeCommunityResponse is the response message for BGPLargeCommunity.
+// BGPLargeCommunityResponse carries the raw, vendor-formatted
+// large-community lookup output.
 message BGPLargeCommunityResponse {
-  // The BGP Large Community lookup result.
+  // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }
 
-// BGPASPathRequest is the request message for BGPASPath.
+// BGPASPathRequest selects the router and AS-path regex for a
+// BGPASPath RPC.
 message BGPASPathRequest {
-  // The ID of the router.
+  // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
 
-  // The IP address to look up.
+  // pattern is the AS-path regex. Only ASCII digits, underscores
+  // and an optional trailing "$" anchor are accepted; see the
+  // server's SanitizeASPathRegex for the exact rules.
   string pattern = 2;
 }
 
-// BGPASPathResponse is the response message for BGPASPath.
+// BGPASPathResponse carries the raw, vendor-formatted AS-path
+// regex lookup output.
 message BGPASPathResponse {
-  // The BGP AS path.
+  // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
 
-  // Age of Response
+  // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 }

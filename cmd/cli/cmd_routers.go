@@ -18,6 +18,11 @@ type routerView struct {
 	Timestamp string `json:"timestamp"`
 }
 
+// newRoutersCmd builds the `routers <instance>` subcommand, which
+// pages through the instance's GetRouters RPC and renders the full
+// catalogue with the latest health badge per device. The ID column
+// is the value to pass as `<router>` to ping/traceroute/bgp
+// commands when you want to skip the substring-resolution step.
 func newRoutersCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "routers <instance>",

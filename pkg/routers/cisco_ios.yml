@@ -1,3 +1,21 @@
+# ---------------------------------------------------------------------------
+# Vendor template: Cisco IOS / IOS-XE
+# ---------------------------------------------------------------------------
+# Target platform : classic Cisco IOS and IOS-XE (CSR1000v, ASR1000, ISR4000
+#                   and similar). NX-OS uses a different CLI grammar and is
+#                   not covered by this template.
+# Login surface   : exec-level CLI reached over SSH. All commands are issued
+#                   from the top-level prompt; no `terminal length 0` is
+#                   negotiated because every command emits bounded output.
+# Notable choices :
+#   - `bgp.route` interpolates `{{.IP.Family}}` directly: IOS-XE expects the
+#     literal "ipv4" / "ipv6" keyword in this slot.
+#   - ping/traceroute use the `ipv6` keyword for v6 (no keyword for v4); the
+#     two cases are split into family-specific entries so we avoid Go-template
+#     conditionals in the command body.
+#   - community/large-community/aspath queries fan out to both address
+#     families because the operand carries no family hint.
+# ---------------------------------------------------------------------------
 name: cisco_ios
 
 ping:

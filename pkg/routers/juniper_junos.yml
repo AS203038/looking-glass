@@ -1,3 +1,22 @@
+# ---------------------------------------------------------------------------
+# Vendor template: Juniper JunOS
+# ---------------------------------------------------------------------------
+# Target platform : JunOS on MX, PTX, ACX and SRX platforms. All commands
+#                   assume an operator-mode shell (no `cli` invocation needed
+#                   from a Unix shell — connect directly with an account that
+#                   lands in CLI).
+# Login surface   : ssh into the CLI; `rapid` is used for ping to keep the
+#                   output bounded.
+# Notable choices :
+#   - JunOS partitions routes into per-VRF tables. `bgp.route` selects the
+#     specific table for the operand's family: `<VRF>.inet.0` for IPv4,
+#     `<VRF>.inet6.0` for IPv6. The `{{if eq .IP.Family "ipv4"}}…{{end}}`
+#     conditional avoids running both tables when we already know the family.
+#   - community/large-community/aspath are issued against both family tables
+#     because the operand carries no family hint.
+#   - `aspath-regex` requires the regex be double-quoted to survive JunOS's
+#     shell tokeniser, hence the literal `"…"` in those entries.
+# ---------------------------------------------------------------------------
 name: juniper_junos
 
 ping:

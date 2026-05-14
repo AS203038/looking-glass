@@ -10,6 +10,10 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+// newInfoCmd builds the `info <instance>` subcommand, which calls
+// the instance's GetInfo RPC and prints the reported hostname and
+// release version. Doubles as a connectivity probe — if the call
+// fails the error surfaces directly from the ConnectRPC client.
 func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "info <instance>",

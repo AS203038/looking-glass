@@ -13,9 +13,12 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// tplLogTag builds a short, loggable identifier for the current render
-// attempt. It includes the template name (router type), the operation,
-// and the router config name if available. Kept credential-free.
+// tplLogTag builds a credential-free identifier for a single render
+// attempt, suitable for prefixing operator-facing log lines. The
+// router type and operation are always included; the device name
+// and VRF are added when a [utils.RouterConfig] is available so
+// failures can be traced back to a specific configured device
+// without leaking secrets.
 func tplLogTag(routerType, op string, cfg *utils.RouterConfig) string {
 	tag := "router_type=" + routerType + " op=" + op
 	if cfg != nil {
@@ -24,53 +27,98 @@ func tplLogTag(routerType, op string, cfg *utils.RouterConfig) string {
 	return tag
 }
 
-// _tpl_data represents the template data used in the router YAML file.
+// _tpl_data is the data context handed to every vendor-template
+// render. Template authors reference fields via `{{.Cfg.…}}`,
+// `{{.IP.…}}`, `{{.Community}}`, etc.; unused fields are left at
+// their zero values for operations that do not need them.
 type _tpl_data struct {
-	Cfg            *utils.RouterConfig // Cfg holds the router configuration.
-	IP             *utils.IPNet        // IP holds the IP network information.
-	Community      string              // Community holds the standard (RFC 1997) community string (ASN:VALUE).
-	LargeCommunity string              // LargeCommunity holds the Large (RFC 8092) community string (GLOBAL:LOCAL1:LOCAL2).
-	ASPath         string              // ASPath holds the AS path information.
+	// Cfg is the per-device configuration (credentials, source
+	// addresses, VRF, location, …).
+	Cfg *utils.RouterConfig
+	// IP is the validated IP/CIDR operand for ping, traceroute,
+	// and bgp.route operations.
+	IP *utils.IPNet
+	// Community is the RFC 1997 standard BGP community in
+	// "ASN:VALUE" form, populated for bgp.community lookups.
+	Community string
+	// LargeCommunity is the RFC 8092 large community in
+	// "GLOBAL:LOCAL1:LOCAL2" form, populated for bgp.largecommunity
+	// lookups.
+	LargeCommunity string
+	// ASPath is the (already sanitised) AS-path regex used by
+	// bgp.aspath lookups. See [utils.SanitizeASPathRegex].
+	ASPath string
 }
 
-// Yaml represents the structure of a YAML file.
+// Yaml is the [utils.Router] implementation that backs every shipped
+// vendor template. A single Yaml instance is parsed from disk at
+// process start and stored in the registry; it is treated as
+// immutable thereafter.
 type Yaml struct {
-	Path     string // Path represents the file path.
+	// Path is the source filename, used only for log messages.
+	Path string
+	// Template holds the unmarshalled template body. The nested
+	// anonymous struct mirrors the YAML schema exactly so that
+	// `yaml.Unmarshal` populates it directly.
 	Template struct {
-		Name string `yaml:"name"` // Name represents the template name.
+		// Name is the unique template identifier referenced from
+		// [utils.RouterConfig.Type].
+		Name string `yaml:"name"`
+		// Ping holds the command sequences for ping operations,
+		// keyed by IP family. When a family-specific list is empty
+		// the family-agnostic `any` list is used instead.
 		Ping struct {
-			Any  []string `yaml:"any"`  // Any represents the list of ping targets for any IP address.
-			IPv4 []string `yaml:"ipv4"` // IPv4 represents the list of ping targets for IPv4 addresses.
-			IPv6 []string `yaml:"ipv6"` // IPv6 represents the list of ping targets for IPv6 addresses.
-		} `yaml:"ping"` // Ping represents the ping section in the template.
+			Any  []string `yaml:"any"`
+			IPv4 []string `yaml:"ipv4"`
+			IPv6 []string `yaml:"ipv6"`
+		} `yaml:"ping"`
+		// Traceroute mirrors the Ping shape, for traceroute
+		// operations.
 		Traceroute struct {
-			Any  []string `yaml:"any"`  // Any represents the list of traceroute targets for any IP address.
-			IPv4 []string `yaml:"ipv4"` // IPv4 represents the list of traceroute targets for IPv4 addresses.
-			IPv6 []string `yaml:"ipv6"` // IPv6 represents the list of traceroute targets for IPv6 addresses.
-		} `yaml:"traceroute"` // Traceroute represents the traceroute section in the template.
+			Any  []string `yaml:"any"`
+			IPv4 []string `yaml:"ipv4"`
+			IPv6 []string `yaml:"ipv6"`
+		} `yaml:"traceroute"`
+		// BGP holds the four BGP query command sequences. These
+		// are family-agnostic at the top level: where a vendor's
+		// CLI requires different commands per family the template
+		// uses `{{if eq .IP.Family "ipv4"}}…{{end}}` conditionals.
 		BGP struct {
-			Route          []string `yaml:"route"`          // Route represents the list of BGP routes.
-			Community      []string `yaml:"community"`      // Community represents the list of BGP standard (RFC 1997) communities.
-			LargeCommunity []string `yaml:"largecommunity"` // LargeCommunity represents the list of BGP Large (RFC 8092) communities.
-			ASPath         []string `yaml:"aspath"`         // ASPath represents the list of BGP AS paths.
-		} `yaml:"bgp"` // BGP represents the BGP section in the template.
+			Route          []string `yaml:"route"`
+			Community      []string `yaml:"community"`
+			LargeCommunity []string `yaml:"largecommunity"`
+			ASPath         []string `yaml:"aspath"`
+		} `yaml:"bgp"`
 	}
 }
 
+// compiledRouters embeds every `*.yml` file in this package directory
+// into the binary so that all shipped templates are available
+// without any filesystem dependency.
+//
 //go:embed all:*.yml
 var compiledRouters embed.FS
 
-// init is a function that is automatically called before the program starts.
-// It initializes the routers by loading them from the specified directory and bundled routers.
-// It reads YAML files, unmarshals them into router templates, and registers the routers.
-// If the ROUTER_DIR environment variable is set, it loads routers from the specified directory.
-// If the bundled routers exist, it loads them as well.
-// The function logs the registration status of each router.
+// init populates the global template registry. Two sources are
+// consulted, in order:
+//
+//  1. The directory named by the ROUTER_DIR environment variable, if
+//     set. Templates discovered here win — they fully replace any
+//     bundled template with the same name. This is the supported
+//     escape hatch for operators who need to ship a custom or
+//     in-house vendor profile without forking the project.
+//  2. The embedded `*.yml` files in this package. Each is registered
+//     under its `name:` field unless an external template with the
+//     same name was already loaded in step 1, in which case a
+//     warning is logged and the embedded copy is ignored.
+//
+// Any parse / read / unmarshal error in this function panics
+// because a malformed template renders the router that depends on
+// it permanently inoperable; failing at startup is preferable to
+// surfacing template errors on every request.
 func init() {
-	// Check for ROUTER_DIR environment variable
 	rd := os.Getenv("ROUTER_DIR")
 	if rd != "" {
-		// Load all routers from ROUTER_DIR
 		files, err := os.ReadDir(rd)
 		if err != nil {
 			log.Panicf("ERROR: Could not Read directory %s: %+v", rd, err)
@@ -80,7 +128,6 @@ func init() {
 			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yml") && !strings.HasSuffix(file.Name(), ".yaml")) {
 				continue
 			}
-			// Rest of the code for processing the file
 			y := &Yaml{Path: file.Name()}
 			yamlFile, err := os.ReadFile(rd + "/" + y.Path)
 			if err != nil {
@@ -99,7 +146,6 @@ func init() {
 		}
 	}
 
-	// Load all bundled routers
 	files, err := compiledRouters.ReadDir(".")
 	if err != nil {
 		log.Panicf("ERROR: Could not Read builtin directory: %+v", err)
@@ -123,11 +169,23 @@ func init() {
 	}
 }
 
-// _tpl is a helper function used to generate a list of strings based on the provided template name and data.
-// It takes a template name and data as input and returns a list of strings generated from the template.
-// The function first determines the appropriate template to use based on the template name and the IP version in the data.
-// It then iterates over the selected template(s), executes them with the provided data, and appends the generated strings to the result list.
-// If no template is found for the given name, the function returns nil and an error of type `errs.OperationUnknown`.
+// _tpl renders the command sequence for the named operation against
+// data, returning one entry per command in the order declared by
+// the template.
+//
+// Operation routing:
+//
+//   - "ping" / "traceroute" pick the family-specific list when the
+//     operand has a definite [utils.IPFamily]; the family-agnostic
+//     `any` list otherwise.
+//   - "bgp.route", "bgp.community", "bgp.largecommunity",
+//     "bgp.aspath" map directly onto the matching template field.
+//
+// Returns [errs.OperationUnknown] when the template does not define
+// any commands for the requested operation, or when an individual
+// command fails to parse or execute as a [text/template]. The
+// underlying parse/execute error is logged server-side; clients
+// only see the sentinel.
 func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 	var tpl []string
 	var ret []string
@@ -179,37 +237,46 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 	return ret, nil
 }
 
-// Ping sends a ping request to the specified IP address using the provided router configuration.
-// It returns a slice of strings representing the ping response and an error if any.
+// Ping renders the ping command sequence for the supplied router
+// configuration and target. The family-specific template is used
+// when available, falling back to the family-agnostic `any` list.
 func (rt *Yaml) Ping(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, error) {
 	return rt._tpl("ping", _tpl_data{Cfg: cfg, IP: ip})
 }
 
-// Traceroute performs a traceroute operation using the provided router configuration and IP address.
-// It returns a slice of strings representing the traceroute results and an error if any.
+// Traceroute renders the traceroute command sequence for the
+// supplied router configuration and target. Family selection is
+// identical to [Yaml.Ping].
 func (rt *Yaml) Traceroute(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, error) {
 	return rt._tpl("traceroute", _tpl_data{Cfg: cfg, IP: ip})
 }
 
-// BGPRoute generates BGP route configuration based on the provided RouterConfig and IPNet.
-// It returns a slice of strings representing the generated configuration and an error if any.
+// BGPRoute renders the BGP-route lookup command sequence. The
+// template typically embeds `{{.IP.Family}}` so that exactly one
+// command is issued for the operand's family rather than blindly
+// querying both v4 and v6.
 func (rt *Yaml) BGPRoute(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, error) {
 	return rt._tpl("bgp.route", _tpl_data{Cfg: cfg, IP: ip})
 }
 
-// BGPCommunity returns a list of strings representing the BGP community values for the given router configuration and community.
+// BGPCommunity renders the standard-community (RFC 1997) lookup
+// command sequence for the supplied "ASN:VALUE" community string.
+// Community-style queries are family-agnostic by nature, so most
+// templates emit two commands here (one per family).
 func (rt *Yaml) BGPCommunity(cfg *utils.RouterConfig, community string) ([]string, error) {
 	return rt._tpl("bgp.community", _tpl_data{Cfg: cfg, Community: community})
 }
 
-// BGPLargeCommunity returns a list of strings representing the BGP Large Community (RFC 8092)
-// lookup commands for the given router configuration and large community string.
+// BGPLargeCommunity renders the RFC 8092 large-community lookup
+// command sequence for the supplied
+// "GLOBAL:LOCAL1:LOCAL2" community string.
 func (rt *Yaml) BGPLargeCommunity(cfg *utils.RouterConfig, largeCommunity string) ([]string, error) {
 	return rt._tpl("bgp.largecommunity", _tpl_data{Cfg: cfg, LargeCommunity: largeCommunity})
 }
 
-// BGPASPath returns a slice of strings representing the BGP AS path for the given router configuration and AS path string.
-// It uses the "_tpl" method to render the "bgp.aspath" template with the provided configuration and AS path.
+// BGPASPath renders the AS-path regex lookup command sequence.
+// The aspath string must already have been validated by
+// [utils.SanitizeASPathRegex] before reaching this method.
 func (rt *Yaml) BGPASPath(cfg *utils.RouterConfig, aspath string) ([]string, error) {
 	return rt._tpl("bgp.aspath", _tpl_data{Cfg: cfg, ASPath: aspath})
 }

@@ -7,12 +7,11 @@ FROM --platform=$BUILDPLATFORM node:alpine AS node-builder
 WORKDIR /opt
 COPY webui /opt/webui
 COPY --from=buf-builder /opt/protobuf /opt/protobuf
-RUN cd protobuf \
- && npm install \
- && cd ../webui \
- && npm install \
- && npm run build
-
+RUN npm install -g pnpm \
+ && cd webui \
+ && pnpm install --frozen-lockfile \
+ && pnpm run build
+ 
 FROM --platform=$BUILDPLATFORM golang:alpine AS go-builder
 ENV CGO_ENABLED=0
 ARG VERSION=untracked

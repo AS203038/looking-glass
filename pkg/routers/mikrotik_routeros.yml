@@ -1,3 +1,20 @@
+# ---------------------------------------------------------------------------
+# Vendor template: MikroTik RouterOS
+# ---------------------------------------------------------------------------
+# Target platform : MikroTik RouterOS 7.x (the syntax differs significantly
+#                   from RouterOS 6.x; 6.x is not covered by this template).
+# Login surface   : ssh into the RouterOS console. Commands are issued in the
+#                   form RouterOS expects from a non-interactive shell, with
+#                   absolute paths (leading `/`) so they work regardless of
+#                   the menu the user lands in.
+# Notable choices :
+#   - RouterOS's `/ping` and `/tool traceroute` infer the address family from
+#     the destination, so we don't need separate v4/v6 commands; we still
+#     split them so the source address (`src-address=…`) is family-correct.
+#   - All BGP queries use `/routing bgp advertisements print detail where …`
+#     with a regex filter (`~"…"`). A single command per operation suffices —
+#     `print` walks every advertisement and filters server-side.
+# ---------------------------------------------------------------------------
 name: mikrotik_routeros
 
 ping:

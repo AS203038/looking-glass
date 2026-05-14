@@ -26,6 +26,9 @@ func newBGPCmd() *cobra.Command {
 	return bgp
 }
 
+// newBGPSummaryCmd builds `bgp summary <instance> <router>`, which
+// prints the router's BGP neighbour summary table (one row per
+// peer) verbatim from the device.
 func newBGPSummaryCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "summary <instance> <router>",
@@ -56,6 +59,11 @@ func newBGPSummaryCmd() *cobra.Command {
 	}
 }
 
+// newBGPRouteCmd builds `bgp route <instance> <router> <prefix>`,
+// which looks up the best (and alternate, when supported) BGP path
+// for the supplied prefix or address. The vendor template embeds
+// `{{.IP.Family}}` so a single command is issued for the operand's
+// family — no wasteful dual-family lookup.
 func newBGPRouteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "route <instance> <router> <prefix>",
@@ -88,6 +96,16 @@ func newBGPRouteCmd() *cobra.Command {
 	}
 }
 
+// newBGPCommunityCmd builds `bgp community <instance> <router>
+// <community>`, with the community grammar auto-detected from the
+// number of colon-separated fields:
+//
+//   - two fields (ASN:VALUE) routes through the BGPCommunity RPC
+//     (RFC 1997 standard community).
+//   - three fields (GLOBAL:LOCAL1:LOCAL2) routes through the
+//     BGPLargeCommunity RPC (RFC 8092 large community).
+//
+// Anything else is rejected with an explanatory error message.
 func newBGPCommunityCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "community <instance> <router> <community>",
@@ -176,6 +194,10 @@ Examples:
 	}
 }
 
+// newBGPASPathCmd builds `bgp aspath <instance> <router> <regex>`
+// (alias `as-path`). The regex is forwarded verbatim — the server
+// is responsible for validating it via [utils.SanitizeASPathRegex]
+// before letting it reach a router.
 func newBGPASPathCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "aspath <instance> <router> <regex>",

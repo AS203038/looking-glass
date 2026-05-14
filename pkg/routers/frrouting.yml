@@ -1,3 +1,22 @@
+# ---------------------------------------------------------------------------
+# Vendor template: FRRouting (FRR)
+# ---------------------------------------------------------------------------
+# Target platform : FRRouting 8.x and newer, running on a Linux host.
+# Login surface   : a regular Unix SSH login. Commands are issued directly to
+#                   the shell; BGP queries shell out to `vtysh -c '…'` instead
+#                   of opening an interactive vtysh session so each request is
+#                   stateless and idempotent.
+# Notable choices :
+#   - ping/traceroute target the Linux userland binaries because FRR itself
+#     does not provide diagnostic commands; the source address is bound with
+#     `-I` / `-s` to honour the configured per-router source IP.
+#   - `bgp.route` uses `{{.IP.Family}}` directly because FRR's vtysh accepts
+#     the literal "ipv4" / "ipv6" keyword in that slot, sparing us a template
+#     conditional.
+#   - community/large-community/aspath queries are intentionally issued for
+#     both families: those operations are discovery-style and do not carry an
+#     operand from which a family can be derived.
+# ---------------------------------------------------------------------------
 name: frrouting
 
 ping:

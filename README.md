@@ -1,31 +1,118 @@
-Just another looking glass software because all existing ones are either dead or ancient.
+# Looking Glass
 
-# Demo
-[AS203038](https://lg.as203038.net/) uses this as a daily driver.
+A modern, stateless network-diagnostic platform — a single
+self-contained Go binary that fronts a fleet of routers over SSH
+and exposes ping / traceroute / BGP lookups through a gRPC
+(ConnectRPC) API, an embedded SvelteKit web UI, and a `lg-cli`
+client.
 
-# Tech Stack
-The foundation is built on Golang and gRPC (specifically ConnectRPC). This Golang codebase handles all interactions with the routers through SSH. Future plans include incorporating an embedded goBGPD.
+Built to replace the abandoned/ancient looking glass projects most
+of us are still running.
 
-The WebUI is built using SvelteKit and served as static files embedded in the final Golang binary. All UI configurations are injected at runtime by auto-generating the `env.js` file.
+**Demo instance:** <https://lg.as203038.net/> (used as a daily
+driver by AS203038).
 
-The WebUI and Golang communicate using gRPC-Web through ConnectRPC's SDKs.
+## Why?
 
-There is also a generic gRPC client available for direct interaction with the backend, in case you prefer not to use the WebUI. It is released as the lg-cli artifact in the releases. If you want, you can add your LG instance to the [public_index.yaml](https://github.com/AS203038/looking-glass/blob/main/public_index.yaml) file and submit a PR.
+- **Modern stack** — Go + ConnectRPC + SvelteKit. Single binary,
+  embedded UI, HTTP/2 + gRPC-Web out of the box.
+- **Extensible** — vendor support is YAML data, not Go code. Add a
+  new router type without recompiling. See
+  [Router Templates](./docs/router-templates.md).
+- **Production-ready** — stateless, horizontally scalable, optional
+  Redis cache, optional Sentry integration, health checking.
+- **Multiple vendors out of the box** — FRRouting, Cisco IOS/IOS-XE,
+  Arista EOS, Juniper JunOS, Nokia SR OS, MikroTik RouterOS.
+- **CLI + WebUI + native gRPC** — pick whichever surface fits.
 
-# Configuration
-All configuration is done in a single YAML file. It may not be perfect, but it works well enough for now.
+## Quick start
 
-An example config is included with all release builds and can also be found [here](https://github.com/AS203038/looking-glass/blob/main/example.config.yaml).
+```bash
+# Run a released binary
+curl -L -o looking-glass \
+  https://github.com/AS203038/looking-glass/releases/latest/download/looking-glass-linux-amd64
+chmod +x looking-glass
+curl -L -o config.yaml \
+  https://raw.githubusercontent.com/AS203038/looking-glass/main/example.config.yaml
+$EDITOR config.yaml
+./looking-glass
+```
 
-# Scalability
-The server is stateless and can work well with multiple replicas and load-balancing schemes, as long as the load balancer can handle gRPC traffic (HTTP/2).
+Or build from source / Docker — full walk-through in
+[**Getting Started**](./docs/getting-started.md).
 
-Router listing is paginated, and the UI switches to an expandable list format grouped by locations when there are too many routers (>4, determined by a dice roll). Large outputs, such as BGP routes and traceroute, are now paginated to prevent browser crashes. You can request full BGP tables through the UI without any issues (except for Firefox on Windows arm64).
+## Documentation
 
-# Logging
-HTTP requests are logged using the common Apache Access Log Format (without timestamp).
+All documentation lives in [`docs/`](./docs/). Start with the
+[index](./docs/README.md) or jump straight to:
 
-Optionally, you can enable Sentry logging and tracing, which will be applied to both the frontend and backend.
+| Topic                                                     | Use when…                                                            |
+| --------------------------------------------------------- | -------------------------------------------------------------------- |
+| [Getting Started](./docs/getting-started.md)              | You want a running server in five minutes.                            |
+| [Configuration](./docs/configuration.md)                  | You need the authoritative `config.yaml` reference.                   |
+| [Deployment](./docs/deployment.md)                        | You're shipping to production (systemd / Docker / Kubernetes).        |
+| [Architecture](./docs/architecture.md)                    | You want to understand how the pieces fit together.                   |
+| [Router Templates](./docs/router-templates.md)            | You need to add a vendor / write or override a router template.       |
+| [API Reference](./docs/api.md)                            | You're integrating with the gRPC / ConnectRPC API.                    |
+| [CLI Reference](./docs/cli.md)                            | You're using or scripting against `lg-cli`.                           |
+| [Development](./docs/development.md)                      | You're contributing — local dev loop, codegen, conventions.           |
 
-# Contributions
-Contributions are more than welcome! We would love to have more router models. If you don't want to write the code yourself, you can also give us read-only access to your router(s), and we will write the models.
+## Public index — add your instance!
+
+Looking Glass ships with a CLI (`lg-cli`) that can address any
+instance by **friendly name** or **ASN** rather than a full URL:
+
+```bash
+lg-cli ping as203038 1 1.1.1.1
+lg-cli routers AS203038
+```
+
+That lookup is powered by [`public_index.yaml`](./public_index.yaml)
+— a small, plain-text registry of public Looking Glass
+deployments. Right now it contains exactly one entry. **It will
+only become genuinely useful when more operators add theirs.**
+
+### 📣 If you run a public Looking Glass instance — please send a PR.
+
+It's a five-line addition:
+
+```yaml
+index:
+  - name: "QuxLabs"
+    asn: 203038
+    url: "https://lg.as203038.net/"
+  - name: "Your Network"            # ← add your block
+    asn: 65000
+    url: "https://lg.example.net/"
+```
+
+The instance doesn't need to run this Looking Glass —
+any ConnectRPC-speaking endpoint that implements the
+`lookingglass.v0.LookingGlassService` contract works. (Old PHP or
+Perl looking glasses don't qualify; this is part of the point of
+replacing them.) Open a PR against the file and that's it.
+
+For details on the API contract every indexed instance is expected
+to honour, see [API Reference](./docs/api.md).
+
+## Project status
+
+Production-ready and actively maintained. The AS203038 demo
+instance is a daily-driver deployment.
+
+Currently bundled router templates: FRRouting, Cisco IOS/IOS-XE,
+Arista EOS, Juniper JunOS, Nokia SR OS, MikroTik RouterOS.
+
+## Contributing
+
+Contributions are welcome — especially **new router templates**.
+If you can give us read-only access to a vendor we don't yet
+support, we'll happily write the template ourselves. File an
+issue.
+
+See [Development](./docs/development.md) for the local dev loop
+and conventions.
+
+## License
+
+GPL-3.0-or-later. See [`LICENSE`](./LICENSE).

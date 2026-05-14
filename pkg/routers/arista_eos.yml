@@ -1,3 +1,19 @@
+# ---------------------------------------------------------------------------
+# Vendor template: Arista EOS
+# ---------------------------------------------------------------------------
+# Target platform : Arista EOS, recent feature releases. All commands assume
+#                   the CLI session is in enable / privileged mode.
+# Login surface   : ssh into the EOS CLI; no eAPI/JSON-RPC dependency.
+# Notable choices :
+#   - EOS places the address-family tag *before* `bgp` (e.g. `show ip bgp`
+#     rather than Cisco IOS's `show bgp ipv4 unicast`). `bgp.route` therefore
+#     uses a Go-template conditional to emit `ip` for IPv4 and `ipv6` for
+#     IPv6 — a literal `{{.IP.Family}}` would be wrong here.
+#   - ping/traceroute split per family because the v4 form is `ip <addr>` and
+#     v6 is `ipv6 <addr>`; a single shared command line is not expressible.
+#   - community/large-community/aspath are issued per family because the
+#     operand carries no family information.
+# ---------------------------------------------------------------------------
 name: arista_eos
 
 ping:

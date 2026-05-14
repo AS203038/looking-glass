@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+// GenerateSelfSignedPair mints an in-memory ECDSA (P-256) key plus
+// a matching self-signed X.509 certificate, suitable for bringing
+// up the HTTPS listener without any on-disk PKI material.
+//
+// The certificate carries:
+//
+//   - a placeholder CN of "lg.example.com" and organisation
+//     "Looking Glass"
+//   - a NotAfter 100 years in the future, since the key is
+//     ephemeral and re-generated on every process start
+//   - KeyUsage covering CertSign / DigitalSignature / KeyEncipherment
+//   - ExtKeyUsage limited to ServerAuth
+//
+// The returned bytes are a DER-encoded certificate, not PEM; callers
+// embed them directly into a [tls.Certificate].
+//
+// Intended only for development and lab deployments — production
+// instances should be fronted by a properly-issued certificate via
+// [TLSConfig.Cert] / [TLSConfig.Key].
 func GenerateSelfSignedPair() (*ecdsa.PrivateKey, []byte, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {

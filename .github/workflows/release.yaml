@@ -24,17 +24,28 @@ jobs:
             goos: windows
     steps:
     - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 9
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+        cache-dependency-path: webui/pnpm-lock.yaml
     - uses: bufbuild/buf-setup-action@v1.30.1
-    - name: Build Protobuf
+    - name: Generate Protobuf
       run: |
         cd protobuf
         buf generate
-        npm install
+    # The webui is a pnpm workspace that links ../protobuf via `workspace:*`,
+    # which npm cannot resolve. pnpm wires the local @as203038/lg-protobuf
+    # package up automatically — no separate install step in protobuf/ needed.
     - name: Build Svelte WebUI
       run: |
         cd webui
-        npm install
-        npm run build
+        pnpm install --frozen-lockfile
+        pnpm run build
+
     - uses: wangyoucao577/go-release-action@v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

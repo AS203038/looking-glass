@@ -1,3 +1,21 @@
+# ---------------------------------------------------------------------------
+# Vendor template: Nokia Service Router Operating System (SR OS / TiMOS)
+# ---------------------------------------------------------------------------
+# Target platform : Nokia (formerly Alcatel-Lucent) 7750 SR, 7950 XRS and
+#                   similar platforms running SR OS / TiMOS, classic CLI.
+# Login surface   : ssh into the SR OS classic CLI. Commands are issued from
+#                   exec-level prompts; the configured VRF is passed via the
+#                   `router <name>` qualifier so the same template covers the
+#                   base router and any service VPRN.
+# Notable choices :
+#   - `show router … bgp routes <ip>` auto-detects address family from the
+#     operand, so `bgp.route` is a single command rather than one per family.
+#   - Large communities are queried via the `large:<value>` shorthand inside
+#     the existing `community` keyword — SR OS does not have a distinct
+#     `large-community` selector in the classic CLI.
+#   - `aspath-regex` requires double-quotes around the regex to survive the
+#     CLI tokeniser, mirroring JunOS.
+# ---------------------------------------------------------------------------
 name: nokia_sros
 
 ping:
