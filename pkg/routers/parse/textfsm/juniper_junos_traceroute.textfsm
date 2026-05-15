@@ -1,0 +1,41 @@
+# TextFSM template: Juniper JunOS `traceroute`.
+#
+# JunOS emits three probes per hop on a single line, with a
+# resolved-hostname-plus-parenthesised-IP form when reverse DNS
+# resolves, and a bare IP otherwise. The header carries the target
+# and (optionally) source IP. A pure-star hop is denoted by three
+# `*` separated by whitespace.
+#
+# Sample output:
+#   traceroute to 1.1.1.1 (1.1.1.1), 30 hops max, 40 byte packets
+#    1  gw.example.com (10.0.0.254)  0.234 ms  0.222 ms  0.211 ms
+#    2  192.0.2.1 (192.0.2.1)  1.123 ms  1.234 ms  1.345 ms
+#    3  * * *
+#    4  one.one.one.one (1.1.1.1)  8.123 ms  8.234 ms  8.345 ms
+#
+# Header capture uses a non-value group for the resolved hostname
+# so it does not Filldown onto every transit hop (cf. the same
+# gotcha noted in cisco_ios_traceroute.textfsm). Numbered-probe
+# columns ip1/rtt_ms1/hostname1 … are expanded into three probes
+# per hop by the projector.
+Value Filldown target ([^)\s]+)
+Value Filldown source (\S+)
+Value Required ttl (\d+)
+Value ip1 ([0-9a-fA-F:.]+)
+Value hostname1 ([\w.\-]+)
+Value rtt_ms1 (\d+(?:\.\d+)?)
+Value ip2 ([0-9a-fA-F:.]+)
+Value hostname2 ([\w.\-]+)
+Value rtt_ms2 (\d+(?:\.\d+)?)
+Value ip3 ([0-9a-fA-F:.]+)
+Value hostname3 ([\w.\-]+)
+Value rtt_ms3 (\d+(?:\.\d+)?)
+
+Start
+  ^traceroute\s+to\s+(?:\S+\s+\()?${target}\)?(?:\s+from\s+${source})?
+  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+${rtt_ms3}\s+ms -> Record
+  ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+${rtt_ms3}\s+ms -> Record
+  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+\* -> Record
+  ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+\* -> Record
+  ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+\*\s+\* -> Record
+  ^\s*${ttl}\s+\*\s+\*\s+\* -> Record

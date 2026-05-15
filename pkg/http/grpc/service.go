@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/AS203038/looking-glass/pkg/errs"
+	"github.com/AS203038/looking-glass/pkg/routers/parse"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
@@ -36,6 +37,49 @@ func logRPCError(tag, stage string, err error) {
 	log.Printf("RPC: %s stage=%s: %v", tag, stage, err)
 }
 
+// runParser invokes the vendor-template-declared parser for op
+// against the freshly-captured stdout bytes raw. It is a small
+// adapter that hides the [routers.Yaml.Parser] dispatch behind a
+// uniform signature so the per-RPC handlers below can stay
+// linear and readable.
+//
+// When ri.Router does not expose a Parser method (i.e. a future
+// non-YAML implementation), the call collapses to
+// [parse.Disabled] so the handler still emits a well-formed
+// response. Result.Status is the projection key the handlers use
+// to populate the response's parser_kind / parse_status / parsed
+// fields.
+func runParser(ri *utils.RouterInstance, op parse.Op, raw []byte) parse.Result {
+	type parserAware interface {
+		Parser(op string) (parse.Parser, parse.Config)
+	}
+	pa, ok := ri.Router.(parserAware)
+	if !ok {
+		return parse.Disabled()
+	}
+	p, cfg := pa.Parser(string(op))
+	return p.Parse(op, raw, cfg)
+}
+
+// joinSSH concatenates the per-command stdout strings returned by
+// [utils.SSHExec] into the single byte slice that goes onto the
+// wire as `result`. Kept as a helper so the join policy stays
+// identical across every handler — if we ever decide to delimit
+// commands with a banner, it only changes here.
+func joinSSH(parts []string) []byte {
+	return []byte(strings.Join(parts, "\n"))
+}
+
+// nowPB returns the current server time as a *timestamppb.Timestamp
+// suitable for the `timestamp` field on every operation response.
+func nowPB() *timestamppb.Timestamp {
+	ts := time.Now()
+	return &timestamppb.Timestamp{
+		Seconds: ts.Unix(),
+		Nanos:   int32(ts.Nanosecond()),
+	}
+}
+
 // LookingGlassService is the ConnectRPC implementation of the
 // LookingGlassService protobuf service. It holds the per-process
 // router catalogue and a context bound to the server's lifetime;
@@ -50,6 +94,11 @@ type LookingGlassService struct {
 	// rts is the immutable router catalogue populated at startup.
 	rts utils.RouterMap
 }
+
+// Compile-time assertion that the package-private RouterMap-based
+// type wires into the generated handler interface (catches drift if
+// the protobuf gains a new RPC and we forget to implement it here).
+var _ lookingglassconnect.LookingGlassServiceHandler = (*LookingGlassService)(nil)
 
 // NewLookingGlassService constructs the [LookingGlassService]
 // handler bound to ctx and the supplied router catalogue. The
@@ -135,6 +184,11 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 // [errs.UnknownRouter] for an unknown router ID, [errs.IPInvalid]
 // when the target fails to parse or resolve, and [errs.ExecFailed]
 // when the SSH session itself errors out.
+//
+// On success the handler invokes the vendor-template-declared
+// parser via [runParser] and projects its outcome onto `parsed`,
+// `parser_kind` and `parse_status`. A parse failure never aborts
+// the request — the raw `result` bytes remain authoritative.
 func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.PingRequest]) (*connect.Response[pb.PingResponse], error) {
 	rt := req.Msg.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
@@ -153,14 +207,18 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 		logRPCError(tag, "ping_exec", err)
 		return nil, errs.ExecFailed
 	}
-	ts := time.Now()
-	return connect.NewResponse(&pb.PingResponse{
-		Result: []byte(strings.Join(ret, "\n")),
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: ts.Unix(),
-			Nanos:   int32(ts.Nanosecond()),
-		},
-	}), nil
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpPing, raw)
+	resp := &pb.PingResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if ps, ok := pr.Payload.(*pb.PingStats); ok {
+		resp.Parsed = ps
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // Traceroute executes the traceroute command sequence against the
@@ -183,14 +241,50 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 		logRPCError(tag, "traceroute_exec", err)
 		return nil, errs.ExecFailed
 	}
-	ts := time.Now()
-	return connect.NewResponse(&pb.TracerouteResponse{
-		Result: []byte(strings.Join(ret, "\n")),
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: ts.Unix(),
-			Nanos:   int32(ts.Nanosecond()),
-		},
-	}), nil
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpTraceroute, raw)
+	resp := &pb.TracerouteResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if tp, ok := pr.Payload.(*pb.TracerouteParsed); ok {
+		resp.Parsed = tp
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// BGPSummary executes the neighbour-summary command sequence
+// against the requested router. The operation is operand-less, so
+// the vendor template usually issues a single command (or one per
+// family); the structured `parsed` payload is a [pb.BGPSummaryParsed]
+// with one peer per row.
+func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Request[pb.BGPSummaryRequest]) (*connect.Response[pb.BGPSummaryResponse], error) {
+	rt := req.Msg.GetRouterId()
+	ri, ok := s.rts.GetByID(rt)
+	if !ok {
+		logRPCError(rpcLogTag("BGPSummary", rt, nil), "router_lookup", errs.UnknownRouter)
+		return nil, errs.UnknownRouter
+	}
+	tag := rpcLogTag("BGPSummary", rt, ri)
+	ret, err := ri.BGPSummary()
+	if err != nil {
+		logRPCError(tag, "bgp_summary_exec", err)
+		return nil, errs.ExecFailed
+	}
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpBGPSummary, raw)
+	resp := &pb.BGPSummaryResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if bs, ok := pr.Payload.(*pb.BGPSummaryParsed); ok {
+		resp.Parsed = bs
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // BGPRoute executes the bgp.route command sequence against the
@@ -215,14 +309,18 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 		logRPCError(tag, "bgp_route_exec", err)
 		return nil, errs.ExecFailed
 	}
-	ts := time.Now()
-	return connect.NewResponse(&pb.BGPRouteResponse{
-		Result: []byte(strings.Join(ret, "\n")),
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: ts.Unix(),
-			Nanos:   int32(ts.Nanosecond()),
-		},
-	}), nil
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpBGPRoute, raw)
+	resp := &pb.BGPRouteResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
+		resp.Parsed = bp
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // BGPCommunity executes the bgp.community command sequence against
@@ -248,14 +346,18 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		logRPCError(tag, "bgp_community_exec", err)
 		return nil, errs.ExecFailed
 	}
-	ts := time.Now()
-	return connect.NewResponse(&pb.BGPCommunityResponse{
-		Result: []byte(strings.Join(ret, "\n")),
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: ts.Unix(),
-			Nanos:   int32(ts.Nanosecond()),
-		},
-	}), nil
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpBGPCommunity, raw)
+	resp := &pb.BGPCommunityResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
+		resp.Parsed = bp
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // BGPLargeCommunity executes the bgp.largecommunity command
@@ -283,14 +385,18 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 		logRPCError(tag, "bgp_largecommunity_exec", err)
 		return nil, errs.ExecFailed
 	}
-	ts := time.Now()
-	return connect.NewResponse(&pb.BGPLargeCommunityResponse{
-		Result: []byte(strings.Join(ret, "\n")),
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: ts.Unix(),
-			Nanos:   int32(ts.Nanosecond()),
-		},
-	}), nil
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpBGPLargeCommunity, raw)
+	resp := &pb.BGPLargeCommunityResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
+		resp.Parsed = bp
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // BGPASPath executes the bgp.aspath command sequence against the
@@ -316,12 +422,16 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 		logRPCError(tag, "bgp_aspath_exec", err)
 		return nil, errs.ExecFailed
 	}
-	ts := time.Now()
-	return connect.NewResponse(&pb.BGPASPathResponse{
-		Result: []byte(strings.Join(ret, "\n")),
-		Timestamp: &timestamppb.Timestamp{
-			Seconds: ts.Unix(),
-			Nanos:   int32(ts.Nanosecond()),
-		},
-	}), nil
+	raw := joinSSH(ret)
+	pr := runParser(ri, parse.OpBGPASPath, raw)
+	resp := &pb.BGPASPathResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
+		resp.Parsed = bp
+	}
+	return connect.NewResponse(resp), nil
 }

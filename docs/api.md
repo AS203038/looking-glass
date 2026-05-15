@@ -133,10 +133,15 @@ Each of these:
 3. Renders the vendor template (`pkg/routers/Yaml.Foo`).
 4. Executes the rendered commands over SSH (`utils.SSHExec`).
 5. Returns the joined stdout in `result` plus a server `timestamp`.
+6. Runs the vendor-template-declared parser (if any) and projects
+   its outcome onto the response's `parsed` / `parser_kind` /
+   `parse_status` fields. See [Structured output](#structured-output)
+   below.
 
-The result is always raw, vendor-formatted text. There is no
-parsing or normalisation; the WebUI / `lg-cli` treat the bytes as
-opaque output and just display them.
+The `result` bytes are **always** populated, even when a parser
+ran successfully — they remain the authoritative source for
+copy-paste, search, and any client that does not yet understand
+the structured `parsed` payload.
 
 ### `Ping`
 
@@ -149,10 +154,13 @@ Ping(PingRequest) → PingResponse
 | `router_id`   | int64  | 1-based router ID from `GetRouters`.                                       |
 | `target`      | string | Destination. IPv4, IPv6, CIDR, or hostname. Hostnames are resolved to the first DNS answer. |
 
-| Response field | Type        | Description                                              |
-| -------------- | ----------- | -------------------------------------------------------- |
-| `result`       | bytes       | Concatenated stdout of every command in the template.    |
-| `timestamp`    | `Timestamp` | When the response was assembled.                         |
+| Response field | Type            | Description                                                                                            |
+| -------------- | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `result`       | bytes           | Concatenated stdout of every command in the template.                                                  |
+| `timestamp`    | `Timestamp`     | When the response was assembled.                                                                       |
+| `parsed`       | `PingStats`     | Optional. Populated when a parser is configured for `ping` and ran successfully. See below.            |
+| `parser_kind`  | `ParserKind`    | Which parser pipe produced `parsed` (`textfsm`, `native_json`, `builtin`, or `UNSPECIFIED`).            |
+| `parse_status` | `ParseStatus`   | Outcome of the parser attempt (`ok`, `disabled`, `template_missing`, `parse_failed`).                  |
 
 ### `Traceroute`
 
@@ -160,7 +168,9 @@ Ping(PingRequest) → PingResponse
 Traceroute(TracerouteRequest) → TracerouteResponse
 ```
 
-Same shape and semantics as `Ping`.
+Same request shape as `Ping`. Response carries the same five
+fields as `PingResponse` except `parsed` is a `TracerouteParsed`
+(see [Structured output](#structured-output)).
 
 ### `BGPSummary`
 
@@ -271,6 +281,117 @@ The intentional choice is **coarse client errors, detailed server
 logs**. RPC consumers never see hostnames, command text, stderr,
 or auth-error messages — those go only to the server's log
 stream, tagged with `op=` / `router=` / `stage=` for greppability.
+
+## Structured output
+
+Every operation response carries three fields in addition to the
+raw `result` bytes:
+
+| Field          | Type            | Meaning                                                                                              |
+| -------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
+| `parsed`       | typed message   | Optional. Structured form of `result`; one of `PingStats`, `TracerouteParsed`, `BGPSummaryParsed`, `BGPPaths`. |
+| `parser_kind`  | `ParserKind`    | Names the parser pipe that produced `parsed`: `TEXTFSM`, `NATIVE_JSON`, `BUILTIN`, or `UNSPECIFIED`. |
+| `parse_status` | `ParseStatus`   | Outcome of the parser attempt: `OK`, `DISABLED`, `TEMPLATE_MISSING`, `PARSE_FAILED`.                 |
+
+### Policy: router CPU is the bottleneck
+
+Looking Glass treats parsing as something it does on its own
+machine, not something it asks the router to do for free. The
+default for every vendor is **plain CLI → TextFSM on the
+Looking Glass**. Vendor-native JSON pipelines
+(`| display json` on JunOS, `| json` on Arista / Cisco IOS-XE)
+re-serialise text the router has already rendered and typically
+cost 1.5–3× the CPU and 2–4× the byte volume — they are
+deliberately opt-in per template.
+
+The only routinely-recommended `NATIVE_JSON` source today is
+**FRRouting**: FRR holds the RIB as structured data in its
+userland daemon, so the JSON pipe is essentially a `memcpy`.
+Other vendors stay on TextFSM until benchmarks demonstrate the
+JSON path is cheap for them too.
+
+### Authoritativeness
+
+`parsed` is **never authoritative over `result`**:
+
+* Every WebUI/CLI/curl path keeps rendering `result` as the
+  fallback when `parse_status != OK`.
+* When `parse_status == OK`, the structured view is the
+  primary UI but `result` is still the canonical bytes for copy/
+  paste, search, and downstream tooling.
+* Cached responses from older binaries (without `parsed`) remain
+  fully readable by new clients — `parsed` is an additive field.
+
+### Payload shapes
+
+`PingStats`:
+
+| Field              | Type    | Notes                                                            |
+| ------------------ | ------- | ---------------------------------------------------------------- |
+| `target`           | string  | Address actually probed (may differ from request when resolved). |
+| `source`           | string  | Bound source address, when exposed.                              |
+| `packets_sent`     | uint32  |                                                                  |
+| `packets_received` | uint32  |                                                                  |
+| `loss_pct`         | float32 | 0–100.                                                           |
+| `rtt_min_ms`       | float32 | 0 when not reported.                                             |
+| `rtt_avg_ms`       | float32 |                                                                  |
+| `rtt_max_ms`       | float32 |                                                                  |
+| `rtt_mdev_ms`      | float32 | Standard deviation; 0 when not reported.                         |
+
+`TracerouteParsed`:
+
+| Field    | Type                  | Notes                                            |
+| -------- | --------------------- | ------------------------------------------------ |
+| `target` | string                | Destination address as reported by the router.   |
+| `source` | string                | Bound source address, when exposed.              |
+| `hops`   | `repeated TracerouteHop` | One row per TTL.                              |
+
+`TracerouteHop` is `{ttl, probes[]}`; `TracerouteProbe` is
+`{ip, hostname, rtt_ms, asn}`. A timed-out hop carries one
+synthetic empty probe (all fields zero).
+
+`BGPSummaryParsed`:
+
+| Field       | Type                  | Notes                                          |
+| ----------- | --------------------- | ---------------------------------------------- |
+| `local_asn` | uint32                | Local AS, when reported.                       |
+| `router_id` | string                | BGP router-id, when reported.                  |
+| `peers`     | `repeated BGPPeer`    | One row per BGP neighbour.                     |
+
+`BGPPeer` carries `peer_ip`, `peer_asn`, `description`,
+`state` (normalised to lower-case: `established`, `idle`,
+`active`, `connect`, `opensent`, `openconfirm`), `state_detail`
+(vendor sub-state, free-form), `uptime_seconds`,
+`prefixes_received`, `prefixes_accepted`, `prefixes_sent`,
+`address_family` (`ipv4-unicast` / `ipv6-unicast` / …).
+
+`BGPPaths` (used for `bgp.route`, `bgp.community`,
+`bgp.largecommunity`, `bgp.aspath`):
+
+| Field   | Type               | Notes                                            |
+| ------- | ------------------ | ------------------------------------------------ |
+| `paths` | `repeated BGPPath` | One row per matched path, vendor-supplied order. |
+
+`BGPPath` carries `prefix`, `nexthop`, `as_path` (`repeated uint32`),
+`origin` (`igp`/`egp`/`incomplete`), `med`, `local_pref`,
+`communities` (`repeated string` in `ASN:VALUE` form),
+`large_communities` (`repeated string` in `GLOBAL:L1:L2`),
+`best` (bool), `peer_asn`, `peer_ip`, `age_seconds`.
+
+### Status decoding
+
+| `parse_status`              | What clients should render                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| `PARSE_STATUS_OK`           | Structured view from `parsed`; `result` available as a toggle / fallback.             |
+| `PARSE_STATUS_DISABLED`     | No parser configured for this op. Render `result` as-is.                              |
+| `PARSE_STATUS_TEMPLATE_MISSING` | Packaging defect — parser was requested but its template/schema asset was absent. Surface a quiet warning ("structured view unavailable: template missing"), render `result`. |
+| `PARSE_STATUS_PARSE_FAILED` | Parser ran but produced nothing useful (vendor output drift, malformed JSON, …). Quiet warning, render `result`. |
+
+When `parse_status != OK` and `parser_kind != UNSPECIFIED`,
+clients can use `parser_kind` to tell operators which pipe
+*tried*: "parser=textfsm, status=parse_failed" is operator-
+actionable (template needs updating) in a way that "structured
+view unavailable" is not.
 
 ## Caching semantics
 

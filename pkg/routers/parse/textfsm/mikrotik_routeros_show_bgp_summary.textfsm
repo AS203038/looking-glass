@@ -1,0 +1,50 @@
+# TextFSM template: MikroTik RouterOS 7.x
+# `/routing bgp session print detail`.
+#
+# RouterOS 7.x's BGP session has a per-entry detail print form:
+#
+#  Flags: E - established, * - dynamic
+#   0 E name="peer1"
+#       remote.address=10.0.0.2 .as=65001 .id=10.0.0.2 .refresh=yes
+#       local.address=10.0.0.1 .as=65000 .role=ebgp
+#       output.network="bgp-networks" .filter-chain="" .accepted-routes=600
+#       input.filter="bgp-in" .accepted-routes=500 .rejected-routes=0 .ignored-routes=0
+#       hold-time=3m keepalive-time=1m uptime=1d2h3m4s
+#       prefix-count=500
+#   1 name="peer2"
+#       remote.address=10.0.0.3 .as=65002 .id=0.0.0.0 .refresh=no
+#       local.address=10.0.0.1 .as=65000 .role=ebgp
+#       hold-time=3m keepalive-time=1m uptime=0s
+#       prefix-count=0
+#
+# Capture strategy:
+#   - The leading `E` flag column marks established sessions. We
+#     capture it directly into `state` via two distinct entry-header
+#     patterns (one with the `E` flag, one without). The projector
+#     normalises `E` → "established" and the empty state for non-
+#     Established peers stays empty (UI shows it as "idle"-ish).
+#   - The `remote.address` / `.as` line is the canonical anchor: it
+#     always carries peer IP and ASN.
+#   - The `prefix-count` line is the last per-entry line we care
+#     about and triggers Record. The `output.…accepted-routes=N`
+#     and `input.…accepted-routes=N` lines (which only appear on
+#     Established sessions) populate prefixes_sent / received.
+Value Required peer_ip ([0-9a-fA-F:.]+)
+Value peer_asn (\d+)
+Value description (\S+)
+Value uptime (\S+)
+Value prefixes_received (\d+)
+Value prefixes_sent (\d+)
+Value state (E)
+
+Start
+  ^\s*Flags:\s+E\s+-\s+established
+  # Established entry header — captures the `E` flag into `state`.
+  ^\s*\d+\s+${state}\s+name="${description}"\s*$$
+  # Non-Established entry header — `state` stays empty.
+  ^\s*\d+\s+name="${description}"\s*$$
+  ^\s+remote\.address=${peer_ip}\s+\.as=${peer_asn}
+  ^\s+output\..*\.accepted-routes=${prefixes_sent}
+  ^\s+input\..*\.accepted-routes=${prefixes_received}
+  ^\s+hold-time=\S+\s+keepalive-time=\S+\s+uptime=${uptime}
+  ^\s+prefix-count=\d+\s*$$ -> Record

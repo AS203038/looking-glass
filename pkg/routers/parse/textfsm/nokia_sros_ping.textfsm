@@ -1,0 +1,34 @@
+# TextFSM template: Nokia SR OS / TiMOS `ping`.
+#
+# Sample output:
+#   PING 1.1.1.1 56 data bytes
+#   64 bytes from 1.1.1.1: icmp_seq=1 ttl=58 time=2.04ms.
+#   64 bytes from 1.1.1.1: icmp_seq=2 ttl=58 time=2.10ms.
+#   64 bytes from 1.1.1.1: icmp_seq=3 ttl=58 time=2.06ms.
+#   64 bytes from 1.1.1.1: icmp_seq=4 ttl=58 time=2.05ms.
+#   64 bytes from 1.1.1.1: icmp_seq=5 ttl=58 time=2.07ms.
+#
+#   ---- 1.1.1.1 PING Statistics ----
+#   5 packets transmitted, 5 packets received, 0.00% packet loss
+#   round-trip min = 1.987ms, avg = 2.123ms, max = 2.456ms, stddev = 0.156ms
+#
+# TiMOS reports the trip stats on a single line with a comma-
+# separated min/avg/max/stddev tail. RTT figures are suffixed by
+# `ms` directly (no space), which we strip with a non-value group.
+Value Required target ([0-9a-fA-F:.]+)
+Value packets_sent (\d+)
+Value packets_received (\d+)
+Value loss_pct (\d+(?:\.\d+)?)
+Value rtt_min_ms (\d+(?:\.\d+)?)
+Value rtt_avg_ms (\d+(?:\.\d+)?)
+Value rtt_max_ms (\d+(?:\.\d+)?)
+Value rtt_mdev_ms (\d+(?:\.\d+)?)
+
+Start
+  ^PING\s+${target}\s+\d+\s+data\s+bytes -> Stats
+
+Stats
+  ^${packets_sent}\s+packets\s+transmitted,\s+${packets_received}\s+packets\s+received,\s+${loss_pct}%\s+packet\s+loss
+  ^round-trip\s+min\s+=\s+${rtt_min_ms}ms,\s+avg\s+=\s+${rtt_avg_ms}ms,\s+max\s+=\s+${rtt_max_ms}ms,\s+stddev\s+=\s+${rtt_mdev_ms}ms -> Record End
+
+End

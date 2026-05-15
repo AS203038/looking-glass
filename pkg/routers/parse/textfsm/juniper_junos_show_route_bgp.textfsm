@@ -1,0 +1,65 @@
+# TextFSM template: Juniper JunOS
+# `show route protocol bgp <prefix|community|...> detail`. Shared by
+# bgp.route / bgp.community / bgp.largecommunity / bgp.aspath because
+# all four queries emit the same `show route … detail` block shape.
+#
+# Canonical block (truncated):
+#   inet.0: 1000 destinations, 2000 routes (1000 active, 0 holddown, 0 hidden)
+#   1.1.1.0/24 (2 entries, 1 announced)
+#           *BGP    Preference: 170/-101
+#                   Next hop type: Router, Next hop index: 1234
+#                   Source: 10.0.0.2
+#                   Next hop: 10.0.0.2 via xe-0/0/0.0, selected
+#                   State: <Active Ext>
+#                   Local AS: 65000 Peer AS: 65001
+#                   Age: 1d 2:00:00     Metric: 0
+#                   AS path: 65001 65002 I
+#                   Communities: 65000:100 65000:200
+#                   Large Communities: 214503:8:3607
+#                   Accepted
+#                   Localpref: 100
+#                   Router ID: 10.0.0.2
+#
+# Capture strategy:
+#   - The `*BGP` marker on the protocol line means "active path"
+#     (JunOS's notion of best-path). We capture it via a dedicated
+#     `best` Value that matches the literal `*BGP`/`BGP` token; the
+#     projector's recBool() treats `*` as truthy.
+#   - The trailing `I` / `E` / `?` token on the AS-path line is the
+#     origin code (IGP/EGP/incomplete) and is consumed by the
+#     `origin` Value capture at end-of-line.
+#   - `as_path`, `communities`, and `large_communities` are
+#     captured as single tokens spanning the whole list. The
+#     projector's splitListToken() expands them per-entry, which
+#     avoids the gotextfsm `${var}(?:\s+${var})*` last-only gotcha.
+#   - The `Localpref:` line closes the block via Record. Real JunOS
+#     output always emits Localpref before Router ID, so this is a
+#     stable anchor.
+Value Filldown prefix ([0-9a-fA-F:.]+/\d+)
+Value best (\*?BGP)
+Value nexthop ([0-9a-fA-F:.]+)
+Value peer_ip ([0-9a-fA-F:.]+)
+Value peer_asn (\d+)
+Value med (\d+)
+Value local_pref (\d+)
+Value age (\S+(?:\s+\d{1,2}:\d{2}:\d{2})?)
+Value as_path (\d+(?:\s+\d+)*)
+Value origin ([IE?])
+Value communities (\d+:\d+(?:\s+\d+:\d+)*)
+Value large_communities (\d+:\d+:\d+(?:\s+\d+:\d+:\d+)*)
+
+Start
+  # Per-table preamble: `inet.0: ...` / `inet6.0: ...`.
+  ^\S+\.0:\s+\d+\s+destinations
+  # Prefix header opens a new block.
+  ^${prefix}\s+\(\d+\s+entries
+  # `*BGP` (active) or `BGP` (backup) protocol line.
+  ^\s+${best}\s+Preference:
+  ^\s+Source:\s+${peer_ip}
+  ^\s+Next\s+hop:\s+${nexthop}\s+via
+  ^\s+Local\s+AS:\s+\d+\s+Peer\s+AS:\s+${peer_asn}
+  ^\s+Age:\s+${age}(?:\s+Metric:\s+${med})?
+  ^\s+AS\s+path:\s+${as_path}\s+${origin}\s*$$
+  ^\s+Communities:\s+${communities}\s*$$
+  ^\s+Large\s+Communities:\s+${large_communities}\s*$$
+  ^\s+Localpref:\s+${local_pref} -> Record

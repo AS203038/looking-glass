@@ -1,0 +1,42 @@
+# TextFSM template: MikroTik RouterOS 7.x `/ping`.
+#
+# RouterOS prints a tabular ping with one row per probe followed by
+# a summary block. We only consume the summary block — it carries
+# all the fields the wire schema cares about. The summary block is
+# fixed-format on RouterOS 7.x; pre-7.x builds had a slightly
+# different layout that operators can override via ROUTER_DIR.
+#
+# Sample output:
+#     SEQ HOST                                     SIZE TTL TIME       STATUS
+#       0 1.1.1.1                                    56  58 2ms        echo reply
+#       1 1.1.1.1                                    56  58 2ms        echo reply
+#       2 1.1.1.1                                    56  58 2ms        echo reply
+#       3 1.1.1.1                                    56  58 2ms        echo reply
+#       4 1.1.1.1                                    56  58 2ms        echo reply
+#       sent=5 received=5 packet-loss=0% min-rtt=1ms avg-rtt=2ms max-rtt=4ms
+#
+# Total-loss output:
+#     SEQ HOST                                     SIZE TTL TIME       STATUS
+#       0                                                                timeout
+#       1                                                                timeout
+#       2                                                                timeout
+#       3                                                                timeout
+#       4                                                                timeout
+#       sent=5 received=0 packet-loss=100%
+#
+# The min/avg/max-rtt fields are absent on 100% loss; the projector
+# tolerates them being zero.
+Value Filldown target ([0-9a-fA-F:.]+)
+Value packets_sent (\d+)
+Value packets_received (\d+)
+Value loss_pct (\d+(?:\.\d+)?)
+Value rtt_min_ms (\d+(?:\.\d+)?)
+Value rtt_avg_ms (\d+(?:\.\d+)?)
+Value rtt_max_ms (\d+(?:\.\d+)?)
+
+Start
+  # Probe rows carry the target IP as the second column.
+  ^\s*\d+\s+${target}\s+\d+
+  # Summary line (Start variant) — present on every run.
+  ^\s+sent=${packets_sent}\s+received=${packets_received}\s+packet-loss=${loss_pct}%\s+min-rtt=${rtt_min_ms}ms\s+avg-rtt=${rtt_avg_ms}ms\s+max-rtt=${rtt_max_ms}ms\s*$$ -> Record
+  ^\s+sent=${packets_sent}\s+received=${packets_received}\s+packet-loss=${loss_pct}%\s*$$ -> Record

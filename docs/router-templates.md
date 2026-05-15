@@ -298,6 +298,139 @@ Any parse error in either source **panics at startup**. Validate
 your template (`yamllint`, `kubectl apply --dry-run=client` on a
 ConfigMap, etc.) before deploying it.
 
+## Parsers (structured output)
+
+Beyond `name`, `ping`, `traceroute` and the `bgp` block, a template
+can declare an optional `parsers:` map that turns vendor command
+output into the typed `parsed` payload on each gRPC response (see
+[api.md § Structured output](./api.md#structured-output) for the
+wire shape). Templates that omit `parsers:` keep working exactly
+as before — the response simply has no structured view.
+
+The map is keyed by operation name and each entry declares the
+parser to run plus, optionally, an asset name:
+
+```yaml
+parsers:
+  ping:
+    kind: builtin
+  traceroute:
+    kind: builtin
+  bgp.summary:
+    kind: native_json
+    schema: frr_bgp_summary_v1
+  bgp.route:
+    kind: textfsm
+    template: arista_eos_show_bgp_paths
+```
+
+Valid keys: `ping`, `traceroute`, `bgp.summary`, `bgp.route`,
+`bgp.community`, `bgp.largecommunity`, `bgp.aspath`. Unknown keys
+are ignored; unknown `kind:` values fall back to `raw` with a
+warning in the log.
+
+### Parser kinds
+
+| `kind`        | When to use                                                                                                                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `raw`         | Default. No parsing; the response only carries the verbatim bytes. Pick this when you don't have a template yet — it's strictly safer than shipping a wrong parser.                                                                          |
+| `textfsm`     | The recommended default. Run a TextFSM template (compatible with the `networktocode/ntc-templates` ecosystem) on plain CLI output, server-side. Cheap on the router because it's just running its normal `show` command.                     |
+| `native_json` | Tell the template to ask the router for JSON directly (`vtysh -c '... json'`, `\| display json`, `\| json`). **Opt-in only** — see the policy box below. Currently routinely-recommended only for FRR, where it's essentially free.            |
+| `builtin`     | A small, hand-rolled Go parser. Used for trivially-structured outputs whose format has been stable for decades (Linux iputils `ping` and `traceroute`). New `builtin` handlers should be added sparingly — TextFSM is the right tool for nearly everything else. |
+
+### Asset fields
+
+* `template:` — the **TextFSM template name** (without
+  extension). The dispatcher looks for it under
+  `$ROUTER_DIR/textfsm/<name>.textfsm` first, then under the
+  bundled embedded assets. Lookup tries `.textfsm` then `.tfsm`.
+  Used only for `kind: textfsm`.
+* `schema:` — the **native-JSON schema selector** (e.g.
+  `frr_bgp_route_v1`, `frr_bgp_summary_v1`). The dispatcher
+  consults the schema name to pick the right Go decoder. Used
+  only for `kind: native_json`.
+
+### Policy: router CPU is the bottleneck
+
+Looking Glass parses on its own machine, not on the router. The
+default for every vendor is plain CLI → TextFSM. JSON pipelines
+on JunOS (`| display json`), Arista (`| json`) and Cisco
+IOS-XE (`| json`) re-serialise text the box has already rendered
+and typically cost **1.5–3× the CPU and 2–4× the byte volume** on
+large outputs. Pick `native_json` only when you have evidence that
+the router-side cost is low.
+
+The one routinely-recommended exception is **FRRouting**: FRR
+holds the RIB as structured data in its userland daemon, so
+`vtysh -c '... json'` is essentially a `memcpy`. The shipped FRR
+template therefore uses `native_json` for every BGP op.
+
+### How a parser failure is reported
+
+* When the parser succeeds, the response's `parse_status` is
+  `PARSE_STATUS_OK` and `parsed` is populated. Clients render the
+  structured view; `result` is still available as a fallback.
+* When the parser runs but produces nothing useful (vendor
+  output drift, malformed JSON, …), `parse_status` is
+  `PARSE_STATUS_PARSE_FAILED`. Server-side logs include the
+  parser name and op for triage. The request **does not fail** —
+  `result` is still returned and the WebUI/CLI falls back to the
+  raw view.
+* When `kind: textfsm` is declared but `template:` is missing or
+  points to a non-existent asset, `parse_status` is
+  `PARSE_STATUS_TEMPLATE_MISSING`. Same fallback behaviour.
+
+This makes structured output strictly additive: a broken parser
+declaration can only cost you the structured view, never the raw
+output.
+
+### Authoring a TextFSM template
+
+Templates live at `pkg/routers/parse/textfsm/<name>.textfsm` in
+the bundled set, or `$ROUTER_DIR/textfsm/<name>.textfsm` for
+operator overrides. They use the standard TextFSM grammar —
+networktocode/ntc-templates is a good reference. The Go parser
+backend is [`sirikothe/gotextfsm`](https://github.com/sirikothe/gotextfsm).
+
+The Go side knows how to project records into the typed payloads
+by **column name** (case-insensitive). Per operation:
+
+* `ping` → `target`, `source`, `packets_sent`, `packets_received`,
+  `loss_pct`, `rtt_min_ms`, `rtt_avg_ms`, `rtt_max_ms`,
+  `rtt_mdev_ms`.
+* `traceroute` → one record per hop with `ttl`, `ip`, `hostname`,
+  `rtt_ms`, `asn`; plus optional `target` / `source` Filldown'd
+  across rows.
+* `bgp.summary` → one record per peer with `peer_ip`, `peer_asn`,
+  `description`, `state`, `state_detail`, `uptime`,
+  `prefixes_received`, `prefixes_accepted`, `prefixes_sent`,
+  `address_family`; plus optional `local_asn` / `router_id`
+  Filldown'd.
+* `bgp.route` / `bgp.community` / `bgp.largecommunity` /
+  `bgp.aspath` → one record per BGP path with `prefix`, `nexthop`,
+  `as_path` (List of ASNs or single space-joined string),
+  `origin`, `med`, `local_pref`, `communities` (List of `ASN:VAL`
+  strings), `large_communities` (List), `best` (string;
+  recognised truthy values include `true`, `1`, `yes`, `>`, `*`),
+  `peer_ip`, `peer_asn`, `age`.
+
+Columns the template does not emit simply land at their proto
+zero value — nothing in the parser is mandatory.
+
+Caveat: gotextfsm treats the first blank line after the `Value`
+declarations as the end of the Values block. **Don't put blank
+lines between the header comments and the first `Value` line**;
+the first blank line should come after the last `Value`.
+
+### Authoring native-JSON schema support
+
+`native_json` schema names map to Go decoders in
+`pkg/routers/parse/json.go`. To add a new schema you need a small
+Go change (define the input shape, add a case in `JSONParser.Parse`,
+project onto the typed payload). The intent is that operators
+need to do this very rarely — TextFSM should be the path of
+least resistance for adding new vendors.
+
 ## Authoring a new template
 
 Pick a vendor that isn't shipped (let's pretend we're adding
@@ -405,6 +538,31 @@ realistic guidance is therefore:
 2. Use read-only router accounts.
 3. Test templates against a non-production device before deploying
    widely.
+
+### Privilege & command authorization on the device side
+
+The LG only ever runs a small, fixed set of commands against each
+vendor (the contents of the `ping` / `traceroute` / `bgp.*` blocks
+in the template). Every bundled template documents that set
+explicitly in its header comment. Operators should configure a
+**bespoke, least-privilege role/class/profile** on each device
+that permits exactly those commands and denies everything else —
+not a generic `network-admin` / `privilege 15` account.
+
+Copy-pasteable per-vendor role definitions (Arista `role …`,
+Cisco `parser view` / privilege levels, JunOS `login class`,
+SR OS `profile`, RouterOS `/user group`, FRR sshd `ForceCommand`
+wrapper) live in
+[router-hardening.md](./router-hardening.md). When you author a
+new template, update `router-hardening.md` in the same PR — the
+two documents are a contract:
+
+* `router-templates.md` defines which CLI commands the LG sends.
+* `router-hardening.md` defines which commands the device permits.
+
+If those two ever drift, either the LG breaks (template adds a
+command the role denies) or the security boundary leaks (role
+permits more than the template needs).
 
 ## Style guide
 

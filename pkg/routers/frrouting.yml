@@ -5,7 +5,16 @@
 # Login surface   : a regular Unix SSH login. Commands are issued directly to
 #                   the shell; BGP queries shell out to `vtysh -c '…'` instead
 #                   of opening an interactive vtysh session so each request is
-#                   stateless and idempotent.
+#                   stateless and idempotent. Because there is no in-process
+#                   RBAC for FRR/Linux, the recommended hardening posture is
+#                   an sshd `ForceCommand` wrapper that whitelists exactly
+#                   the LG command surface (ping/traceroute/`vtysh -c 'show
+#                   bgp …'`) and rejects everything else, combined with
+#                   `PermitTTY no` / no agent forwarding / no TCP forwarding.
+#                   The wrapper script, sshd_config snippet, and required
+#                   Unix-side group membership (`frrvty` for vtysh socket
+#                   access) are in docs/router-hardening.md (FRRouting
+#                   section).
 # Notable choices :
 #   - ping/traceroute target the Linux userland binaries because FRR itself
 #     does not provide diagnostic commands; the source address is bound with
@@ -16,6 +25,12 @@
 #   - community/large-community/aspath queries are intentionally issued for
 #     both families: those operations are discovery-style and do not carry an
 #     operand from which a family can be derived.
+#   - Parsers: ping/traceroute use the BUILTIN parser (Linux iputils output is
+#     simple, stable, and a few-dozen-line Go parser is cheaper than a TextFSM
+#     template). BGP operations use the NATIVE_JSON parser — FRR holds the RIB
+#     as structured data in its userland daemon so the JSON pipe is essentially
+#     free (the cost-asymmetry that disqualifies JSON for JunOS/Arista/IOS-XE
+#     does not apply here).
 # ---------------------------------------------------------------------------
 name: frrouting
 
@@ -32,14 +47,38 @@ traceroute:
         - traceroute -6 -w 1 -q1 -I --back --mtu -e -s {{.Cfg.Source6.IP}} {{.IP.IP}}
 
 bgp:
+    summary:
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast summary json'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast summary json'
     route:
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} {{.IP.Family}} unicast {{.IP.IP}}'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} {{.IP.Family}} unicast {{.IP.IP}} json'
     community:
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast community {{.Community}}'
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast community {{.Community}}'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast community {{.Community}} json'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast community {{.Community}} json'
     largecommunity:
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast large-community {{.LargeCommunity}}'
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast large-community {{.LargeCommunity}}'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast large-community {{.LargeCommunity}} json'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast large-community {{.LargeCommunity}} json'
     aspath:
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast regexp {{.ASPath}}'
-        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}}'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast regexp {{.ASPath}} json'
+        - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}} json'
+
+parsers:
+    ping:
+        kind: builtin
+    traceroute:
+        kind: builtin
+    bgp.summary:
+        kind: native_json
+        schema: frr_bgp_summary_v1
+    bgp.route:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.community:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.largecommunity:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.aspath:
+        kind: native_json
+        schema: frr_bgp_route_v1

@@ -32,29 +32,42 @@
 <!--
 	Layout (document-scroll model, no nested overflow):
 
-	  Header       — sticky top: 0      (always visible)
-	  <main>       — flex-1, scrolls with document
-	  ResultsSheet — sticky bottom: 0   (above the dock; hidden/peek/expand)
-	  CommandDock  — sticky bottom: 0   (always reachable)
-	  Footer       — normal flow at the document's end
+	  Header              — sticky top: 0       (always visible)
+	  <main>              — flex-1, scrolls with document
+	  ┌ sticky bottom-bar ──────────────────────
+	  │ ResultsSheet      — hidden/peek/expand
+	  │ CommandDock       — always reachable
+	  └─────────────────────────────────────────
+	  Footer              — normal flow at the document's end
 
-	Both sticky-bottom elements live in the same flex column. Because the
-	ResultsSheet is rendered *before* the dock in source order, when both
-	have `bottom: 0` they naturally stack — the dock at the very bottom,
-	the sheet directly above it. The sheet's height is controlled by its
-	internal state (hidden / peek / expand+px) so the picker behind it
-	always has room.
+	Why ResultsSheet + CommandDock live in ONE sticky wrapper instead of
+	being individual `sticky bottom: 0` siblings:
+
+	Two siblings both `sticky bottom: 0` overlap on the same anchor
+	line, so the sheet would visually slide *over* the dock once tall
+	enough — exactly the mobile regression we kept hitting. Putting them
+	in a single sticky flex column makes occlusion structurally
+	impossible: they stack like normal flex children (sheet above, dock
+	below) and the wrapper as a whole is what's stuck to the viewport
+	bottom. The sheet's max-height is computed against the live dock
+	height (see `$lib/stores/sheet.ts`), so a growing dock chip strip
+	just shrinks the sheet rather than pushing the dock off-screen.
 -->
 <div
-	class="flex min-h-screen flex-col"
+	class="flex min-h-[100dvh] flex-col"
 	style="background-color: var(--color-bg); color: var(--color-fg);"
 >
 	<Header />
 	<main class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 pt-6 pb-2 sm:px-6 sm:pt-8">
 		{@render children()}
 	</main>
-	<ResultsSheet />
-	<CommandDock />
+	<div
+		class="sticky bottom-0 z-20 flex flex-col"
+		style="padding-bottom: env(safe-area-inset-bottom);"
+	>
+		<ResultsSheet />
+		<CommandDock />
+	</div>
 	<Footer />
 </div>
 

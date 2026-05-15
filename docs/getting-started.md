@@ -145,6 +145,29 @@ template. The bundled templates are:
 If your vendor isn't covered, you can write a YAML template without
 touching Go — see [router-templates.md](./router-templates.md).
 
+### Harden the router-side SSH user
+
+The bundled templates assume the LG's SSH user can run `ping`,
+`traceroute`, and a small set of `show bgp …` commands — *and
+nothing else*. Each vendor exposes this through a different
+mechanism (Arista `role`, Cisco `parser view` or privilege levels,
+JunOS `login class`, SR OS `profile`, RouterOS `/user group`, FRR
+`ForceCommand` wrapper). Copy-pasteable snippets for every vendor
+live in [router-hardening.md](./router-hardening.md).
+
+> **Arista EOS specifically** also needs
+> `aaa authorization exec default local` somewhere in its running
+> config, or the `privilege 15` keyword on `username` is silently
+> ignored and you get `% Invalid input (privileged mode required)`
+> for ping / traceroute. See the Arista section of
+> [router-hardening.md](./router-hardening.md#arista-eos) for the
+> full configuration.
+
+Production deployments should *always* use a bespoke role; never
+point the LG at an unconstrained `network-admin` / `privilege 15`
+account. The role file is the security boundary between an
+Internet-reachable WebUI and your fleet.
+
 ## Verifying it works
 
 ### From the WebUI

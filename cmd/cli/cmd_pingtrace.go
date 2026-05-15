@@ -37,7 +37,14 @@ func newPingCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+			msg := resp.Msg
+			var parsed any
+			if msg.GetParsed() != nil {
+				parsed = msg.GetParsed()
+			}
+			return printParsedResult(
+				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+				parsed, msg.GetParserKind(), msg.GetParseStatus())
 		},
 	}
 }
@@ -72,7 +79,14 @@ func newTracerouteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+			msg := resp.Msg
+			var parsed any
+			if msg.GetParsed() != nil {
+				parsed = msg.GetParsed()
+			}
+			return printParsedResult(
+				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+				parsed, msg.GetParserKind(), msg.GetParseStatus())
 		},
 	}
 }

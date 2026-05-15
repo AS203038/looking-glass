@@ -19,6 +19,7 @@ codebase in the abstract.
 | [configuration.md](./configuration.md)             | Operators           | Every `config.yaml` key, defaults, environment variables, validation rules.                                       |
 | [deployment.md](./deployment.md)                   | Operators / SREs    | Production deployment: Docker, Kubernetes, reverse proxies, TLS, Redis, Sentry, scaling, observability.           |
 | [router-templates.md](./router-templates.md)       | Template authors    | Authoring guide for vendor YAML templates: schema, variables, conventions, troubleshooting, and shipped examples. |
+| [router-hardening.md](./router-hardening.md)       | Operators / Security | Per-vendor least-privilege role/class/profile snippets for the LG's SSH user (Arista, Cisco, Juniper, Nokia, MikroTik, FRR). |
 | [architecture.md](./architecture.md)               | Anyone curious      | How the pieces fit together: request lifecycle, middleware chain, concurrency model, embed pipeline.              |
 | [development.md](./development.md)                 | Contributors        | Local development loop, project layout, Makefile targets, codegen, testing, release process.                      |
 | [api.md](./api.md)                                 | API consumers       | gRPC / ConnectRPC contract reference, error mapping, caching semantics, gRPC-Web notes.                           |

@@ -10,6 +10,16 @@
  *   - `expand`   — sheet grows to occupy a user-controlled portion of
  *                  the viewport. The picker remains visible behind it.
  *
+ * Geometry model:
+ *   The sheet and dock are siblings inside one sticky-bottom wrapper
+ *   (see `+layout.svelte`), so the sheet cannot occlude the dock by
+ *   design. But the sheet still has to know how tall the dock is to
+ *   cap its own expand height — otherwise a long sheet would *push*
+ *   the dock below the viewport. We track the dock's measured height
+ *   in `dockHeight`, updated by a `ResizeObserver` inside the dock,
+ *   and the sheet's max height becomes
+ *     viewport - HEADER_RESERVED_PX - dockHeight.
+ *
  * Height policy (decided per-run, not per-render):
  *   - Each `run()` triggers `onRunStarted()` which:
  *       1. Sets state to `expand`.
@@ -19,13 +29,11 @@
  *   - The sheet measures its own content (`requestAnimationFrame` after
  *     all result cards exist) and calls `applyAutoHeight(measuredPx)`,
  *     which picks the height:
- *       - `measuredPx + chrome <= viewport - top-reserved` AND the
- *         remaining headroom is *generous* (≥ FULLSCREEN_GAP_PX) →
+ *       - `measuredPx + chrome <= viewport - top-reserved - dock` AND
+ *         the remaining headroom is *generous* (≥ FULLSCREEN_GAP_PX) →
  *         fit exactly to content.
  *       - Otherwise → snap to the maximum (fullscreen-ish, viewport
- *         minus top-reserved). This avoids "almost fullscreen with a
- *         useless 60-px strip showing" — the user either gets the
- *         minimum needed, or all the room there is.
+ *         minus top-reserved minus dock).
  *   - Once the user drags or arrow-keys the handle, `userPreferredHeight`
  *     is set. On subsequent runs we *honour their preference* instead of
  *     recomputing — but the auto-fit still runs once if their preference
@@ -37,7 +45,7 @@
  *     gets a fresh focus).
  */
 
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 
 export type SheetState = 'hidden' | 'peek' | 'expand';
@@ -47,9 +55,12 @@ const HEIGHT_STORAGE_KEY = 'lg-sheet-height';
 /** Hard floor — below this the sheet shrinks to peek instead. */
 export const MIN_EXPAND_PX = 200;
 
-/** Reserve `header + breathing room` above the sheet so the picker is
- *  always visible. */
-export const TOP_RESERVED_PX = 56 /* header */ + 24; /* breathing room */
+/**
+ * Reserve above the sheet: header (~56) + a 16 px breathing strip so
+ * the picker is always at least partially visible behind the sheet.
+ * The dock's own height is tracked separately in `dockHeight`.
+ */
+export const HEADER_RESERVED_PX = 56 + 16;
 
 /**
  * If the space *left over* above an auto-fitted sheet is smaller than
@@ -59,6 +70,10 @@ export const TOP_RESERVED_PX = 56 /* header */ + 24; /* breathing room */
  * 160 px ≈ enough room for the picker header + the sticky search bar.
  */
 const FULLSCREEN_GAP_PX = 160;
+
+/** Sensible fallback dock height for SSR / first paint before the
+ *  ResizeObserver fires. ~120 px matches the mobile two-row form. */
+const DEFAULT_DOCK_HEIGHT = 120;
 
 function readPersistedHeight(): number | null {
 	if (!browser) return null;
@@ -78,7 +93,7 @@ export const sheetState = writable<SheetState>('hidden');
  * Current effective height in pixels. Modified by:
  *  - the user's drag/keyboard input (sets `userPreferredHeight` too)
  *  - the per-run auto-fit logic
- *  - viewport resize handlers (re-clamp)
+ *  - viewport / dock resize handlers (re-clamp)
  */
 export const sheetHeight = writable<number>(readPersistedHeight() ?? 500);
 
@@ -94,6 +109,15 @@ export const userPreferredHeight = writable<number | null>(readPersistedHeight()
  */
 export const fitGeneration = writable<number>(0);
 
+/**
+ * Live dock height in pixels, measured by a `ResizeObserver` in
+ * `CommandDock.svelte`. Read by the sheet to compute its own max
+ * height. The sheet *re-clamps* whenever this changes — so a growing
+ * dock (chip strip wraps, soft keyboard opens) instantly shrinks the
+ * sheet instead of being hidden behind it.
+ */
+export const dockHeight = writable<number>(DEFAULT_DOCK_HEIGHT);
+
 if (browser) {
 	userPreferredHeight.subscribe((px) => {
 		try {
@@ -103,6 +127,10 @@ if (browser) {
 			/* localStorage unavailable */
 		}
 	});
+
+	// When the dock resizes, the available space for the sheet changes.
+	// Re-clamp so a tall chip strip can never push the dock off-screen.
+	dockHeight.subscribe(() => reclamp());
 }
 
 /** Cycle state for click on handle: hidden → peek → expand → peek → expand … */
@@ -138,17 +166,18 @@ export function onRunStarted() {
 	fitGeneration.update((n) => n + 1);
 }
 
-/** Clamp a proposed expand height to the sane window. */
-export function clampHeight(px: number): number {
-	if (!browser) return px;
-	const max = Math.max(MIN_EXPAND_PX, window.innerHeight - TOP_RESERVED_PX);
-	return Math.min(max, Math.max(MIN_EXPAND_PX, px));
-}
-
 /** Maximum height the sheet can occupy (= effectively fullscreen). */
 export function maxHeight(): number {
 	if (!browser) return 800;
-	return Math.max(MIN_EXPAND_PX, window.innerHeight - TOP_RESERVED_PX);
+	const dh = get(dockHeight);
+	return Math.max(MIN_EXPAND_PX, window.innerHeight - HEADER_RESERVED_PX - dh);
+}
+
+/** Clamp a proposed expand height to the sane window. */
+export function clampHeight(px: number): number {
+	if (!browser) return px;
+	const max = maxHeight();
+	return Math.min(max, Math.max(MIN_EXPAND_PX, px));
 }
 
 /**
@@ -176,9 +205,7 @@ export function applyAutoHeight(measuredContentPx: number, handlePx: number) {
 	const max = maxHeight();
 	const wanted = clampHeight(measuredContentPx + handlePx);
 
-	let pref: number | null = null;
-	const unsub = userPreferredHeight.subscribe((v) => (pref = v));
-	unsub();
+	const pref = get(userPreferredHeight);
 
 	if (pref !== null) {
 		// User set a preference. Honour it, but make sure new content isn't
@@ -189,7 +216,8 @@ export function applyAutoHeight(measuredContentPx: number, handlePx: number) {
 	}
 
 	// No user preference yet → "fit to content unless almost-fullscreen".
-	const gapIfFitted = window.innerHeight - wanted - TOP_RESERVED_PX;
+	const dh = get(dockHeight);
+	const gapIfFitted = window.innerHeight - wanted - HEADER_RESERVED_PX - dh;
 	if (wanted >= max || gapIfFitted < FULLSCREEN_GAP_PX) {
 		sheetHeight.set(max);
 	} else {
@@ -198,8 +226,8 @@ export function applyAutoHeight(measuredContentPx: number, handlePx: number) {
 }
 
 /**
- * Used by the resize listener — re-clamp the current height (no
- * `userPreferredHeight` mutation).
+ * Used by viewport- and dock-resize listeners — re-clamp the current
+ * height (no `userPreferredHeight` mutation).
  */
 export function reclamp() {
 	sheetHeight.update((px) => clampHeight(px));

@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/AS203038/looking-glass/pkg/errs"
+	"github.com/AS203038/looking-glass/pkg/routers/parse"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -50,6 +51,27 @@ type _tpl_data struct {
 	ASPath string
 }
 
+// parserSpec is the YAML projection of a per-operation parser
+// declaration. Operators reference it from a template's top-level
+// `parsers:` map, keyed by operation name (e.g. "ping",
+// "bgp.summary"). Absent entries are treated as parser=raw.
+type parserSpec struct {
+	// Kind selects the parser pipe. Recognised values are "raw"
+	// (default; emits no structured payload), "textfsm",
+	// "native_json" and "builtin". Unknown values are logged and
+	// fall back to "raw" at runtime so a stale schema cannot
+	// silently disable parsing across an upgrade.
+	Kind string `yaml:"kind"`
+	// Template names the TextFSM template asset, relative to the
+	// `textfsm/` directory under either ROUTER_DIR or the bundled
+	// embed.FS. Used only when Kind == "textfsm".
+	Template string `yaml:"template"`
+	// Schema selects the JSON normalisation schema used by the
+	// native-JSON parser (e.g. "frr_show_bgp_route_v1"). Used only
+	// when Kind == "native_json".
+	Schema string `yaml:"schema"`
+}
+
 // Yaml is the [utils.Router] implementation that backs every shipped
 // vendor template. A single Yaml instance is parsed from disk at
 // process start and stored in the registry; it is treated as
@@ -79,16 +101,29 @@ type Yaml struct {
 			IPv4 []string `yaml:"ipv4"`
 			IPv6 []string `yaml:"ipv6"`
 		} `yaml:"traceroute"`
-		// BGP holds the four BGP query command sequences. These
-		// are family-agnostic at the top level: where a vendor's
-		// CLI requires different commands per family the template
-		// uses `{{if eq .IP.Family "ipv4"}}…{{end}}` conditionals.
+		// BGP holds the BGP query command sequences. These are
+		// family-agnostic at the top level: where a vendor's CLI
+		// requires different commands per family the template uses
+		// `{{if eq .IP.Family "ipv4"}}…{{end}}` conditionals.
 		BGP struct {
+			// Summary is the neighbour-summary command sequence.
+			// Templates that pre-date the bgp.summary RPC may
+			// leave this empty; the gRPC handler will then return
+			// errs.OperationUnknown.
+			Summary        []string `yaml:"summary"`
 			Route          []string `yaml:"route"`
 			Community      []string `yaml:"community"`
 			LargeCommunity []string `yaml:"largecommunity"`
 			ASPath         []string `yaml:"aspath"`
 		} `yaml:"bgp"`
+		// Parsers is the per-operation parser map. Keys are the
+		// operation names defined in [pkg/routers/parse]
+		// ("ping", "traceroute", "bgp.summary", "bgp.route",
+		// "bgp.community", "bgp.largecommunity", "bgp.aspath").
+		// Values declare which parser pipe should run against the
+		// concatenated command output. Templates that omit this
+		// block keep the pre-parsing wire shape (raw bytes only).
+		Parsers map[string]parserSpec `yaml:"parsers"`
 	}
 }
 
@@ -178,8 +213,9 @@ func init() {
 //   - "ping" / "traceroute" pick the family-specific list when the
 //     operand has a definite [utils.IPFamily]; the family-agnostic
 //     `any` list otherwise.
-//   - "bgp.route", "bgp.community", "bgp.largecommunity",
-//     "bgp.aspath" map directly onto the matching template field.
+//   - "bgp.summary", "bgp.route", "bgp.community",
+//     "bgp.largecommunity", "bgp.aspath" map directly onto the
+//     matching template field.
 //
 // Returns [errs.OperationUnknown] when the template does not define
 // any commands for the requested operation, or when an individual
@@ -204,6 +240,8 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 		} else if data.IP.IsIPv6() {
 			tpl = rt.Template.Traceroute.IPv6
 		}
+	case "bgp.summary":
+		tpl = rt.Template.BGP.Summary
 	case "bgp.route":
 		tpl = rt.Template.BGP.Route
 	case "bgp.community":
@@ -251,6 +289,14 @@ func (rt *Yaml) Traceroute(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, 
 	return rt._tpl("traceroute", _tpl_data{Cfg: cfg, IP: ip})
 }
 
+// BGPSummary renders the neighbour-summary command sequence. The
+// operand-less request carries no family information, so most
+// templates issue one command per family or a single
+// family-agnostic command.
+func (rt *Yaml) BGPSummary(cfg *utils.RouterConfig) ([]string, error) {
+	return rt._tpl("bgp.summary", _tpl_data{Cfg: cfg})
+}
+
 // BGPRoute renders the BGP-route lookup command sequence. The
 // template typically embeds `{{.IP.Family}}` so that exactly one
 // command is issued for the operand's family rather than blindly
@@ -279,4 +325,34 @@ func (rt *Yaml) BGPLargeCommunity(cfg *utils.RouterConfig, largeCommunity string
 // [utils.SanitizeASPathRegex] before reaching this method.
 func (rt *Yaml) BGPASPath(cfg *utils.RouterConfig, aspath string) ([]string, error) {
 	return rt._tpl("bgp.aspath", _tpl_data{Cfg: cfg, ASPath: aspath})
+}
+
+// Parser returns the parser declared by the template for op, plus
+// any parser-private configuration (TextFSM template name, JSON
+// schema selector). Templates that omit a `parsers:` entry return
+// [parse.RawParser], so the gRPC handlers degrade gracefully to
+// the pre-parsing "raw bytes only" wire shape.
+//
+// Unknown parser kinds are logged and treated as "raw", so a stale
+// schema cannot silently disable parsing across an upgrade.
+func (rt *Yaml) Parser(op string) (parse.Parser, parse.Config) {
+	spec, ok := rt.Template.Parsers[op]
+	if !ok {
+		return parse.RawParser{}, parse.Config{}
+	}
+	cfg := parse.Config{Template: spec.Template, Schema: spec.Schema}
+	switch spec.Kind {
+	case "", "raw":
+		return parse.RawParser{}, parse.Config{}
+	case "textfsm":
+		return parse.TextFSMParser{}, cfg
+	case "native_json":
+		return parse.JSONParser{}, cfg
+	case "builtin":
+		return parse.BuiltinParser{}, cfg
+	default:
+		log.Printf("WARNING: unknown parser kind %q for %s op %s; falling back to raw",
+			spec.Kind, rt.Template.Name, op)
+		return parse.RawParser{}, parse.Config{}
+	}
 }

@@ -54,7 +54,14 @@ func newBGPSummaryCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+			msg := resp.Msg
+			var parsed any
+			if msg.GetParsed() != nil {
+				parsed = msg.GetParsed()
+			}
+			return printParsedResult(
+				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+				parsed, msg.GetParserKind(), msg.GetParseStatus())
 		},
 	}
 }
@@ -91,7 +98,14 @@ func newBGPRouteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+			msg := resp.Msg
+			var parsed any
+			if msg.GetParsed() != nil {
+				parsed = msg.GetParsed()
+			}
+			return printParsedResult(
+				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+				parsed, msg.GetParserKind(), msg.GetParseStatus())
 		},
 	}
 }
@@ -157,7 +171,14 @@ Examples:
 				if err != nil {
 					return err
 				}
-				return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+				msg := resp.Msg
+				var parsed any
+				if msg.GetParsed() != nil {
+					parsed = msg.GetParsed()
+				}
+				return printParsedResult(
+					string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+					parsed, msg.GetParserKind(), msg.GetParseStatus())
 
 			case 3: // large (RFC 8092): GLOBAL:LOCAL1:LOCAL2
 				global, err := strconv.ParseUint(parts[0], 10, 32)
@@ -183,7 +204,14 @@ Examples:
 				if err != nil {
 					return err
 				}
-				return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+				msg := resp.Msg
+				var parsed any
+				if msg.GetParsed() != nil {
+					parsed = msg.GetParsed()
+				}
+				return printParsedResult(
+					string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+					parsed, msg.GetParserKind(), msg.GetParseStatus())
 
 			default:
 				return fmt.Errorf(
@@ -226,7 +254,14 @@ func newBGPASPathCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printOpResult(string(resp.Msg.GetResult()), resp.Msg.GetTimestamp().AsTime())
+			msg := resp.Msg
+			var parsed any
+			if msg.GetParsed() != nil {
+				parsed = msg.GetParsed()
+			}
+			return printParsedResult(
+				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+				parsed, msg.GetParserKind(), msg.GetParseStatus())
 		},
 	}
 }

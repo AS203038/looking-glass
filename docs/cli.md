@@ -192,14 +192,22 @@ result.
 ### `pretty` (default)
 
 * ANSI colour on a TTY, plain text otherwise.
-* For operation results: prints the raw router output to stdout,
-  followed by a dim `ts: <time>` footer to **stderr** so that
-  redirecting stdout to a file produces a clean result.
+* For operation results: when the server returned a structured
+  payload (the router template declared a parser and it produced
+  output), emit a **typed table** rendered with `text/tabwriter` —
+  a ping stat block, a traceroute hop table, a BGP-paths table,
+  or a peer-table for `bgp summary`. When no structured payload is
+  available (parser disabled, missing template, or output drift),
+  fall through to the raw router text exactly as before.
+* The dim footer goes to **stderr** so redirecting stdout to a
+  file produces a clean result file. The footer also names the
+  parser pipe that produced the structured view, e.g.
+  `ts: 2026-05-14T16:21:00Z · parser: textfsm`.
 * `--quiet` suppresses the footer entirely.
 * `--no-color` disables ANSI even on a TTY.
 
 ```bash
-lg-cli ping as203038 1 1.1.1.1 > result.txt    # result.txt is just router output
+lg-cli ping as203038 1 1.1.1.1 > result.txt    # result.txt is just the (structured or raw) output
 lg-cli ping as203038 1 1.1.1.1 2>/dev/null     # no footer, no colour, just output
 ```
 
@@ -211,9 +219,29 @@ For operation responses:
 ```json
 {
   "result": "PING 1.1.1.1 (1.1.1.1) ...\n...",
-  "timestamp": "2026-05-14T16:21:00Z"
+  "timestamp": "2026-05-14T16:21:00Z",
+  "parsed": {
+    "target": "1.1.1.1",
+    "source": "192.0.2.1",
+    "packets_sent": 5,
+    "packets_received": 5,
+    "loss_pct": 0,
+    "rtt_min_ms": 1.99,
+    "rtt_avg_ms": 2.14,
+    "rtt_max_ms": 2.46,
+    "rtt_mdev_ms": 0.16
+  },
+  "parser_kind": "builtin",
+  "parse_status": "ok"
 }
 ```
+
+`parsed`, `parser_kind` and `parse_status` are only emitted when
+the server populated them (i.e. a parser was configured for the
+operation; see
+[router-templates.md § Parsers](./router-templates.md#parsers-structured-output)).
+When `parse_status != "ok"` the `parsed` field is omitted and
+clients should fall back to `result`.
 
 `result` is decoded from `bytes` to a string for ergonomics; if
 you need the raw bytes, use `--output raw`.

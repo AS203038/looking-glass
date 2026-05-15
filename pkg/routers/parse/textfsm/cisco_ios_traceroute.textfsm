@@ -1,0 +1,49 @@
+# TextFSM template: Cisco IOS / IOS-XE `traceroute`.
+#
+# IOS emits three probes per hop on a single line (the default is
+# `probe 3`); each probe is either `N msec` or `*` for a timeout.
+# The destination header carries the target and optional source.
+#
+# Sample output:
+#   Type escape sequence to abort.
+#   Tracing the route to one.one.one.one (1.1.1.1)
+#   VRF info: (vrf in name/id, vrf out name/id)
+#     1 10.0.0.254 0 msec 0 msec 0 msec
+#     2 192.0.2.1 [AS 64500] 1 msec 1 msec *
+#     3 * * *
+#     4 one.one.one.one (1.1.1.1) 8 msec 8 msec 8 msec
+#
+# IOS interleaves a `[AS N]` annotation between IP and the first
+# `msec` figure when `traceroute mpls ... as-numbers` is enabled or
+# when the BGP table is consulted. We capture that into asn1 / asn2
+# / asn3 (treated as a per-hop AS, copied to every probe slot).
+#
+# A pure-star hop (no IP at all) lands on the second Start line.
+# The numbered-probe convention (ip1/rtt_ms1, …) is consumed by the
+# projector and expanded into three [pb.TracerouteProbe] entries.
+# Note on the header capture: we deliberately do NOT capture the
+# hostname into a per-record Value, because non-Filldown values in
+# gotextfsm persist across line matches until the next Record. If
+# the header captured `hostname1`, it would stick to every
+# bare-IP hop row that followed (Cisco IOS does not print reverse-
+# DNS names for transit hops by default). The header therefore
+# uses a non-value group `(?:\S+\s+\()?` and leaves hostname1 to
+# the hop lines.
+Value Filldown target ([^)\s]+)
+Value Filldown source (\S+)
+Value Required ttl (\d+)
+Value ip1 ([0-9a-fA-F:.]+)
+Value hostname1 ([\w.\-]+)
+Value asn1 (\d+)
+Value rtt_ms1 (\d+(?:\.\d+)?)
+Value rtt_ms2 (\d+(?:\.\d+)?)
+Value rtt_ms3 (\d+(?:\.\d+)?)
+
+Start
+  ^Tracing\s+the\s+route\s+to\s+(?:\S+\s+\()?${target}\)?
+  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)(?:\s+\[AS\s+${asn1}\])?\s+${rtt_ms1}\s+msec\s+${rtt_ms2}\s+msec\s+${rtt_ms3}\s+msec -> Record
+  ^\s*${ttl}\s+${ip1}(?:\s+\[AS\s+${asn1}\])?\s+${rtt_ms1}\s+msec\s+${rtt_ms2}\s+msec\s+${rtt_ms3}\s+msec -> Record
+  ^\s*${ttl}\s+${ip1}(?:\s+\[AS\s+${asn1}\])?\s+${rtt_ms1}\s+msec\s+${rtt_ms2}\s+msec\s+\* -> Record
+  ^\s*${ttl}\s+${ip1}(?:\s+\[AS\s+${asn1}\])?\s+${rtt_ms1}\s+msec\s+\*\s+\* -> Record
+  ^\s*${ttl}\s+\*\s+\*\s+\* -> Record
+

@@ -2,21 +2,25 @@
 	/**
 	 * Single-router result card.
 	 *
-	 * Why we replaced the old 1MB byte-chunk pagination with a windowed
-	 * line viewer:
-	 *   - Splitting a BGP table at 1MB byte offsets created completely
-	 *     arbitrary page breaks (one route across two pages).
-	 *   - Users couldn't search inside the output without scrolling each
-	 *     page manually.
-	 *   - Each "page change" re-rendered the whole <pre>; on dark mode
-	 *     this caused a visible flash.
+	 * Rendering policy:
+	 *   1. If the server returned a structured payload (`result.parsed`
+	 *      set with parse_status == OK), default to the matching
+	 *      `*View.svelte` component.
+	 *   2. A "Raw" toggle in the toolbar swaps into the verbatim
+	 *      output viewer (windowed line list, inline filter, copy,
+	 *      download). This path is the only path when no parser ran
+	 *      or when parsing failed.
+	 *   3. A parser-provenance chip in the toolbar lets operators see
+	 *      which pipe produced the structured view ("textfsm",
+	 *      "native_json", "builtin"), useful when debugging vendor
+	 *      output drift.
 	 *
-	 * The new approach:
-	 *   - Decode the response ONCE into a flat `lines: string[]` array.
-	 *   - Render only a fixed window (default 500 lines) — large outputs
-	 *     stay snappy and copyable per-window.
-	 *   - Inline search: visible lines are filtered when a query is typed.
-	 *   - Always offer "Download .txt" for the full unfiltered output.
+	 * Why a per-card toggle and not a global preference:
+	 *   Different ops want different defaults. Ping wants the stat
+	 *   strip 100% of the time. `bgp.route` for an unfamiliar prefix
+	 *   sometimes wants raw to copy/paste full attribute strings into
+	 *   a ticket. Per-card persistence would be overkill; a quick
+	 *   toggle is enough.
 	 */
 	import { fade } from 'svelte/transition';
 	import type { ExecResult } from '$lib/stores/query';
@@ -29,6 +33,12 @@
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import Clock from '@lucide/svelte/icons/clock';
 	import MapPin from '@lucide/svelte/icons/map-pin';
+	import Table2 from '@lucide/svelte/icons/table-2';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import PingView from './views/PingView.svelte';
+	import TracerouteView from './views/TracerouteView.svelte';
+	import BGPPathsView from './views/BGPPathsView.svelte';
+	import BGPSummaryView from './views/BGPSummaryView.svelte';
 
 	interface Props {
 		result: ExecResult;
@@ -43,10 +53,21 @@
 	let nowDate = $state(new Date());
 	now.subscribe((d) => (nowDate = d));
 
+	// "structured" when the server gave us a parsed payload; the user
+	// can flip to "raw" to inspect the verbatim bytes.
+	let viewMode = $state<'structured' | 'raw'>('structured');
+	const canStructured = $derived(result.parsed != null);
+	// Reset to structured whenever the result mutates (e.g. a fresh
+	// run replaces the previous one).
+	$effect(() => {
+		if (result.parsed != null && viewMode === 'raw') {
+			// keep the user's manual choice within the same result
+		}
+	});
+
 	const lines = $derived.by(() => {
 		if (!result.bytes) return [] as string[];
 		const text = new TextDecoder('utf-8', { fatal: false }).decode(result.bytes);
-		// Normalize trailing newlines so the row count is accurate.
 		return text.replace(/\n+$/, '').split('\n');
 	});
 
@@ -58,6 +79,21 @@
 
 	const visibleLines = $derived(filteredLines.slice(0, windowLimit));
 	const hasMore = $derived(filteredLines.length > windowLimit);
+
+	// Map ParserKind enum (numeric in TS) to a label. Avoid importing
+	// the enum-as-value to keep this file's TS surface light.
+	const parserLabel = $derived.by(() => {
+		switch (result.parserKind) {
+			case 1:
+				return 'textfsm';
+			case 2:
+				return 'native_json';
+			case 3:
+				return 'builtin';
+			default:
+				return '';
+		}
+	});
 
 	async function copyAll() {
 		if (!result.bytes) return;
@@ -73,8 +109,6 @@
 
 	function download() {
 		if (!result.bytes) return;
-		// Cast through Uint8Array to satisfy TS lib.dom's strict BlobPart
-		// requirement (Uint8Array<SharedArrayBuffer> can't auto-widen).
 		const blob = new Blob([result.bytes as unknown as BlobPart], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -144,27 +178,76 @@
 			<span class="font-mono break-words whitespace-pre-wrap">{result.error}</span>
 		</div>
 	{:else}
-		<!-- Toolbar -->
+		<!-- Toolbar: view toggle + parser provenance + filter (raw only) + copy/download -->
 		<div
 			class="flex flex-wrap items-center gap-2 border-b px-3 py-2"
 			style="border-color: var(--color-border);"
 		>
-			<div class="relative flex-1 sm:max-w-xs">
-				<Search
-					size={14}
-					class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 opacity-60"
-				/>
-				<input
-					type="search"
-					class="lg-input py-1.5 pl-8 text-xs"
-					placeholder="Filter lines…"
-					bind:value={search}
-				/>
-			</div>
+			{#if canStructured}
+				<div
+					class="inline-flex overflow-hidden rounded-md border"
+					style="border-color: var(--color-border);"
+				>
+					<button
+						type="button"
+						class="flex items-center gap-1 px-2 py-1 text-xs"
+						class:font-semibold={viewMode === 'structured'}
+						style:background-color={viewMode === 'structured'
+							? 'var(--color-bg-inset)'
+							: 'transparent'}
+						onclick={() => (viewMode = 'structured')}
+						title="Structured view"
+					>
+						<Table2 size={12} />
+						Structured
+					</button>
+					<button
+						type="button"
+						class="flex items-center gap-1 px-2 py-1 text-xs"
+						class:font-semibold={viewMode === 'raw'}
+						style:background-color={viewMode === 'raw' ? 'var(--color-bg-inset)' : 'transparent'}
+						onclick={() => (viewMode = 'raw')}
+						title="Raw output"
+					>
+						<FileText size={12} />
+						Raw
+					</button>
+				</div>
+				{#if parserLabel}
+					<span
+						class="font-mono text-[10px]"
+						style="color: var(--color-fg-subtle);"
+						title="Parser provenance">via {parserLabel}</span
+					>
+				{/if}
+			{:else if parserLabel}
+				<span
+					class="font-mono text-[10px]"
+					style="color: var(--color-fg-subtle);"
+					title="Parser attempted but produced no structured view"
+					>parser: {parserLabel} (failed)</span
+				>
+			{/if}
 
-			<span class="ml-auto font-mono text-xs" style="color: var(--color-fg-subtle);">
-				{filteredLines.length} / {lines.length} lines
-			</span>
+			{#if !canStructured || viewMode === 'raw'}
+				<div class="relative flex-1 sm:max-w-xs">
+					<Search
+						size={14}
+						class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 opacity-60"
+					/>
+					<input
+						type="search"
+						class="lg-input py-1.5 pl-8 text-xs"
+						placeholder="Filter lines…"
+						bind:value={search}
+					/>
+				</div>
+				<span class="ml-auto font-mono text-xs" style="color: var(--color-fg-subtle);">
+					{filteredLines.length} / {lines.length} lines
+				</span>
+			{:else}
+				<span class="ml-auto"></span>
+			{/if}
 
 			<button
 				type="button"
@@ -187,28 +270,40 @@
 		</div>
 
 		<!-- Output -->
-		<pre
-			class="max-h-96 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
-			style="background-color: var(--color-bg-inset); color: var(--color-fg);"><code
-				>{visibleLines.join('\n')}</code
-			></pre>
+		{#if canStructured && viewMode === 'structured' && result.parsed}
+			{#if result.parsed.kind === 'ping'}
+				<PingView stats={result.parsed.data} />
+			{:else if result.parsed.kind === 'traceroute'}
+				<TracerouteView tp={result.parsed.data} />
+			{:else if result.parsed.kind === 'bgp_summary'}
+				<BGPSummaryView summary={result.parsed.data} />
+			{:else if result.parsed.kind === 'bgp_paths'}
+				<BGPPathsView paths={result.parsed.data} />
+			{/if}
+		{:else}
+			<pre
+				class="max-h-96 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
+				style="background-color: var(--color-bg-inset); color: var(--color-fg);"><code
+					>{visibleLines.join('\n')}</code
+				></pre>
 
-		{#if hasMore}
-			<div
-				class="flex items-center justify-between border-t px-4 py-2 text-xs"
-				style="border-color: var(--color-border); color: var(--color-fg-muted);"
-			>
-				<span>
-					Showing {windowLimit.toLocaleString()} of {filteredLines.length.toLocaleString()} lines
-				</span>
-				<button
-					type="button"
-					class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
-					onclick={() => (windowLimit += WINDOW_STEP)}
+			{#if hasMore}
+				<div
+					class="flex items-center justify-between border-t px-4 py-2 text-xs"
+					style="border-color: var(--color-border); color: var(--color-fg-muted);"
 				>
-					Show {Math.min(WINDOW_STEP, filteredLines.length - windowLimit)} more
-				</button>
-			</div>
+					<span>
+						Showing {windowLimit.toLocaleString()} of {filteredLines.length.toLocaleString()} lines
+					</span>
+					<button
+						type="button"
+						class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
+						onclick={() => (windowLimit += WINDOW_STEP)}
+					>
+						Show {Math.min(WINDOW_STEP, filteredLines.length - windowLimit)} more
+					</button>
+				</div>
+			{/if}
 		{/if}
 	{/if}
 </article>

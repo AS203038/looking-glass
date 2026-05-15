@@ -219,10 +219,14 @@
 			<span class="text-sm">Failed to load routers — see the toast for details.</span>
 		</div>
 	{:else}
-		<!-- Sticky search bar — pinned just under the page header. -->
+		<!-- Sticky search bar — pinned just under the page header. Uses
+			 the layout-defined header height var so future header changes
+			 don't desync this offset. -->
 		<div
-			class="sticky top-14 z-10 flex h-14 items-center backdrop-blur-md"
-			style="background-color: color-mix(in oklab, var(--color-bg) 85%, transparent);"
+			class="sticky z-10 flex items-center backdrop-blur-md"
+			style="top: var(--lg-header-h);
+			       height: var(--lg-picker-search-h);
+			       background-color: color-mix(in oklab, var(--color-bg) 85%, transparent);"
 		>
 			<div class="relative w-full">
 				<Search
@@ -256,14 +260,14 @@
 						{@const anchorId = locationAnchorId(location)}
 						<div class="lg-card" id={anchorId}>
 							<!-- Sticky location header — lands just under the sticky
-								 search row above (56 + 56 = 112 px). The header carries
-								 its own `rounded-t-xl` so it visually clips to the
-								 card's rounded top corners without needing
-								 `overflow-hidden` on the parent (which would break
-								 sticky). -->
+								 search row (header + search). The header carries its
+								 own `rounded-t-xl` so it visually clips to the card's
+								 rounded top corners without needing `overflow-hidden`
+								 on the parent (which would break sticky). -->
 							<div
-								class="sticky top-[112px] z-[5] flex items-center gap-2 rounded-t-xl border-b px-4 py-2.5 backdrop-blur-md"
-								style="background-color: color-mix(in oklab, var(--color-bg-elevated) 95%, transparent);
+								class="sticky z-[5] flex items-center gap-2 rounded-t-xl border-b px-4 py-2.5 backdrop-blur-md"
+								style="top: calc(var(--lg-header-h) + var(--lg-picker-search-h));
+								       background-color: color-mix(in oklab, var(--color-bg-elevated) 95%, transparent);
 								       border-color: var(--color-border);"
 							>
 								<button
@@ -391,8 +395,9 @@
 				<!-- Quick-Nav rail (desktop only, ≥ 8 locations). -->
 				{#if showQuickNav}
 					<nav
-						class="sticky top-[120px] hidden h-max max-h-[calc(100vh-14rem)] w-32 shrink-0 flex-col gap-0.5 overflow-y-auto rounded-lg border p-2 lg:flex"
-						style="background-color: var(--color-bg-elevated);
+						class="sticky hidden h-max max-h-[calc(100vh-14rem)] w-32 shrink-0 flex-col gap-0.5 overflow-y-auto rounded-lg border p-2 lg:flex"
+						style="top: calc(var(--lg-header-h) + var(--lg-picker-search-h) + 8px);
+						       background-color: var(--color-bg-elevated);
 						       border-color: var(--color-border);"
 						aria-label="Jump to location"
 					>

@@ -1,0 +1,130 @@
+# TextFSM template: Arista EOS `show ip|ipv6 bgp <prefix|community|...>
+# [detail]` output. Shared by bgp.route / bgp.community /
+# bgp.largecommunity / bgp.aspath because all four commands emit
+# the same structural per-path block — though EOS rejects the
+# `detail` modifier on the prefix and `regexp` forms when a VRF
+# is in play (see pkg/routers/arista_eos.yml header for the
+# grammar discussion). The non-detail form is structurally a
+# strict subset of the detail form for our purposes, so one
+# template covers both.
+#
+# Canonical block — MODERN EOS (without/with `detail`, recent
+# feature releases):
+#   BGP routing table entry for 43.157.192.0/18
+#    Paths: 1 available
+#     3399 5511 7713 132203
+#       195.128.254.232 from 195.128.254.232 (195.128.255.252)
+#         Origin IGP, metric 0, localpref 100, IGP metric 0, weight 0, tag 0
+#         Received 2d19h ago, valid, external, best
+#         Community: 1:2 62:2 852:62
+#         Extended Community: Link-Bandwidth-AS:3399:12.5 Bps
+#         Large Community: 214503:1:2 214503:2:2
+#         Rx SAFI: Unicast
+#
+# Canonical block — LEGACY EOS (older feature releases, kept for
+# back-compat and exercised by the textfsm_test fixture):
+#   BGP routing table entry for 1.1.1.0/24
+#    Paths: (2 available, best #1)
+#    Advertised to peers:
+#     10.0.0.2
+#     65001 65002
+#       fe80::1 from fe80::1 (10.0.0.2)
+#         Origin IGP, metric 0, localpref 100, weight 0, valid, external, best
+#         Community: 65000:100 65000:200
+#         Large Community: 214503:8:3607
+#         Last update: 1d02h ago
+#
+# The two shapes differ in three places:
+#
+#   1. The `Origin` line in MODERN EOS gains trailing fields
+#      (`IGP metric N, weight N, tag N`) and DROPS the flag tokens
+#      (`valid, external, best`). The flag tokens — including
+#      `best` — moved onto a new `Received <age> ago, …, best`
+#      line. LEGACY EOS keeps everything on the Origin line and
+#      uses `Last update: <age> ago` for the age.
+#
+#   2. MODERN EOS inserts an `Extended Community: …` line between
+#      `Community:` and `Large Community:`. We skip it benignly
+#      (no Values captured) so it doesn't disturb FSM anchoring.
+#
+#   3. MODERN EOS terminates each path block with `Rx SAFI: …`
+#      rather than `Last update:`. We trigger `Record` on EITHER
+#      terminator, so both shapes flush correctly.
+#
+# Notes on capture strategy:
+#   - `best` is captured either from the LEGACY Origin tail or
+#     from the MODERN `Received … ago, …, best` line — whichever
+#     appears wins. Both rules use the same `${best}` Value, so
+#     the projector sees a single boolean.
+#   - `age` is captured either from MODERN `Received <age> ago`
+#     or LEGACY `Last update: <age> ago`. Same Value, last write
+#     wins per record (only one fires per block).
+#   - Both `as_path` and `communities` / `large_communities` are
+#     captured as a single token-string (the full whitespace-
+#     separated list) rather than via `Value List`. The projector's
+#     splitListToken() expands them into per-entry lists when
+#     building the wire payload. This sidesteps the gotextfsm
+#     gotcha that `${var}(?:\s+${var})*` over `Value List var`
+#     only retains the last whitespace-separated occurrence.
+#   - `origin (\w+)` excludes the trailing comma so the wire field
+#     stays `igp` / `egp` / `incomplete` rather than `igp,`.
+#   - The Origin-line tail is matched via an explicit two-branch
+#     alternation: the first branch greedy-anchors on a literal
+#     `best` keyword (LEGACY); the second branch consumes any
+#     trailing comma-separated tokens without capturing `best`
+#     (MODERN). The plain `(?:,.*?${best})?\s*$$` pattern WOULD
+#     match LEGACY cleanly but reject MODERN (the trailing
+#     `IGP metric…, tag 0` after `localpref` leaves non-whitespace
+#     between the empty optional group and `\s*$$`).
+#   - When the prefix is a BGP aggregate, EOS appends an
+#     `(aggregated by <ASN> <router-id>)` suffix to the bare-ASN
+#     line, e.g. `13335 (aggregated by 13335 10.34.48.128)`. The
+#     bare-ASN pattern below tolerates this suffix via an optional
+#     non-capturing trailing group — `${as_path}` itself stays a
+#     strict digits-only token so the projector keeps producing a
+#     clean integer list. The aggregator ASN / router-id are
+#     deliberately not surfaced (no wire field for them on
+#     BGPPath today).
+Value Filldown prefix ([0-9a-fA-F:.]+/\d+)
+Value as_path (\d+(?:\s+\d+)*)
+Value nexthop ([0-9a-fA-F:.]+)
+Value peer_ip ([0-9a-fA-F:.]+)
+Value origin (\w+)
+Value med (\d+)
+Value local_pref (\d+)
+Value communities (\d+:\d+(?:\s+\d+:\d+)*)
+Value large_communities (\d+:\d+:\d+(?:\s+\d+:\d+:\d+)*)
+Value best (best)
+Value age (\S+)
+
+Start
+  ^\s*BGP routing table entry for\s+${prefix}
+  # Indented bare-ASN line preceding the nexthop block. The
+  # optional `(aggregated by <ASN> <router-id>)` trailer is the
+  # EOS marker for an aggregate prefix; matched but not captured.
+  ^\s+(?P<_as>${as_path})(?:\s+\(aggregated\s+by\s+\d+\s+\S+\))?\s*$$
+  # Nexthop line: "<nexthop> [(metric N)] from <peer> (<router-id>)".
+  ^\s+${nexthop}\s+(?:\(metric\s+\d+\)\s+)?from\s+${peer_ip}\s+\(\S+\)
+  # Origin / metric / localpref — followed by either:
+  #   * LEGACY: ", weight N, valid, external, best" (captures best)
+  #   * MODERN: ", IGP metric N, weight N, tag N" (no flag tokens)
+  # The two-branch alternation accepts either tail; only the
+  # LEGACY branch captures `best`. The MODERN flag tokens
+  # (`valid`, `external`, `best`) live on the `Received …` line
+  # below.
+  ^\s+Origin\s+${origin}(?:,\s+metric\s+${med})?(?:,\s+localpref\s+${local_pref})?(?:,[^\n]*?\b${best}\b[^\n]*|,[^\n]*)?\s*$$
+  # MODERN: "Received <age> ago, …, best". Captures age (and
+  # `best` when present among the comma-separated flag tokens).
+  # Does NOT Record — Community / Large Community still follow.
+  ^\s+Received\s+${age}\s+ago(?:,[^\n]*?\b${best}\b[^\n]*|,[^\n]*)?\s*$$
+  ^\s+Community:\s+${communities}\s*$$
+  # MODERN inserts an Extended Community: line between Community:
+  # and Large Community:. Skip benignly so it doesn't disturb the
+  # FSM (no Values captured — we don't surface extcomms today).
+  ^\s+Extended Community:.*$$
+  ^\s+Large Community:\s+${large_communities}\s*$$
+  # MODERN block terminator: "Rx SAFI: <safi>". Record.
+  ^\s+Rx SAFI:.*$$ -> Record
+  # LEGACY block terminator: "Last update: <age> ago". Record.
+  ^\s+Last update:\s+${age}\s+ago -> Record
+  ^\s*$$

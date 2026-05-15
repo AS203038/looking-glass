@@ -1,0 +1,35 @@
+# TextFSM template: Cisco IOS / IOS-XE `ping`.
+#
+# IOS's ping is terse compared to iputils: one progress-marker line
+# (`!!!!!`) followed by a single summary line. There is no per-probe
+# breakdown and no jitter (mdev) figure — those fields end up zero.
+#
+# Sample output (success):
+#   Type escape sequence to abort.
+#   Sending 5, 100-byte ICMP Echos to 1.1.1.1, timeout is 2 seconds:
+#   Packet sent with a source address of 10.0.0.1
+#   !!!!!
+#   Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms
+#
+# Sample output (total loss):
+#   Sending 5, 100-byte ICMP Echos to 10.255.255.1, timeout is 2 seconds:
+#   .....
+#   Success rate is 0 percent (0/5)
+#
+# IOS reports the success *rate*; we derive loss_pct = 100 - success.
+# packets_received is `(received/sent)` so we capture both numerator
+# and denominator and let the projector consume both. The RTT line
+# is optional (absent on 0% success) so we land on Record either way.
+Value Required target (\S+)
+Value source (\S+)
+Value packets_sent (\d+)
+Value packets_received (\d+)
+Value loss_pct (\d+(?:\.\d+)?)
+Value rtt_min_ms (\d+(?:\.\d+)?)
+Value rtt_avg_ms (\d+(?:\.\d+)?)
+Value rtt_max_ms (\d+(?:\.\d+)?)
+
+Start
+  ^Sending\s+\d+,\s+\d+-byte\s+ICMP\s+Echos\s+to\s+${target},
+  ^Packet\s+sent\s+with\s+a\s+source\s+address\s+of\s+${source}
+  ^Success\s+rate\s+is\s+(?P<_success>\d+)\s+percent\s+\(${packets_received}/${packets_sent}\)(?:,\s+round-trip\s+min/avg/max\s+=\s+${rtt_min_ms}/${rtt_avg_ms}/${rtt_max_ms}\s+ms)? -> Record

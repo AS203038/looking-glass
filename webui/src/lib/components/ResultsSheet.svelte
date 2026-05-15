@@ -29,6 +29,7 @@
 		sheetState,
 		sheetHeight,
 		fitGeneration,
+		dockHeight,
 		toggleSheet,
 		peekSheet,
 		expandSheet,
@@ -38,6 +39,7 @@
 		reclamp,
 		clampHeight,
 		MIN_EXPAND_PX,
+		HEADER_RESERVED_PX,
 		type SheetState
 	} from '$lib/stores/sheet';
 	import { results, hasRun } from '$lib/stores/query';
@@ -54,6 +56,7 @@
 	// instead.)
 	let sheetCurrent: SheetState = $state('hidden');
 	let heightPx = $state(0);
+	let dockPx = $state(0);
 	let res = $state<Record<string, ExecResult>>({});
 	let selected = $state<Pb.Router[]>([]);
 	let ran = $state(false);
@@ -61,10 +64,19 @@
 
 	sheetState.subscribe((s) => (sheetCurrent = s));
 	sheetHeight.subscribe((h) => (heightPx = h));
+	dockHeight.subscribe((d) => (dockPx = d));
 	results.subscribe((v) => (res = v));
 	selectedRouters.subscribe((v) => (selected = v));
 	hasRun.subscribe((v) => (ran = v));
 	fitGeneration.subscribe((n) => (gen = n));
+
+	// Hard upper bound on the sheet's height — viewport minus header
+	// reserve minus the dock's current measured height. Re-evaluated
+	// whenever the dock changes size, the viewport resizes, or the
+	// orientation flips.
+	const maxHeightCss = $derived(
+		`calc(100dvh - ${HEADER_RESERVED_PX}px - ${Math.max(0, dockPx)}px)`
+	);
 
 	const ordered = $derived.by(() => {
 		const out: ExecResult[] = [];
@@ -96,7 +108,11 @@
 	// We only do this while the user has *no preference* (the policy
 	// itself bails out otherwise), so it can never fight a manual resize.
 	let bodyEl: HTMLDivElement | null = $state(null);
-	const HANDLE_PX = 36;
+	// Tailwind responsive heights: 44 px on mobile (matches Apple HIG
+	// minimum touch target), 36 px from `sm:` upward where pointer
+	// devices are more common. The auto-fit logic uses the larger
+	// value as `chrome` so we never under-size the content area.
+	const HANDLE_PX = 44;
 
 	function autoFit() {
 		if (!bodyEl) return;
@@ -217,36 +233,46 @@
 </script>
 
 {#if sheetCurrent !== 'hidden' && ran}
+	<!--
+		The sheet is a flex child of the sticky bottom-bar wrapper in
+		`+layout.svelte`. It does NOT use `position: sticky` itself —
+		two sticky siblings on the same `bottom` anchor would overlap
+		(that's the very bug this layout fixes). The wrapper is sticky
+		for both children; the sheet just controls its own height.
+	-->
 	<aside
 		role="region"
 		aria-label="Results"
-		class="sticky bottom-0 z-25 flex flex-col border-t backdrop-blur-md"
+		class="flex flex-col border-t backdrop-blur-md"
 		style="background-color: color-mix(in oklab, var(--color-bg-mantle) 96%, transparent);
 		       border-color: var(--color-border);
 		       height: {sheetCurrent === 'expand' ? `${heightPx}px` : 'auto'};
-		       max-height: calc(100dvh - 5rem);"
+		       max-height: {maxHeightCss};"
 		in:fly={{ y: 16, duration: 160 }}
 	>
 		<!-- ── Handle / summary bar ─────────────────────────────────────── -->
 		<div
 			role="button"
 			tabindex="0"
-			class="flex h-9 shrink-0 cursor-row-resize items-center gap-3 border-b px-4 select-none sm:px-6"
-			style="border-color: var(--color-border); touch-action: none;"
+			class="relative flex h-11 shrink-0 cursor-row-resize items-center gap-3 border-b px-4 select-none sm:h-9 sm:px-6"
+			style="border-color: var(--color-border); touch-action: none; -webkit-user-select: none; -webkit-touch-callout: none;"
 			aria-expanded={sheetCurrent === 'expand'}
 			aria-controls="lg-results-body"
 			onpointerdown={onHandlePointerDown}
 			onpointermove={onHandlePointerMove}
 			onpointerup={endDrag}
 			onpointercancel={endDrag}
+			oncontextmenu={(e) => e.preventDefault()}
 			onkeydown={onHandleKeyDown}
 			onclick={onHandleClick}
 			title={sheetCurrent === 'expand'
 				? 'Drag to resize. Click to collapse.'
 				: 'Click to expand results. Drag to resize.'}
 		>
+			<!-- Visible grab pill — wider/thicker on mobile so the affordance
+				 reads at a glance. -->
 			<span
-				class="absolute left-1/2 h-1 w-10 -translate-x-1/2 rounded-full"
+				class="pointer-events-none absolute top-1.5 left-1/2 h-1.5 w-12 -translate-x-1/2 rounded-full sm:top-1 sm:h-1 sm:w-10"
 				style="background-color: var(--color-overlay); opacity: 0.5;"
 				aria-hidden="true"
 			></span>
@@ -277,9 +303,10 @@
 
 			<button
 				type="button"
-				class="lg-btn lg-btn-ghost h-7 w-7 !p-0"
+				class="lg-btn lg-btn-ghost h-8 w-8 shrink-0 !p-0 sm:h-7 sm:w-7"
 				aria-label="Dismiss results panel"
 				title="Dismiss"
+				onpointerdown={(e) => e.stopPropagation()}
 				onclick={(e) => {
 					e.stopPropagation();
 					hideSheet();

@@ -26,6 +26,20 @@ func routerTag(router *RouterConfig) string {
 // command sequentially, returning a slice of stdout strings (one per
 // command) in the same order.
 //
+// Supported authentication methods (offered to the server in this order;
+// the server picks whichever matches its policy):
+//
+//   - publickey       — offered when [RouterConfig.SSHKey] is set.
+//   - password        — offered when [RouterConfig.Password] is set.
+//   - keyboard-interactive — offered when [RouterConfig.Password] is set;
+//     every prompt the server issues is answered with the configured
+//     password. This matches the OpenSSH client default and is required
+//     by routers/PAM stacks that advertise only `keyboard-interactive`
+//     (notably JunOS in some configurations, MikroTik, and Linux hosts
+//     with `ChallengeResponseAuthentication yes` / `PasswordAuthentication
+//     no`). Multi-prompt MFA flows (e.g. TACACS+ OTP) cannot be satisfied
+//     by a static secret; those deployments should use publickey auth.
+//
 // Error-handling philosophy:
 //
 //   - Callers (and ultimately RPC clients) only ever see the coarse
@@ -40,7 +54,7 @@ func routerTag(router *RouterConfig) string {
 //     stage that failed, the underlying Go error, and — crucially —
 //     any stderr captured from the remote session.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
-	auths := []ssh.AuthMethod{ssh.Password(router.Password)}
+	auths := []ssh.AuthMethod{}
 	if router.SSHKey != "" {
 		k, err := os.ReadFile(router.SSHKey)
 		if err != nil {
@@ -56,6 +70,25 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 		}
 		auths = append(auths, ssh.PublicKeys(key))
 	}
+	if router.Password != "" {
+		auths = append(auths,
+			ssh.Password(router.Password),
+			// keyboard-interactive: mirror every prompt with the
+			// configured password. The server controls prompt text
+			// ("Password:", "Verification code:", …); for the common
+			// single-prompt case this is exactly the password flow,
+			// and for multi-prompt flows there is no better static
+			// answer the LG can give.
+			ssh.KeyboardInteractive(func(user, instruction string, questions []string, echos []bool) ([]string, error) {
+				answers := make([]string, len(questions))
+				for i := range questions {
+					answers[i] = router.Password
+				}
+				return answers, nil
+			}),
+		)
+	}
+
 	config := &ssh.ClientConfig{
 		User:            router.Username,
 		Auth:            auths,

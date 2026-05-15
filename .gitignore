@@ -20,3 +20,5 @@ install.yml
 /looking-glass
 /server
 /cli
+.pnpm-store
+/lg-cli

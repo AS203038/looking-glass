@@ -1,0 +1,56 @@
+# TextFSM template: Nokia SR OS / TiMOS `show router … bgp summary`.
+#
+# Sample output (truncated, fixed-width classic-CLI table):
+#   ===============================================================================
+#   BGP Summary
+#   ===============================================================================
+#   Legend : D - Dynamic Neighbor
+#   ===============================================================================
+#   Neighbor
+#   Description
+#                  AS PktRcvd InQ  Up/Down   State|Rcv/Act/Sent (Addr Family)
+#                     PktSent OutQ
+#   -------------------------------------------------------------------------------
+#   10.0.0.2
+#                65001    1234   0 1d02h00m  500/450/600 (IPv4)
+#                         1235   0
+#   10.0.0.3
+#                65002       0   0 00h00m00s Active
+#                            0   0
+#   2001:db8::2
+#                65003     234   0 00h01m00s 100/95/200 (IPv6)
+#                          235   0
+#
+# Peer rows span three physical lines: peer-IP, AS+counters, and a
+# trailing counters-only line. The middle line carries the State
+# column (or Rcv/Act/Sent triplet on Established peers). The
+# (IPv4)/(IPv6) suffix names the address family.
+Value Filldown local_asn (\d+)
+Value Filldown router_id ([0-9a-fA-F:.]+)
+Value Required peer_ip ([0-9a-fA-F:.]+)
+Value peer_asn (\d+)
+Value uptime (\S+)
+Value state (\S+)
+Value prefixes_received (\d+)
+Value prefixes_accepted (\d+)
+Value prefixes_sent (\d+)
+Value address_family (\S+)
+
+Start
+  ^BGP\s+Summary
+  ^Neighbor\s*$$ -> Peers
+  ^-+\s*$$ -> Peers
+
+Peers
+  # Peer-IP-only line (first physical line of a row).
+  ^${peer_ip}\s*$$
+  # Established session: middle line carries AS, counters, uptime and
+  # the Rcv/Act/Sent triplet plus address-family label.
+  ^\s+${peer_asn}\s+\d+\s+\d+\s+${uptime}\s+${prefixes_received}/${prefixes_accepted}/${prefixes_sent}\s+\(${address_family}\)\s*$$ -> Record
+  # Non-Established session: middle line carries AS, counters, uptime
+  # and a single state keyword.
+  ^\s+${peer_asn}\s+\d+\s+\d+\s+${uptime}\s+${state}\s*$$ -> Record
+  # Trailing counters-only line — skipped.
+  ^\s+\d+\s+\d+\s*$$
+  ^-+\s*$$
+  ^\s*$$ -> Start

@@ -1,0 +1,37 @@
+# TextFSM template: Juniper JunOS `ping … rapid`.
+#
+# JunOS ships an iputils-derived ping binary; the `rapid` qualifier
+# we use in the YAML template tightens output but keeps the same
+# summary block shape. Header source line is optional (only printed
+# when `source <addr>` was supplied).
+#
+# Sample output:
+#   PING 1.1.1.1 (1.1.1.1): 56 data bytes
+#   !!!!!
+#   --- 1.1.1.1 ping statistics ---
+#   5 packets transmitted, 5 packets received, 0% packet loss
+#   round-trip min/avg/max/stddev = 1.234/2.345/3.456/0.789 ms
+#
+# Sample output (total loss):
+#   PING 192.0.2.99 (192.0.2.99): 56 data bytes
+#   .....
+#   --- 192.0.2.99 ping statistics ---
+#   5 packets transmitted, 0 packets received, 100% packet loss
+Value Required target ([0-9a-fA-F:.]+)
+Value source ([0-9a-fA-F:.]+)
+Value packets_sent (\d+)
+Value packets_received (\d+)
+Value loss_pct (\d+(?:\.\d+)?)
+Value rtt_min_ms (\d+(?:\.\d+)?)
+Value rtt_avg_ms (\d+(?:\.\d+)?)
+Value rtt_max_ms (\d+(?:\.\d+)?)
+Value rtt_mdev_ms (\d+(?:\.\d+)?)
+
+Start
+  ^PING\s+\S+\s+\(${target}\)(?:\s+from\s+${source})? -> Stats
+
+Stats
+  ^${packets_sent}\s+packets\s+transmitted,\s+${packets_received}\s+(?:packets\s+)?received,\s+${loss_pct}%\s+packet\s+loss
+  ^(?:rtt|round-trip)\s+min/avg/max/(?:mdev|stddev)\s+=\s+${rtt_min_ms}/${rtt_avg_ms}/${rtt_max_ms}/${rtt_mdev_ms}\s+ms -> Record End
+
+End

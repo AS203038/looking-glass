@@ -1,0 +1,50 @@
+# TextFSM template: MikroTik RouterOS 7.x
+# `/routing bgp advertisements print detail where …`. Shared by
+# bgp.route / bgp.community / bgp.largecommunity / bgp.aspath
+# because all four queries emit the same per-advertisement block
+# shape.
+#
+# Sample output (truncated):
+#  Flags: A - active
+#   0 A peer="peer1" dst-address=1.1.1.0/24
+#       nexthop=10.0.0.2 origin=igp local-pref=100 med=0
+#       as-path="65001,65002"
+#       communities=65000:100,65000:200
+#       large-communities=214503:8:3607
+#
+# Capture strategy:
+#   - Each numbered entry is one advertisement. The leading `A`
+#     flag marks the active path; absent means the path is a
+#     backup. `best` is captured by an optional sub-pattern at the
+#     end of the prefix-line; the projector's recBool() treats `A`
+#     as truthy.
+#   - `as_path` is a comma-separated decimal list inside quotes.
+#     We capture the whole quoted value; the projector's
+#     splitListToken() splits on commas/whitespace before integer
+#     parsing.
+#   - Communities and large-communities lines likewise use single
+#     captures spanning the full comma-separated value list.
+#   - `peer_ip` and `peer_asn` are not directly emitted by the
+#     advertisements view — only the operator-defined peer name
+#     is. We leave those fields zero; the wire payload still
+#     carries the prefix and AS-path which is the primary intent
+#     of bgp.route / bgp.community queries.
+Value Required prefix ([0-9a-fA-F:.]+/\d+)
+Value nexthop ([0-9a-fA-F:.]+)
+Value origin (\S+)
+Value local_pref (\d+)
+Value med (\d+)
+Value as_path (\d+(?:[,\s]+\d+)*)
+Value communities (\d+:\d+(?:,\d+:\d+)*)
+Value large_communities (\d+:\d+:\d+(?:,\d+:\d+:\d+)*)
+Value best (A)
+Value description (\S+)
+
+Start
+  ^\s*Flags:\s+A\s+-\s+active
+  ^\s*\d+(?:\s+${best})?\s+peer="${description}"\s+dst-address=${prefix}
+  ^\s+nexthop=${nexthop}(?:\s+origin=${origin})?(?:\s+local-pref=${local_pref})?(?:\s+med=${med})?
+  ^\s+as-path="${as_path}"
+  ^\s+communities=${communities}\s*$$
+  ^\s+large-communities=${large_communities}\s*$$ -> Record
+  ^\s*$$ -> Record

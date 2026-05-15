@@ -105,6 +105,12 @@
 	--radius-md: 0.625rem;
 	--radius-lg: 0.875rem;
 	--radius-xl: 1.25rem;
+
+	/* Sticky-stack offsets. The Header is 56 px tall; sticky elements
+	 * underneath consume these vars so a Header height change doesn't
+	 * silently desync downstream sticky `top:` offsets. */
+	--lg-header-h: 56px;
+	--lg-picker-search-h: 56px;
 }
 
 /* ---- Catppuccin Mocha (dark mode) — palette + semantic overrides ---------

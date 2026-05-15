@@ -22,6 +22,9 @@ type Router interface {
 	// Traceroute returns the command sequence that records each hop
 	// between the router and the supplied address.
 	Traceroute(*RouterConfig, *IPNet) ([]string, error)
+	// BGPSummary returns the command sequence that prints the
+	// router's BGP neighbour summary table.
+	BGPSummary(*RouterConfig) ([]string, error)
 	// BGPRoute returns the command sequence that prints the best
 	// (and, where supported, alternate) BGP paths to the supplied
 	// prefix or address.
@@ -100,6 +103,16 @@ func (rt *RouterInstance) Ping(param *IPNet) ([]string, error) {
 // and executes it over SSH.
 func (rt *RouterInstance) Traceroute(param *IPNet) ([]string, error) {
 	cmd, err := rt.Router.Traceroute(rt.Config, param)
+	if err != nil {
+		return nil, err
+	}
+	return SSHExec(rt.Config, cmd)
+}
+
+// BGPSummary renders the neighbour-summary command sequence for
+// this router and executes it over SSH.
+func (rt *RouterInstance) BGPSummary() ([]string, error) {
+	cmd, err := rt.Router.BGPSummary(rt.Config)
 	if err != nil {
 		return nil, err
 	}

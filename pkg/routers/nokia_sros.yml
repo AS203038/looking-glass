@@ -6,7 +6,11 @@
 # Login surface   : ssh into the SR OS classic CLI. Commands are issued from
 #                   exec-level prompts; the configured VRF is passed via the
 #                   `router <name>` qualifier so the same template covers the
-#                   base router and any service VPRN.
+#                   base router and any service VPRN. The SSH user should be
+#                   bound to a bespoke `profile` with `default-action
+#                   deny-all` plus explicit permit entries for `show
+#                   router`, `ping`, and `traceroute` — see
+#                   docs/router-hardening.md (Nokia SR OS section).
 # Notable choices :
 #   - `show router … bgp routes <ip>` auto-detects address family from the
 #     operand, so `bgp.route` is a single command rather than one per family.
@@ -15,6 +19,13 @@
 #     `large-community` selector in the classic CLI.
 #   - `aspath-regex` requires double-quotes around the regex to survive the
 #     CLI tokeniser, mirroring JunOS.
+#   - `bgp.summary` uses the classic `show router … bgp summary` table; the
+#     command is family-agnostic at the wire level — SR OS reports per-AFI
+#     peer rows in the same table.
+#   - Parsers: every operation uses TEXTFSM on plain CLI output. SR OS's
+#     CLI is text-only on the classic shell; the MD-CLI variant does
+#     support `| as-json`, but coverage is uneven across feature releases
+#     and most LG operators deploy against the classic prompt.
 # ---------------------------------------------------------------------------
 name: nokia_sros
 
@@ -31,11 +42,36 @@ traceroute:
         - traceroute {{.IP.IP}} source {{.Cfg.Source6.IP}} router {{.Cfg.VRF}}
 
 bgp:
+    summary:
+        - show router {{.Cfg.VRF}} bgp summary
     route:
         - show router {{.Cfg.VRF}} bgp routes {{.IP.IP}} hunt
     community:
-        - show router {{.Cfg.VRF}} bgp routes community {{.Community}}
+        - show router {{.Cfg.VRF}} bgp routes community {{.Community}} detail
     largecommunity:
-        - show router {{.Cfg.VRF}} bgp routes community large:{{.LargeCommunity}}
+        - show router {{.Cfg.VRF}} bgp routes community large:{{.LargeCommunity}} detail
     aspath:
-        - show router {{.Cfg.VRF}} bgp routes aspath-regex "{{.ASPath}}"
+        - show router {{.Cfg.VRF}} bgp routes aspath-regex "{{.ASPath}}" detail
+
+parsers:
+    ping:
+        kind: textfsm
+        template: nokia_sros_ping
+    traceroute:
+        kind: textfsm
+        template: nokia_sros_traceroute
+    bgp.summary:
+        kind: textfsm
+        template: nokia_sros_show_bgp_summary
+    bgp.route:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.community:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.largecommunity:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.aspath:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
