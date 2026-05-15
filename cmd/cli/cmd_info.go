@@ -10,10 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-// newInfoCmd builds the `info <instance>` subcommand, which calls
-// the instance's GetInfo RPC and prints the reported hostname and
-// release version. Doubles as a connectivity probe — if the call
-// fails the error surfaces directly from the ConnectRPC client.
+// newInfoCmd builds the `info <instance>` subcommand.
 func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "info <instance>",
@@ -46,7 +43,7 @@ func newInfoCmd() *cobra.Command {
 			case "raw":
 				fmt.Println(info.GetVersion())
 				return nil
-			default: // pretty
+			default:
 				tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 				fmt.Fprintf(tw, "%s\t%s\n", colorize("Instance:", ansiBold), lg.Name)
 				fmt.Fprintf(tw, "%s\t%s\n", colorize("URL:", ansiBold), lg.URL)

@@ -6,7 +6,6 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
-// Canonical Linux iputils ping output, IPv4, 5 probes, no loss.
 const linuxPingIPv4Sample = `PING 1.1.1.1 (1.1.1.1) from 10.0.0.1 : 56(84) bytes of data.
 64 bytes from 1.1.1.1: icmp_seq=1 ttl=58 time=2.10 ms
 64 bytes from 1.1.1.1: icmp_seq=2 ttl=58 time=2.05 ms
@@ -19,14 +18,12 @@ const linuxPingIPv4Sample = `PING 1.1.1.1 (1.1.1.1) from 10.0.0.1 : 56(84) bytes
 rtt min/avg/max/mdev = 2.052/2.138/2.340/0.106 ms
 `
 
-// 100% loss form — no rtt summary line is emitted.
 const linuxPingLossSample = `PING 10.255.255.1 (10.255.255.1) from 10.0.0.1 : 56(84) bytes of data.
 
 --- 10.255.255.1 ping statistics ---
 5 packets transmitted, 0 received, 100% packet loss, time 4081ms
 `
 
-// IPv6 form — different header layout, same stats block.
 const linuxPingIPv6Sample = `PING 2606:4700:4700::1111(2606:4700:4700::1111) from 2001:db8::1 : 56 data bytes
 64 bytes from 2606:4700:4700::1111: icmp_seq=1 ttl=58 time=2.10 ms
 
@@ -35,8 +32,7 @@ const linuxPingIPv6Sample = `PING 2606:4700:4700::1111(2606:4700:4700::1111) fro
 rtt min/avg/max/mdev = 2.052/2.138/2.340/0.106 ms
 `
 
-// TestParseLinuxPingIPv4 covers the dominant success path: full
-// stats + RTT block, with the optional source-address capture.
+// TestParseLinuxPingIPv4 verifies the IPv4 ping happy path.
 func TestParseLinuxPingIPv4(t *testing.T) {
 	s := parseLinuxPing([]byte(linuxPingIPv4Sample))
 	if s == nil {
@@ -60,8 +56,7 @@ func TestParseLinuxPingIPv4(t *testing.T) {
 	}
 }
 
-// TestParseLinuxPing100PctLoss covers the no-replies path: stats
-// block populated, RTT block missing.
+// TestParseLinuxPing100PctLoss verifies the no-replies path.
 func TestParseLinuxPing100PctLoss(t *testing.T) {
 	s := parseLinuxPing([]byte(linuxPingLossSample))
 	if s == nil {
@@ -78,8 +73,7 @@ func TestParseLinuxPing100PctLoss(t *testing.T) {
 	}
 }
 
-// TestParseLinuxPingIPv6 covers the v6 header variant where the
-// address is glued to the parenthesised duplicate.
+// TestParseLinuxPingIPv6 verifies the IPv6 header variant.
 func TestParseLinuxPingIPv6(t *testing.T) {
 	s := parseLinuxPing([]byte(linuxPingIPv6Sample))
 	if s == nil {
@@ -96,8 +90,8 @@ func TestParseLinuxPingIPv6(t *testing.T) {
 	}
 }
 
-// TestParseLinuxPingEmpty returns nil for empty / non-ping input so
-// the gRPC handler falls through to PARSE_FAILED + raw bytes.
+// TestParseLinuxPingEmpty verifies that empty or non-ping input
+// returns nil.
 func TestParseLinuxPingEmpty(t *testing.T) {
 	if s := parseLinuxPing([]byte("")); s != nil {
 		t.Errorf("empty input parsed to %+v, want nil", s)
@@ -113,18 +107,12 @@ const linuxTracerouteSample = `traceroute to 1.1.1.1 (1.1.1.1) from 10.0.0.1, 30
  3  one.one.one.one (1.1.1.1)  10.123 ms
 `
 
-// FRR template traceroute output with `-e --back --mtu`: hop 1 is
-// a star with an MTU annotation; hops 2–3 carry a back-path quote
-// "'-N'" between the (IP) and the RTT. Regression sample.
 const frrTracerouteSample = `traceroute to 1.1.1.1 (1.1.1.1), 30 hops max, 65000 byte packets
  1  * F=1500
  2  172.68.180.37 (172.68.180.37) '-5'  0.885 ms
  3  one.one.one.one (1.1.1.1) '-6'  0.867 ms
 `
 
-// FRR template traceroute output without back-path quotes (probe
-// never traversed an AS boundary) but with star hops scattered
-// throughout the path. Regression sample.
 const frrTracerouteMixedSample = `traceroute to 31.13.72.36 (31.13.72.36), 30 hops max, 65000 byte packets
  1  * F=1500
  2  ae1-358.kis-dlr.obe.net (195.128.254.29)  0.225 ms
@@ -135,9 +123,8 @@ const frrTracerouteMixedSample = `traceroute to 31.13.72.36 (31.13.72.36), 30 ho
  7  edge-star-mini-shv-01-arn2.facebook.com (31.13.72.36)  0.204 ms
 `
 
-// TestParseLinuxTraceroute covers all three hop shapes in one go:
-// resolved hostname, full timeout, and resolved hostname for the
-// destination row.
+// TestParseLinuxTraceroute verifies parsing of resolved, timeout,
+// and destination hops.
 func TestParseLinuxTraceroute(t *testing.T) {
 	tp := parseLinuxTraceroute([]byte(linuxTracerouteSample))
 	if tp == nil {
@@ -170,9 +157,8 @@ func TestParseLinuxTraceroute(t *testing.T) {
 	}
 }
 
-// TestParseLinuxTracerouteFRRDecorations covers FRR's
-// `-e --back --mtu` decoration: an MTU-only "* F=NNNN" line, and
-// hops with a back-path quote "'-N'" between (IP) and RTT.
+// TestParseLinuxTracerouteFRRDecorations verifies parsing of FRR's
+// `-e --back --mtu` decorated output.
 func TestParseLinuxTracerouteFRRDecorations(t *testing.T) {
 	tp := parseLinuxTraceroute([]byte(frrTracerouteSample))
 	if tp == nil {
@@ -204,9 +190,8 @@ func TestParseLinuxTracerouteFRRDecorations(t *testing.T) {
 	}
 }
 
-// TestParseLinuxTracerouteFRRMixed covers the FRR template path
-// where some hops carry no back-path quote (probe didn't cross an
-// AS boundary) and `*`-timeout hops are scattered through.
+// TestParseLinuxTracerouteFRRMixed verifies parsing of FRR output
+// mixing decorated and undecorated hops with scattered timeouts.
 func TestParseLinuxTracerouteFRRMixed(t *testing.T) {
 	tp := parseLinuxTraceroute([]byte(frrTracerouteMixedSample))
 	if tp == nil {
@@ -234,8 +219,8 @@ func TestParseLinuxTracerouteFRRMixed(t *testing.T) {
 	}
 }
 
-// TestBuiltinParserDispatch covers the Parse() switch fan-out and
-// confirms the kind/status projection.
+// TestBuiltinParserDispatch verifies the Parse() dispatch fan-out
+// and the kind/status projection.
 func TestBuiltinParserDispatch(t *testing.T) {
 	p := BuiltinParser{}
 	if p.Name() != "builtin" {

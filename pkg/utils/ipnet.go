@@ -7,10 +7,7 @@ import (
 	"github.com/AS203038/looking-glass/pkg/errs"
 )
 
-// IPFamily enumerates the IP address families supported by the
-// router templates. The string values are deliberately lowercase
-// because they are interpolated verbatim into vendor commands
-// (e.g. Cisco IOS-XE expects "ipv4" / "ipv6" as keywords).
+// IPFamily enumerates the IP address families supported by the router templates.
 type IPFamily string
 
 // Supported [IPFamily] values.
@@ -21,20 +18,13 @@ const (
 	IPv6 IPFamily = "ipv6"
 )
 
-// IPNet is the validated, parsed representation of an IP address or
-// CIDR prefix accepted by the gRPC service. It is the only type ever
-// interpolated into router templates so that template authors can
-// safely call methods like [IPNet.IsIPv4] without re-validating user
-// input themselves.
+// IPNet is the validated, parsed representation of an IP address or CIDR prefix.
 type IPNet struct {
 	// IP is the host portion in canonical (un-bracketed) form.
 	IP string
 	// CIDR is the prefix-length portion (without the leading "/").
-	// Defaults to "32" for v4 and "128" for v6 when omitted from
-	// the input.
 	CIDR string
-	// Family is the detected address family. Always populated for
-	// values returned by [NewIPNET] / [NewIPNetFromProtobuf].
+	// Family is the detected address family.
 	Family IPFamily
 }
 
@@ -48,9 +38,7 @@ func (ip *IPNet) IsIPv6() bool {
 	return ip.Family == IPv6
 }
 
-// FamilyString returns the family as its string form ("ipv4" or
-// "ipv6"). Convenience wrapper for templates which cannot call
-// methods that return non-string types.
+// FamilyString returns the family as its string form ("ipv4" or "ipv6").
 func (ip *IPNet) FamilyString() string {
 	return string(ip.Family)
 }
@@ -61,9 +49,6 @@ func (ip *IPNet) String() string {
 }
 
 // ToIPNet returns the address as a standard-library [*net.IPNet].
-// The error from net.ParseCIDR is intentionally discarded because
-// String always emits a valid CIDR for any IPNet produced by the
-// constructors in this package.
 func (ip *IPNet) ToIPNet() *net.IPNet {
 	_, ipnet, _ := net.ParseCIDR(ip.String())
 	return ipnet
@@ -74,9 +59,7 @@ func (ip *IPNet) ToIP() net.IP {
 	return net.ParseIP(ip.IP)
 }
 
-// UnmarshalYAML decodes an [IPNet] from a YAML scalar via
-// [NewIPNET], so that the same validation rules apply whether the
-// address arrives from config.yaml or from an RPC request.
+// UnmarshalYAML decodes an [IPNet] from a YAML scalar via [NewIPNET].
 func (ip *IPNet) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var tmp string
 	if err := unmarshal(&tmp); err != nil {
@@ -89,11 +72,7 @@ func (ip *IPNet) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return err
 }
 
-// NewIPNET parses a textual IP address or CIDR prefix into an
-// [IPNet]. The function accepts both bare addresses ("192.0.2.1",
-// "2001:db8::1") and prefixes ("192.0.2.0/24"); the prefix length
-// defaults to /32 or /128 when omitted.
-//
+// NewIPNET parses a textual IP address or CIDR prefix into an [IPNet].
 // Returns [errs.IPInvalid] or [errs.NetInvalid] for malformed input.
 func NewIPNET(ip string) (*IPNet, error) {
 	var ret = &IPNet{}
@@ -122,13 +101,8 @@ func NewIPNET(ip string) (*IPNet, error) {
 	return ret, nil
 }
 
-// NewIPNetFromProtobuf is the entry point used by the gRPC service.
-// It accepts either a literal IP/CIDR (handled by [NewIPNET]) or a
-// hostname, in which case it performs a DNS lookup and uses the
-// first returned address.
-//
-// Empty input yields [errs.IPInvalid] without touching DNS so that
-// clients sending a missing field do not trigger resolver traffic.
+// NewIPNetFromProtobuf parses target as a literal IP/CIDR or, failing that,
+// resolves it as a hostname via DNS and returns the first address.
 func NewIPNetFromProtobuf(target string) (*IPNet, error) {
 	if len(target) == 0 {
 		return nil, errs.IPInvalid

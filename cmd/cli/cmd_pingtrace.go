@@ -6,10 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newPingCmd builds the `ping <instance> <router> <target>`
-// subcommand. The router argument is resolved through
-// [resolveRouter] so users can supply either a numeric ID or a
-// substring of the router's name.
+// newPingCmd builds the `ping` subcommand.
 func newPingCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "ping <instance> <router> <target>",
@@ -49,9 +46,7 @@ func newPingCmd() *cobra.Command {
 	}
 }
 
-// newTracerouteCmd builds the `traceroute` subcommand (also
-// reachable via the `trace` alias). Argument shape and resolution
-// rules mirror [newPingCmd].
+// newTracerouteCmd builds the `traceroute` subcommand (alias `trace`).
 func newTracerouteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "traceroute <instance> <router> <target>",

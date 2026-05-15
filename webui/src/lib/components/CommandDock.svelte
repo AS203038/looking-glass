@@ -1,28 +1,4 @@
 <script lang="ts">
-	/**
-	 * CommandDock — the persistent action surface, anchored at the bottom
-	 * of the viewport via the shared sticky wrapper in `+layout.svelte`.
-	 *
-	 * The dock used to be `position: sticky; bottom: 0` on its own, sharing
-	 * that anchor with the ResultsSheet — which caused the sheet to overlap
-	 * the dock on mobile once the sheet grew tall. The shared sticky
-	 * wrapper now guarantees they stack (sheet above, dock below) and the
-	 * sheet's max-height is computed against this dock's measured height
-	 * (`dockHeight` store, published below via ResizeObserver). The wrapper
-	 * also owns `padding-bottom: env(safe-area-inset-bottom)` so this
-	 * component no longer has to.
-	 *
-	 * Mobile-first form layout:
-	 *   - Below `sm` (640 px) the form is two rows: Action on top, then
-	 *     [Parameter | Execute] on a single row. This collapses the dock
-	 *     from ~220 px to ~140 px on portrait phones, giving the sheet
-	 *     dramatically more room.
-	 *   - The "Will run X on Y routers." preview is hidden on `< sm` —
-	 *     it's nice on desktop but eats a precious line on mobile and is
-	 *     redundant with the action/parameter inputs being right there.
-	 *   - Selection chip strip gets a right-edge fade mask so users can
-	 *     see at a glance that it's horizontally scrollable.
-	 */
 	import { onMount } from 'svelte';
 	import { selectedRouters, toggleSelection } from '$lib/stores/routers';
 	import {
@@ -54,9 +30,6 @@
 
 	const currentMeta = $derived(COMMANDS.find((c) => c.value === cmd));
 	const placeholder = $derived(currentMeta?.placeholder ?? 'Parameter…');
-	// True when the selected command does not require a parameter
-	// (currently only `bgp_summary`). Used to relax the param-empty
-	// guards in canSubmit / disabled state of the parameter input.
 	const paramOptional = $derived(
 		cmd !== '' && (COMMANDS_NO_PARAM as readonly string[]).includes(cmd)
 	);
@@ -118,24 +91,10 @@
 		}
 	}
 
-	// Measure the dock and publish to the shared `dockHeight` store so
-	// the ResultsSheet can subtract it from its own max-height. We use
-	// ResizeObserver so this stays accurate when:
-	//   - the chip strip wraps to a second visual line
-	//   - the validation hint appears/disappears
-	//   - the soft keyboard opens (iOS shifts `visualViewport` not the
-	//     element box, but Safari still fires a resize on the dock when
-	//     the layout reflows around the keyboard)
-	//   - the user rotates the device (chromium fires it via the
-	//     surrounding flex container)
 	onMount(() => {
 		if (!dockEl || typeof ResizeObserver === 'undefined') return;
 		const ro = new ResizeObserver((entries) => {
 			for (const entry of entries) {
-				// `contentRect.height` excludes the wrapper's safe-area
-				// padding (which lives on the parent) — exactly the value
-				// the sheet should reserve. Round up to avoid jitter when
-				// sub-pixel layout produces values like 119.6 → 119.7 → …
 				const h = Math.ceil(entry.contentRect.height);
 				dockHeight.set(h);
 			}
@@ -153,14 +112,11 @@
 	aria-label="Command dock"
 >
 	<div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2 sm:px-6 sm:py-3">
-		<!-- Selection chip strip -->
 		{#if selected.length === 0}
 			<p class="text-xs" style="color: var(--color-fg-subtle);">
 				Pick at least one router above to enable execution.
 			</p>
 		{:else}
-			<!-- Right-edge fade mask hints that the strip scrolls horizontally
-				 when there are more chips than fit on screen. -->
 			<div
 				class="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1"
 				role="list"
@@ -177,10 +133,6 @@
 					{selected.length}
 				</span>
 				{#each selected as r (r.id)}
-					<!-- A chip is composed of two interactive zones (scroll-to vs.
-						 deselect-×), so it can't be a single nested button. We
-						 render the chip as a flex row of two real <button>s
-						 that visually fuse via a shared rounded background. -->
 					<span
 						role="listitem"
 						class="lg-badge group flex shrink-0 items-center !p-0 hover:bg-(--color-surface)"
@@ -207,19 +159,6 @@
 			</div>
 		{/if}
 
-		<!--
-			Form layout:
-			  mobile (<sm): two rows — Action on its own, then a
-			                [Parameter | Execute] row.
-			  ≥sm:          single row of [Action | Parameter | Execute],
-			                items aligned to the row's end so they line
-			                up regardless of label height.
-
-			Implementation: outer `flex-col`. Inner `param-and-execute` row
-			is `flex` on both, but only contains both items together; on
-			≥sm the outer turns to `flex-row` and the action input becomes
-			a peer to that row.
-		-->
 		<form
 			class="flex flex-col gap-2 sm:flex-row sm:items-end"
 			onsubmit={submit}
@@ -241,10 +180,6 @@
 				</select>
 			</div>
 
-			<!-- Parameter + Execute share a row on mobile (and continue to
-				 look natural on desktop because the outer flex switches to
-				 row at sm:). The Execute button gets a fixed-min-width on
-				 mobile to keep the input from collapsing to nothing. -->
 			<div class="flex flex-1 items-end gap-2">
 				<div class="flex min-w-0 flex-1 flex-col gap-1">
 					<label
@@ -287,9 +222,6 @@
 			</div>
 		</form>
 
-		<!-- Validation (errors always visible; the verbose preview is
-			 desktop-only — it's redundant on mobile where every input is
-			 inches from the user's thumb). -->
 		{#if validation}
 			<p
 				class="flex items-center gap-1.5 text-xs"

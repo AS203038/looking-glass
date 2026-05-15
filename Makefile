@@ -1,31 +1,12 @@
-# =============================================================================
-# Looking Glass - Makefile
-# -----------------------------------------------------------------------------
-# Convenience targets for local development, building, testing and tooling.
-#
-# Quick start:
-#   make help          - show available targets
-#   make install       - install all dependencies (Go, webui, protobuf, tools)
-#   make generate      - regenerate protobuf code (Go + TypeScript)
-#   make build         - build full production artifact (webui + server binary)
-#   make dev-server    - run the Go server (without embedded UI)
-#   make dev-webui     - run the SvelteKit dev server
-#   make clean         - remove build artifacts
-# =============================================================================
-
-# ---- Configuration ----------------------------------------------------------
-
 SHELL          := /usr/bin/env bash
 .SHELLFLAGS    := -eu -o pipefail -c
 
-# Tooling
 GO             ?= go
 NPM            ?= npm
 PNPM           ?= pnpm
 BUF            ?= buf
 DOCKER         ?= docker
 
-# Paths
 ROOT_DIR       := $(abspath $(CURDIR))
 WEBUI_DIR      := $(ROOT_DIR)/webui
 PROTO_DIR      := $(ROOT_DIR)/protobuf
@@ -33,30 +14,21 @@ SERVER_DIR     := $(ROOT_DIR)/cmd/server
 CLI_DIR        := $(ROOT_DIR)/cmd/cli
 DIST_DIR       := $(SERVER_DIR)/dist
 
-# Binaries
 SERVER_BIN     := $(ROOT_DIR)/looking-glass
 CLI_BIN        := $(ROOT_DIR)/lg-cli
 
-# Version (used in -ldflags). Override with: make build VERSION=v1.2.3
 VERSION        ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "untracked")
 
-# Go build flags
 GO_LDFLAGS_SERVER := -X github.com/AS203038/looking-glass/pkg/utils.release=$(VERSION)
 GO_LDFLAGS_CLI    := -X main.Version=$(VERSION)
 GOFLAGS           ?=
 
-# Docker
 IMAGE_NAME     ?= looking-glass
 IMAGE_TAG      ?= $(VERSION)
 
-# Pretty output
 CYAN  := \033[36m
 BOLD  := \033[1m
 RESET := \033[0m
-
-# =============================================================================
-# Meta targets
-# =============================================================================
 
 .DEFAULT_GOAL := help
 .PHONY: help
@@ -75,10 +47,6 @@ help: ## Show this help message
 .PHONY: version
 version: ## Print computed version
 	@echo "$(VERSION)"
-
-# =============================================================================
-# Dependency installation
-# =============================================================================
 
 .PHONY: install
 install: install-go install-proto install-webui ## Install all dependencies
@@ -103,10 +71,6 @@ install-tools: ## Install developer CLI tools (buf)
 	@printf "$(BOLD)>> Installing developer tools$(RESET)\n"
 	$(GO) install github.com/bufbuild/buf/cmd/buf@latest
 
-# =============================================================================
-# Code generation (protobuf)
-# =============================================================================
-
 .PHONY: generate
 generate: proto ## Run all code generation
 
@@ -122,10 +86,6 @@ proto-lint: ## Lint .proto files
 .PHONY: proto-format
 proto-format: ## Format .proto files in place
 	cd $(PROTO_DIR) && $(BUF) format -w
-
-# =============================================================================
-# WebUI
-# =============================================================================
 
 .PHONY: dev-webui
 dev-webui: ## Run the SvelteKit dev server (hot reload)
@@ -153,10 +113,6 @@ format-webui: ## Format webui sources with prettier
 preview-webui: ## Preview the production webui build
 	cd $(WEBUI_DIR) && $(PNPM) run preview
 
-# =============================================================================
-# Go server
-# =============================================================================
-
 .PHONY: build-server
 build-server: $(DIST_DIR) ## Build the server binary (requires webui build)
 	@printf "$(BOLD)>> Building server binary$(RESET)\n"
@@ -164,8 +120,6 @@ build-server: $(DIST_DIR) ## Build the server binary (requires webui build)
 		-ldflags="$(GO_LDFLAGS_SERVER)" \
 		-o $(SERVER_BIN) ./cmd/server
 
-# Ensure the embed target directory exists so `go build` doesn't fail before
-# the webui has been built at least once.
 $(DIST_DIR):
 	@mkdir -p $(DIST_DIR)
 	@touch $(DIST_DIR)/.gitkeep
@@ -179,10 +133,6 @@ dev-server: $(DIST_DIR) ## Run the server from sources (without embedded UI)
 run: build ## Build everything and run the resulting binary
 	$(SERVER_BIN)
 
-# =============================================================================
-# Go CLI (lg-cli)
-# =============================================================================
-
 .PHONY: build-cli
 build-cli: ## Build the lg-cli binary
 	@printf "$(BOLD)>> Building lg-cli$(RESET)\n"
@@ -194,19 +144,11 @@ build-cli: ## Build the lg-cli binary
 dev-cli: ## Run the CLI from sources (pass args via ARGS="...")
 	$(GO) run ./cmd/cli $(ARGS)
 
-# =============================================================================
-# Aggregate build
-# =============================================================================
-
 .PHONY: build
 build: build-webui build-server build-cli ## Build webui + server + cli (production artifact)
 
 .PHONY: all
 all: install generate build ## Install deps, generate code, and build everything
-
-# =============================================================================
-# Quality: tests, lint, format
-# =============================================================================
 
 .PHONY: test
 test: test-go ## Run all tests
@@ -227,7 +169,6 @@ lint: lint-go lint-webui proto-lint ## Run all linters
 lint-go: $(DIST_DIR) ## Run go vet
 	$(GO) vet ./...
 
-
 .PHONY: fmt
 fmt: fmt-go format-webui proto-format ## Format all sources
 
@@ -241,10 +182,6 @@ tidy: ## Run go mod tidy
 
 .PHONY: check
 check: lint test ## Run all checks (lint + tests)
-
-# =============================================================================
-# Docker
-# =============================================================================
 
 .PHONY: docker-build
 docker-build: ## Build the Docker image
@@ -261,10 +198,6 @@ docker-run: ## Run the Docker image (requires ./config.yaml)
 		-p 8080:8080 \
 		-v $(ROOT_DIR)/config.yaml:/config.yaml:ro \
 		$(IMAGE_NAME):$(IMAGE_TAG)
-
-# =============================================================================
-# Housekeeping
-# =============================================================================
 
 .PHONY: clean
 clean: ## Remove build artifacts (binaries, webui dist, node_modules caches)

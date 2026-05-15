@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
         goos: [linux, windows, darwin]
         goarch: ["386", amd64, arm64]
         exclude:
@@ -40,9 +39,6 @@ jobs:
       run: |
         cd protobuf
         buf generate
-    # The webui is a pnpm workspace that links ../protobuf via `workspace:*`,
-    # which npm cannot resolve. pnpm wires the local @as203038/lg-protobuf
-    # package up automatically — no separate install step in protobuf/ needed.
     - name: Build Svelte WebUI
       run: |
         cd webui

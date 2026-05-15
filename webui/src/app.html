@@ -11,23 +11,7 @@
 		<meta name="text-scale" content="scale" />
 		%sveltekit.head%
 		<style>
-			/* ------------------------------------------------------------------
-			 * Pre-hydration loading overlay (framework-free).
-			 *
-			 * Rendered from the static HTML shell before any JS has executed,
-			 * so all styles here must be self-contained — no Tailwind tokens,
-			 * no component imports. We *do* read the resolved Catppuccin
-			 * Base / Crust / Text via CSS vars on :root so the overlay
-			 * matches the user's mode without flashing.
-			 *
-			 * The bootstrap script below sets `.dark` and `data-flavor` on
-			 * <html> before first paint. layout.css then provides the
-			 * matching --lg-base / --lg-crust / --lg-text values for the
-			 * overlay to consume.
-			 * ------------------------------------------------------------------ */
-
 			:root {
-				/* Latte (default-light) Catppuccin tokens used pre-hydration */
 				--lg-base: #eff1f5;
 				--lg-crust: #dce0e8;
 				--lg-text: #4c4f69;
@@ -35,7 +19,6 @@
 				--lg-overlay: rgba(76, 79, 105, 0.18);
 			}
 			html.dark {
-				/* Mocha (default-dark) */
 				--lg-base: #1e1e2e;
 				--lg-crust: #11111b;
 				--lg-text: #cdd6f4;
@@ -201,12 +184,6 @@
 			}
 		</style>
 		<script>
-			// Bootstrap the user's theme preference before first paint so the
-			// overlay (and subsequent UI) doesn't flash the wrong palette.
-			//
-			// Two-mode model: `lg-mode` is 'light' | 'dark' | null (=system).
-			// We only set `.dark` on <html>; the rest of the theming is driven
-			// from CSS by the dark variant in layout.css.
 			(function () {
 				try {
 					var mode = localStorage.getItem('lg-mode');
@@ -215,7 +192,7 @@
 						(mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 					if (prefersDark) document.documentElement.classList.add('dark');
 				} catch (e) {
-					/* localStorage unavailable — fall through with no-op */
+					/* no-op */
 				}
 			})();
 		</script>

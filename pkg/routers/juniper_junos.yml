@@ -1,33 +1,3 @@
-# ---------------------------------------------------------------------------
-# Vendor template: Juniper JunOS
-# ---------------------------------------------------------------------------
-# Target platform : JunOS on MX, PTX, ACX and SRX platforms. All commands
-#                   assume an operator-mode shell (no `cli` invocation needed
-#                   from a Unix shell — connect directly with an account that
-#                   lands in CLI).
-# Login surface   : ssh into the CLI; `rapid` is used for ping to keep the
-#                   output bounded. The SSH user should be confined to a
-#                   bespoke login class with `permissions [ network ]` plus
-#                   `allow-commands` / `deny-commands` regexes scoped to
-#                   the LG's surface — see docs/router-hardening.md
-#                   (Juniper JunOS section) for the full configuration.
-# Notable choices :
-#   - JunOS partitions routes into per-VRF tables. `bgp.route` selects the
-#     specific table for the operand's family: `<VRF>.inet.0` for IPv4,
-#     `<VRF>.inet6.0` for IPv6. The `{{if eq .IP.Family "ipv4"}}…{{end}}`
-#     conditional avoids running both tables when we already know the family.
-#   - community/large-community/aspath are issued against both family tables
-#     because the operand carries no family hint.
-#   - `aspath-regex` requires the regex be double-quoted to survive JunOS's
-#     shell tokeniser, hence the literal `"…"` in those entries.
-#   - `bgp.summary` uses the plain `show bgp summary` since JunOS reports
-#     all families in a single table; the `instance` qualifier scopes the
-#     output to the configured routing-instance / VRF.
-#   - Parsers: every operation uses TEXTFSM on plain CLI output. JunOS does
-#     expose `| display json` but the JSON pipeline is significantly more
-#     expensive than the plain text pipeline on the same RE — router CPU is
-#     the bottleneck, Looking Glass CPU is free.
-# ---------------------------------------------------------------------------
 name: juniper_junos
 
 ping:
@@ -46,8 +16,6 @@ bgp:
     summary:
         - show bgp summary instance {{.Cfg.VRF}}
     route:
-        # Exact target → single-table lookup chosen by {{.IP.Family}}.
-        # JunOS table naming: <VRF>.inet.0 for IPv4, <VRF>.inet6.0 for IPv6.
         - 'show route protocol bgp {{.IP.IP}} table {{.Cfg.VRF}}.{{if eq .IP.Family "ipv4"}}inet{{else}}inet6{{end}}.0 detail'
     community:
         - show route protocol bgp community {{.Community}} table {{.Cfg.VRF}}.inet.0 detail

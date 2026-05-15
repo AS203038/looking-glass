@@ -1,12 +1,3 @@
-// Looking Glass gRPC / ConnectRPC service contract.
-//
-// Comments in this file are propagated by `buf generate` into the
-// generated Go (godoc) and TypeScript (TSDoc) sources, so they
-// double as the canonical documentation for both client surfaces.
-// Keep them concrete and operator-focused.
-//
-// (-- api-linter: core::0191::proto-package=disabled
-//     aip.dev/not-precedent: We need to do this because go module structures. --)
 syntax = "proto3";
 
 package lookingglass.v0;
@@ -18,121 +9,61 @@ option java_multiple_files = true;
 option java_outer_classname = "LookingGlassProto";
 option java_package = "lookingglass.v0";
 
-// LookingGlassService is the operator-facing gRPC contract exposed
-// by every Looking Glass instance. Every method is a unary RPC; no
-// streaming endpoints are defined.
-//
-// Methods fall into two families:
-//
-//   - "Catalogue": GetInfo, GetRouters. Cheap, cacheable, used by
-//     the WebUI to populate the picker and the CLI to resolve
-//     router names.
-//   - "Operations": Ping, Traceroute, BGP*. Trigger a live SSH
-//     session against the chosen router; latency-bound, cacheable
-//     by request body via the Redis middleware.
+// LookingGlassService is the gRPC contract exposed by every Looking Glass instance.
 service LookingGlassService {
-  // GetInfo returns the hostname and version of the running
-  // instance. Used as a connectivity probe and for the WebUI
-  // footer's "running <version>" label.
+  // GetInfo returns the hostname and version of the running instance.
   rpc GetInfo(google.protobuf.Empty) returns (GetInfoResponse) {}
 
-  // GetRouters returns one page of the router catalogue including
-  // the latest health snapshot for each entry.
+  // GetRouters returns one page of the router catalogue with the latest health snapshot per entry.
   rpc GetRouters(GetRoutersRequest) returns (GetRoutersResponse) {}
 
-  // Ping issues the vendor-template ping command against the
-  // chosen router.
+  // Ping issues the vendor-template ping command against the chosen router.
   rpc Ping(PingRequest) returns (PingResponse) {}
 
-  // Traceroute issues the vendor-template traceroute command
-  // against the chosen router.
+  // Traceroute issues the vendor-template traceroute command against the chosen router.
   rpc Traceroute(TracerouteRequest) returns (TracerouteResponse) {}
 
-  // BGPSummary prints the BGP neighbour summary table for the
-  // chosen router.
+  // BGPSummary returns the BGP neighbour summary table for the chosen router.
   rpc BGPSummary(BGPSummaryRequest) returns (BGPSummaryResponse) {}
 
-  // BGPRoute looks up the best (and, where supported, alternate)
-  // BGP path(s) for a prefix or address.
+  // BGPRoute looks up the BGP path(s) for a prefix or address.
   rpc BGPRoute(BGPRouteRequest) returns (BGPRouteResponse) {}
 
-  // BGPCommunity lists every route tagged with the supplied
-  // RFC 1997 standard BGP community.
+  // BGPCommunity lists every route tagged with the supplied RFC 1997 standard BGP community.
   rpc BGPCommunity(BGPCommunityRequest) returns (BGPCommunityResponse) {}
 
-  // BGPLargeCommunity lists every route tagged with the supplied
-  // RFC 8092 large BGP community.
+  // BGPLargeCommunity lists every route tagged with the supplied RFC 8092 large BGP community.
   rpc BGPLargeCommunity(BGPLargeCommunityRequest) returns (BGPLargeCommunityResponse) {}
 
-  // BGPASPath lists every route whose AS-path matches the supplied
-  // regular expression. The server validates the regex with a
-  // narrow allow-list before forwarding it to the router.
+  // BGPASPath lists every route whose AS-path matches the supplied regular expression.
   rpc BGPASPath(BGPASPathRequest) returns (BGPASPathResponse) {}
 }
 
-// ---------------------------------------------------------------------------
-// Parser provenance
-// ---------------------------------------------------------------------------
-// Looking Glass returns the raw, vendor-formatted command output for every
-// operation (the `result` bytes field). When the vendor template declares a
-// parser, the server additionally fills the operation's typed `parsed`
-// payload. Two enums let clients reason about that second pipe without
-// guessing.
-
-// ParserKind names the pipe that produced an operation's `parsed`
-// payload. Clients use it for debug surfaces ("which parser ran?")
-// and for telemetry. UNSPECIFIED means no parser was attempted (the
-// `parsed` payload will be unset).
+// ParserKind names the pipe that produced an operation's parsed payload.
 enum ParserKind {
-  // PARSER_KIND_UNSPECIFIED indicates that no parser was configured
-  // for this command, or that the response predates the parsing
-  // pipeline. `parsed` is unset.
+  // PARSER_KIND_UNSPECIFIED indicates that no parser was configured.
   PARSER_KIND_UNSPECIFIED = 0;
-  // PARSER_KIND_TEXTFSM means a TextFSM template (typically sourced
-  // from networktocode/ntc-templates) was applied on the Looking
-  // Glass side against plain CLI output. This is the default for
-  // every vendor where router CPU is the bottleneck.
+  // PARSER_KIND_TEXTFSM indicates a TextFSM template parsed plain CLI output.
   PARSER_KIND_TEXTFSM = 1;
-  // PARSER_KIND_NATIVE_JSON means the router emitted JSON directly
-  // (e.g. `| display json`, `vtysh ... json`, `| json`) and the
-  // server normalised it into the typed `parsed` payload. Opt-in
-  // per-template; only used where the router-side cost is known to
-  // be cheap (FRRouting at time of writing).
+  // PARSER_KIND_NATIVE_JSON indicates the router emitted JSON directly.
   PARSER_KIND_NATIVE_JSON = 2;
-  // PARSER_KIND_BUILTIN means a small, hand-rolled parser produced
-  // the `parsed` payload — used for trivially-structured outputs
-  // such as Linux iputils ping / traceroute summaries where a full
-  // TextFSM template would be overkill.
+  // PARSER_KIND_BUILTIN indicates a hand-rolled parser produced the payload.
   PARSER_KIND_BUILTIN = 3;
 }
 
-// ParseStatus carries the outcome of the parser attempt. Operators
-// debugging a structured-view glitch can distinguish "no parser
-// configured" from "parser ran and failed" without reading server
-// logs; the WebUI uses it to decide whether to render the
-// structured view or fall back to the raw `<pre>`.
+// ParseStatus carries the outcome of the parser attempt.
 enum ParseStatus {
-  // PARSE_STATUS_OK means the `parsed` payload is populated and
-  // authoritative. `result` remains the verbatim router output for
-  // copy/paste and search.
+  // PARSE_STATUS_OK indicates the parsed payload is populated and authoritative.
   PARSE_STATUS_OK = 0;
-  // PARSE_STATUS_DISABLED means the vendor template did not request
-  // a parser for this command. `parsed` is unset by design.
+  // PARSE_STATUS_DISABLED indicates no parser was requested for this command.
   PARSE_STATUS_DISABLED = 1;
-  // PARSE_STATUS_TEMPLATE_MISSING means a parser was configured but
-  // its template/schema asset could not be found at startup. This
-  // is a packaging defect — see server logs.
+  // PARSE_STATUS_TEMPLATE_MISSING indicates a parser was configured but its asset was not found.
   PARSE_STATUS_TEMPLATE_MISSING = 2;
-  // PARSE_STATUS_PARSE_FAILED means the parser ran but produced no
-  // useful structured form (vendor output drift, malformed JSON,
-  // etc.). The raw `result` is authoritative; clients should
-  // surface a "structured view unavailable" hint rather than show
-  // an empty table.
+  // PARSE_STATUS_PARSE_FAILED indicates the parser ran but produced no useful structured form.
   PARSE_STATUS_PARSE_FAILED = 3;
 }
 
-// RouterHealth captures the outcome of the most recent reachability
-// probe performed by the server's background health-check goroutine.
+// RouterHealth captures the outcome of the most recent reachability probe.
 message RouterHealth {
   // timestamp is the time the probe completed.
   google.protobuf.Timestamp timestamp = 1;
@@ -140,10 +71,7 @@ message RouterHealth {
   bool healthy = 2;
 }
 
-// Router describes a single managed device. The `id` is a stable,
-// 1-based identifier minted by the server from the device's
-// position in the configured catalogue; clients use it as the
-// `router_id` argument to operation RPCs.
+// Router describes a single managed device.
 message Router {
   // id is the stable, 1-based router identifier.
   int64 id = 1;
@@ -155,8 +83,7 @@ message Router {
   RouterHealth health = 5;
 }
 
-// BGPCommunity is an RFC 1997 standard BGP community in
-// "ASN:VALUE" form.
+// BGPCommunity is an RFC 1997 standard BGP community in "ASN:VALUE" form.
 message BGPCommunity {
   // asn is the autonomous-system number that owns the community.
   int32 asn = 1;
@@ -164,8 +91,7 @@ message BGPCommunity {
   int32 value = 2;
 }
 
-// BGPLargeCommunity is an RFC 8092 large BGP community in
-// "GLOBAL:LOCAL1:LOCAL2" form, all three fields 32 bits wide.
+// BGPLargeCommunity is an RFC 8092 large BGP community in "GLOBAL:LOCAL1:LOCAL2" form.
 message BGPLargeCommunity {
   // global_admin is the Global Administrator (typically an ASN).
   uint32 global_admin = 1;
@@ -177,106 +103,72 @@ message BGPLargeCommunity {
 
 // GetInfoResponse carries the server identity for GetInfo.
 message GetInfoResponse {
-  // hostname is the OS-reported hostname of the server, or
-  // "unknown" if the lookup fails.
+  // hostname is the OS-reported hostname of the server.
   string hostname = 1;
-  // version is the build's release identifier; see Go's
-  // utils.Version() for the format.
+  // version is the build's release identifier.
   string version = 2;
 }
 
 // GetRoutersRequest selects one page of the router catalogue.
 message GetRoutersRequest {
-  // limit is the maximum number of rows to return. Server-side
-  // default is 10 when zero or unset.
+  // limit is the maximum number of rows to return; server default is 10 when zero.
   uint32 limit = 1;
 
-  // page_token is the 1-based page index. Zero is treated as 1.
+  // page_token is the 1-based page index; zero is treated as 1.
   uint32 page_token = 2;
 }
 
-// GetRoutersResponse carries one page of routers plus pagination
-// metadata.
+// GetRoutersResponse carries one page of routers plus pagination metadata.
 message GetRoutersResponse {
   // routers are the rows for this page, in stable catalogue order.
   repeated Router routers = 1;
 
-  // next_page is the token to pass back for the next page, or 0
-  // when no further pages are available.
+  // next_page is the token to pass back for the next page, or 0 when no further pages are available.
   uint32 next_page = 2;
 
-  // timestamp is the response generation time, useful for cache
-  // freshness checks in the client.
+  // timestamp is the response generation time.
   google.protobuf.Timestamp timestamp = 3;
 }
 
-// ---------------------------------------------------------------------------
-// Typed `parsed` payloads
-// ---------------------------------------------------------------------------
-// Every operation response carries a typed `parsed` field whose payload is
-// populated by the configured parser. These shapes are intentionally
-// vendor-neutral: the parser layer is responsible for mapping vendor
-// idiosyncrasies (e.g. Cisco "Idle (Admin)" peer state vs. JunOS "Idle") into
-// the same normalised proto. Add fields rather than rename existing ones —
-// these messages are public contract.
-
-// PingStats is the normalised summary of a ping run, derived from
-// either Linux iputils output (BUILTIN parser) or a vendor-specific
-// CLI/JSON form (TEXTFSM / NATIVE_JSON parsers).
+// PingStats is the normalised summary of a ping run.
 message PingStats {
-  // target is the address actually probed, as reported by the
-  // router. May differ from the request `target` when a hostname
-  // was resolved server-side.
+  // target is the address actually probed, as reported by the router.
   string target = 1;
-  // source is the bound source address used by the probe, when the
-  // vendor output exposes it.
+  // source is the bound source address used by the probe, when reported.
   string source = 2;
   // packets_sent is the number of echo requests issued.
   uint32 packets_sent = 3;
   // packets_received is the number of echo replies returned.
   uint32 packets_received = 4;
-  // loss_pct is the packet-loss percentage as reported by the
-  // router (0–100). Most vendors round to an integer; we keep it
-  // floating-point for parity with iputils.
+  // loss_pct is the packet-loss percentage as reported by the router (0–100).
   float loss_pct = 5;
-  // rtt_min_ms is the minimum round-trip time in milliseconds, or
-  // 0 when not reported.
+  // rtt_min_ms is the minimum round-trip time in milliseconds, or 0 when not reported.
   float rtt_min_ms = 6;
-  // rtt_avg_ms is the mean round-trip time in milliseconds, or
-  // 0 when not reported.
+  // rtt_avg_ms is the mean round-trip time in milliseconds, or 0 when not reported.
   float rtt_avg_ms = 7;
-  // rtt_max_ms is the maximum round-trip time in milliseconds, or
-  // 0 when not reported.
+  // rtt_max_ms is the maximum round-trip time in milliseconds, or 0 when not reported.
   float rtt_max_ms = 8;
-  // rtt_mdev_ms is the standard deviation of round-trip times in
-  // milliseconds, or 0 when not reported.
+  // rtt_mdev_ms is the standard deviation of round-trip times in milliseconds, or 0 when not reported.
   float rtt_mdev_ms = 9;
 }
 
-// TracerouteHop is one row of a TracerouteParsed.hops list. Each
-// hop carries one or more Probe entries; a fully-quiet hop has zero
-// probes.
+// TracerouteHop is one row of a TracerouteParsed.hops list.
 message TracerouteHop {
   // ttl is the hop number (1-based) from source to destination.
   uint32 ttl = 1;
-  // probes lists the per-probe responses for this hop. Length
-  // matches the vendor's probes-per-hop setting (often 3).
+  // probes lists the per-probe responses for this hop.
   repeated TracerouteProbe probes = 2;
 }
 
 // TracerouteProbe is a single TTL probe response.
 message TracerouteProbe {
-  // ip is the responding hop's IP address, or empty when the hop
-  // timed out.
+  // ip is the responding hop's IP address, or empty when the hop timed out.
   string ip = 1;
-  // hostname is the reverse-DNS name of `ip`, when the router did
-  // the lookup. Empty otherwise.
+  // hostname is the reverse-DNS name of ip, when the router resolved it.
   string hostname = 2;
-  // rtt_ms is the measured round-trip time for this probe, in
-  // milliseconds. Zero indicates a timeout.
+  // rtt_ms is the measured round-trip time for this probe in milliseconds; zero indicates a timeout.
   float rtt_ms = 3;
-  // asn is the ASN reported by the router (e.g. JunOS "AS path"
-  // hop annotation, or Linux traceroute -A). Zero when unknown.
+  // asn is the ASN reported by the router for this hop, or zero when unknown.
   uint32 asn = 4;
 }
 
@@ -284,59 +176,43 @@ message TracerouteProbe {
 message TracerouteParsed {
   // target is the destination address as reported by the router.
   string target = 1;
-  // source is the bound source address used by the probe, when the
-  // vendor output exposes it.
+  // source is the bound source address used by the probe, when reported.
   string source = 2;
-  // hops lists every TTL probed, in order. Empty when the parser
-  // could not extract any hops.
+  // hops lists every TTL probed, in order.
   repeated TracerouteHop hops = 3;
 }
 
-// BGPPath represents one path for a BGP prefix as reported by a
-// router. Multiple paths per prefix are common where the router
-// holds alternate or backup paths; `best` flags the chosen one.
+// BGPPath represents one path for a BGP prefix as reported by a router.
 message BGPPath {
-  // prefix is the network prefix in CIDR form. May be empty when
-  // implied by the containing message's context (e.g. BGPRoute
-  // response).
+  // prefix is the network prefix in CIDR form.
   string prefix = 1;
   // nexthop is the BGP next-hop address.
   string nexthop = 2;
   // as_path is the ordered list of AS numbers traversed.
   repeated uint32 as_path = 3;
-  // origin is the BGP origin attribute: "igp", "egp", or
-  // "incomplete".
+  // origin is the BGP origin attribute: "igp", "egp", or "incomplete".
   string origin = 4;
-  // med is the Multi-Exit Discriminator. Zero when unset.
+  // med is the Multi-Exit Discriminator; zero when unset.
   uint32 med = 5;
-  // local_pref is the LOCAL_PREF attribute. Zero when unset.
+  // local_pref is the LOCAL_PREF attribute; zero when unset.
   uint32 local_pref = 6;
-  // communities lists standard (RFC 1997) communities in
-  // "ASN:VALUE" wire form.
+  // communities lists standard (RFC 1997) communities in "ASN:VALUE" wire form.
   repeated string communities = 7;
-  // large_communities lists large (RFC 8092) communities in
-  // "GLOBAL:LOCAL1:LOCAL2" wire form.
+  // large_communities lists large (RFC 8092) communities in "GLOBAL:LOCAL1:LOCAL2" wire form.
   repeated string large_communities = 8;
   // best is true when the router has selected this path as best.
   bool best = 9;
-  // peer_asn is the ASN of the directly-connected peer that
-  // announced this path. Zero when unknown.
+  // peer_asn is the ASN of the directly-connected peer that announced this path.
   uint32 peer_asn = 10;
-  // peer_ip is the IP of the directly-connected peer that
-  // announced this path. Empty when unknown.
+  // peer_ip is the IP of the directly-connected peer that announced this path.
   string peer_ip = 11;
-  // age_seconds is how long the path has been in the table.
-  // Carried as seconds (uint64) rather than google.protobuf.Duration
-  // because most vendors only expose this at second resolution.
+  // age_seconds is how long the path has been in the table, in seconds.
   uint64 age_seconds = 12;
 }
 
-// BGPPaths is a flat list of BGPPath entries. Used as the parsed
-// payload for BGPRoute, BGPCommunity, BGPLargeCommunity and
-// BGPASPath, all of which return "every path matching this filter".
+// BGPPaths is a flat list of BGPPath entries.
 message BGPPaths {
-  // paths is the matched path set, in router-supplied order
-  // (typically by prefix then by preference).
+  // paths is the matched path set, in router-supplied order.
   repeated BGPPath paths = 1;
 }
 
@@ -346,41 +222,29 @@ message BGPPeer {
   string peer_ip = 1;
   // peer_asn is the neighbour's autonomous-system number.
   uint32 peer_asn = 2;
-  // description is the operator-supplied neighbour description,
-  // when configured. Empty otherwise.
+  // description is the operator-supplied neighbour description.
   string description = 3;
-  // state is the BGP session state, normalised to lower-case
-  // ("idle", "active", "connect", "opensent", "openconfirm",
-  // "established"). Sub-states (e.g. "idle (admin)") are returned
-  // in `state_detail`.
+  // state is the BGP session state, normalised to lower-case.
   string state = 4;
-  // state_detail carries any vendor sub-state, free-form. Empty
-  // when the state is unambiguous.
+  // state_detail carries any vendor sub-state, free-form.
   string state_detail = 5;
-  // uptime_seconds is how long the session has been in its current
-  // state, in seconds. Zero when unknown or not yet up.
+  // uptime_seconds is how long the session has been in its current state, in seconds.
   uint64 uptime_seconds = 6;
-  // prefixes_received is the count of prefixes accepted from this
-  // neighbour. Zero when unknown.
+  // prefixes_received is the count of prefixes accepted from this neighbour.
   uint64 prefixes_received = 7;
-  // prefixes_accepted is the count after policy filtering. Zero
-  // when unknown.
+  // prefixes_accepted is the count after policy filtering.
   uint64 prefixes_accepted = 8;
-  // prefixes_sent is the count of prefixes advertised to this
-  // neighbour. Zero when unknown.
+  // prefixes_sent is the count of prefixes advertised to this neighbour.
   uint64 prefixes_sent = 9;
-  // address_family is "ipv4-unicast", "ipv6-unicast", … as
-  // reported by the router. Empty when the summary command does
-  // not partition by AF.
+  // address_family is the address family label reported by the router.
   string address_family = 10;
 }
 
-// BGPSummaryParsed is the structured form of a BGP neighbour
-// summary.
+// BGPSummaryParsed is the structured form of a BGP neighbour summary.
 message BGPSummaryParsed {
-  // local_asn is the local autonomous-system number, when reported.
+  // local_asn is the local autonomous-system number.
   uint32 local_asn = 1;
-  // router_id is the BGP router-id, when reported.
+  // router_id is the BGP router-id.
   string router_id = 2;
   // peers lists every BGP neighbour, in router-supplied order.
   repeated BGPPeer peers = 3;
@@ -395,33 +259,25 @@ message PingRequest {
   string target = 2;
 }
 
-// PingResponse carries the raw, vendor-formatted ping output and,
-// where a parser is configured, the structured PingStats summary.
+// PingResponse carries the raw ping output and, when a parser ran, the structured PingStats.
 message PingResponse {
-  // result is the concatenated stdout of every command issued by
-  // the vendor template, newline-joined.
+  // result is the concatenated stdout of the commands issued by the vendor template.
   bytes result = 1;
 
   // timestamp is the server time when the response was assembled.
   google.protobuf.Timestamp timestamp = 2;
 
-  // parsed is the structured form of `result` when a parser ran
-  // successfully (parse_status == PARSE_STATUS_OK). Unset
-  // otherwise; clients must always be able to render `result`
-  // alone.
+  // parsed is the structured form of result when parse_status is OK.
   PingStats parsed = 3;
 
-  // parser_kind names the parser that produced `parsed`. See
-  // [ParserKind] for the semantics of each value.
+  // parser_kind names the parser that produced parsed.
   ParserKind parser_kind = 4;
 
-  // parse_status reports the outcome of the parser attempt. See
-  // [ParseStatus] for the semantics of each value.
+  // parse_status reports the outcome of the parser attempt.
   ParseStatus parse_status = 5;
 }
 
-// TracerouteRequest selects the router and target for a
-// Traceroute RPC.
+// TracerouteRequest selects the router and target for a Traceroute RPC.
 message TracerouteRequest {
   // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
@@ -430,12 +286,9 @@ message TracerouteRequest {
   string target = 2;
 }
 
-// TracerouteResponse carries the raw, vendor-formatted traceroute
-// output and, where a parser is configured, the structured hop
-// list.
+// TracerouteResponse carries the raw traceroute output and, when a parser ran, the structured hops.
 message TracerouteResponse {
-  // result is the concatenated stdout of every command issued by
-  // the vendor template, newline-joined.
+  // result is the concatenated stdout of the commands issued by the vendor template.
   bytes result = 1;
 
   // timestamp is the server time when the response was assembled.
@@ -458,9 +311,7 @@ message BGPSummaryRequest {
   int64 router_id = 1;
 }
 
-// BGPSummaryResponse carries the raw, vendor-formatted BGP
-// neighbour summary output and, where a parser is configured, the
-// structured peer table.
+// BGPSummaryResponse carries the raw summary output and, when a parser ran, the structured peer table.
 message BGPSummaryResponse {
   // result is the concatenated stdout of the summary command(s).
   bytes result = 1;
@@ -488,9 +339,7 @@ message BGPRouteRequest {
   string target = 2;
 }
 
-// BGPRouteResponse carries the raw, vendor-formatted route lookup
-// output and, where a parser is configured, the structured path
-// list.
+// BGPRouteResponse carries the raw lookup output and, when a parser ran, the structured path list.
 message BGPRouteResponse {
   // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
@@ -509,8 +358,7 @@ message BGPRouteResponse {
   ParseStatus parse_status = 5;
 }
 
-// BGPCommunityRequest selects the router and community for a
-// BGPCommunity RPC.
+// BGPCommunityRequest selects the router and community for a BGPCommunity RPC.
 message BGPCommunityRequest {
   // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
@@ -518,9 +366,7 @@ message BGPCommunityRequest {
   BGPCommunity community = 2;
 }
 
-// BGPCommunityResponse carries the raw, vendor-formatted community
-// lookup output and, where a parser is configured, the structured
-// path list.
+// BGPCommunityResponse carries the raw lookup output and, when a parser ran, the structured path list.
 message BGPCommunityResponse {
   // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
@@ -539,8 +385,7 @@ message BGPCommunityResponse {
   ParseStatus parse_status = 5;
 }
 
-// BGPLargeCommunityRequest selects the router and large community
-// for a BGPLargeCommunity RPC.
+// BGPLargeCommunityRequest selects the router and large community for a BGPLargeCommunity RPC.
 message BGPLargeCommunityRequest {
   // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
@@ -548,9 +393,7 @@ message BGPLargeCommunityRequest {
   BGPLargeCommunity community = 2;
 }
 
-// BGPLargeCommunityResponse carries the raw, vendor-formatted
-// large-community lookup output and, where a parser is configured,
-// the structured path list.
+// BGPLargeCommunityResponse carries the raw lookup output and, when a parser ran, the structured path list.
 message BGPLargeCommunityResponse {
   // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;
@@ -569,21 +412,16 @@ message BGPLargeCommunityResponse {
   ParseStatus parse_status = 5;
 }
 
-// BGPASPathRequest selects the router and AS-path regex for a
-// BGPASPath RPC.
+// BGPASPathRequest selects the router and AS-path regex for a BGPASPath RPC.
 message BGPASPathRequest {
   // router_id is the 1-based identifier returned by GetRouters.
   int64 router_id = 1;
 
-  // pattern is the AS-path regex. Only ASCII digits, underscores
-  // and an optional trailing "$" anchor are accepted; see the
-  // server's SanitizeASPathRegex for the exact rules.
+  // pattern is the AS-path regex.
   string pattern = 2;
 }
 
-// BGPASPathResponse carries the raw, vendor-formatted AS-path
-// regex lookup output and, where a parser is configured, the
-// structured path list.
+// BGPASPathResponse carries the raw lookup output and, when a parser ran, the structured path list.
 message BGPASPathResponse {
   // result is the concatenated stdout of the lookup command(s).
   bytes result = 1;

@@ -1,50 +1,3 @@
-# TextFSM template: Nokia SR OS / TiMOS
-# `show router … bgp routes … hunt|detail`. Shared by bgp.route /
-# bgp.community / bgp.largecommunity / bgp.aspath because all four
-# queries emit the same RIB-In/RIB-Out path-block shape.
-#
-# Canonical RIB-In block (truncated):
-#   ===============================================================================
-#   BGP Router ID:10.0.0.1        AS:65000       Local AS:65000
-#   ===============================================================================
-#   Legend -
-#   Status codes  : u - used, s - suppressed, h - history, d - decayed, * - valid
-#                   l - leaked, x - stale, > - best, b - backup, p - purge
-#   ===============================================================================
-#   BGP RIB-In Entries
-#   -------------------------------------------------------------------------------
-#   Network        : 1.1.1.0/24
-#   Nexthop        : 10.0.0.2
-#   From           : 10.0.0.2
-#   Res. Nexthop   : 10.0.0.2
-#   Local Pref.    : 100                    Interface Name : to-peer
-#   Aggregator AS  : None                   Aggregator     : None
-#   Atomic Aggr.   : Not Atomic             MED            : 0
-#   AIGP Metric    : None
-#   Connector      :
-#   Community      : 65000:100 65000:200
-#   Large Community: 214503:8:3607
-#   Cluster        : No Cluster Members
-#   Originator Id  : None                   Peer Router Id : 10.0.0.2
-#   IPv4 Label     : N/A
-#   Flags          : Used Valid Best IGP
-#   Route Source   : External
-#   AS-Path        : 65001 65002
-#   Peer AS        : 65001
-#   Age            : 1d02h00m00s
-#   -------------------------------------------------------------------------------
-#
-# Capture strategy:
-#   - The Filldown'd `prefix` carries the Network field across the
-#     multi-line block. Record fires on the `Age` line which is the
-#     last per-path field we care about (everything below it is
-#     operator-pref noise).
-#   - `communities`, `large_communities`, and `as_path` are captured
-#     as single tokens spanning the whole value list. The
-#     projector's splitListToken() expands them per-entry.
-#   - `best` is detected by a substring presence of the literal
-#     `Best` keyword in the Flags line; the dedicated Value avoids
-#     greedy `${flags}` capture eating it.
 Value Filldown router_id ([0-9a-fA-F:.]+)
 Value Filldown local_asn (\d+)
 Value Required prefix ([0-9a-fA-F:.]+/\d+)
@@ -73,7 +26,6 @@ Routes
   ^Atomic\s+Aggr\..*MED\s*:\s+${med}
   ^Community\s*:\s+${communities}\s*$$
   ^Large\s+Community:\s+${large_communities}\s*$$
-  # Flags line: presence of literal `Best` substring marks active.
   ^Flags\s*:\s+[^\n]*?${best}
   ^Flags\s*:\s+
   ^AS-Path\s*:\s+${as_path}\s*$$

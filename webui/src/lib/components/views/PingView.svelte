@@ -1,12 +1,4 @@
 <script lang="ts">
-	/**
-	 * Structured ping view.
-	 *
-	 * Renders the parsed [Pb.PingStats] as a compact stat strip:
-	 * loss %, packet counts, and min/avg/max/mdev RTT in mono. Falls
-	 * back to nothing when no field is non-zero — the caller is
-	 * expected to render the raw `<pre>` instead.
-	 */
 	import type { Pb } from '$lib/grpc';
 
 	interface Props {

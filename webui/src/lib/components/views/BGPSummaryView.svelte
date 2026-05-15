@@ -1,11 +1,4 @@
 <script lang="ts">
-	/**
-	 * Structured BGP-summary view.
-	 *
-	 * Renders the parsed [Pb.BGPSummaryParsed] as a per-peer table
-	 * with state-coloured badges. Header strip carries the local
-	 * router-id / ASN when reported by the parser.
-	 */
 	import type { Pb } from '$lib/grpc';
 
 	interface Props {
@@ -42,14 +35,6 @@
 
 	const rows = $derived(summary.peers ?? []);
 
-	// Conditional `Description` column: shown only when at least
-	// one peer in the current dataset carries a non-empty
-	// `description` (per-vendor templates may or may not expose
-	// the operator-configured neighbour description). When no row
-	// populates it, the column disappears entirely — keeps the
-	// table compact for vendors that don't surface descriptions
-	// (Cisco/Juniper/Nokia/FRR), while making them first-class
-	// when present (current Arista EOS, MikroTik RouterOS).
 	const hasDescriptions = $derived(rows.some((p) => !!p.description));
 </script>
 

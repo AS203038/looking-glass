@@ -1,81 +1,3 @@
-# TextFSM template: Arista EOS `show ip|ipv6 bgp summary`.
-#
-# Sample output — LEGACY shape (no Description column, no Neighbor
-# Status Codes line; still in the wild on older feature releases
-# and exercised by the textfsm_test fixture):
-#   BGP summary information for VRF default
-#   Router identifier 10.0.0.1, local AS number 65000
-#   Neighbor        V AS           MsgRcvd MsgSent  InQ OutQ  Up/Down State  PfxRcd PfxAcc
-#     10.0.0.2      4 65001            123     124    0    0 1d02h  Estab   100    100
-#     10.0.0.3      4 65002              0       0    0    0 never  Idle      0      0
-#     fe80::1       4 65003               5      10    0    0 00:01:00 OpenSent
-#
-# Sample output — MODERN shape (recent EOS feature releases, what
-# the live operator boxes emit today):
-#   BGP summary information for VRF PROUD-BEAVER
-#   Router identifier 0.0.0.4, local AS number 214503
-#   Neighbor Status Codes: m - Under maintenance
-#     Description              Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
-#     SONIX Route Servers      185.1.215.1      4 61229        3631089    120410    0    0   22d08h Estab   102543 102543
-#     no ack hosting network   185.1.215.48     4 30893              0     17373    0    0   35d21h OpenSent
-#     STHIX Route Servers      192.121.80.1     4 57151              0         0    0    0   35d21h Idle(NoIf)
-#     STHIX Route Servers      2001:7f8:3e:0:a500:5:7151:1 4 57151              0         0    0    0   35d21h Idle(NoIf)
-#
-# Differences MODERN vs LEGACY:
-#   1. A `Description` column is prepended to each row. The
-#      description may contain spaces and is column-aligned, so we
-#      separate it from `peer_ip` by requiring 2+ spaces between
-#      the description and the peer-IP token.
-#   2. A free-standing `Neighbor Status Codes: <legend>` line
-#      appears between the AS-number line and the column header.
-#      We skip it benignly in Start.
-#   3. The column header gains an optional leading `Description`
-#      token; the rest of the column-header pattern is unchanged.
-#   4. State may carry an inline parenthesised qualifier with NO
-#      whitespace before the open paren (`Idle(NoIf)`), in addition
-#      to the legacy space-separated form (`Idle (NoIf)`). The
-#      `state` Value pattern accepts both.
-#   5. Multi-AFI output: the box may emit two complete
-#      `BGP summary information for VRF X` blocks back-to-back
-#      (v4 then v6) in a single command response. The Peers state
-#      transitions back to Start on a fresh "BGP summary
-#      information for VRF" header so router_id / local_asn are
-#      re-Filldown'd from the second block's prologue.
-#
-# Capture strategy:
-#   - The trailing State + PfxRcd/PfxAcc columns are highly variable
-#     in EOS: Established sessions show `Estab  N  M`, Idle / Active
-#     / OpenSent etc. omit the prefix counts. We declare two Peer
-#     row patterns — one with counts, one without — and let the
-#     projector synthesise `state="established"` from the presence
-#     of prefix counts.
-#   - The Description column is matched AND captured into the
-#     optional `description` Value, which the projector
-#     ([pkg/routers/parse/textfsm.go]) lifts onto `BGPPeer.description`.
-#     The capture pattern is `\S(?:.*?\S)?`:
-#       * The leading `\S` start-anchor prevents the optional group
-#         from swallowing leading row indent on legacy-shape rows.
-#       * `(?:.*?\S)?` lazily extends across internal whitespace,
-#         terminating on the last non-space char before the 2+
-#         space gutter to peer_ip. This is what makes multi-token
-#         descriptions like `SONIX Route Servers` or
-#         `no ack hosting network` capture cleanly without bleeding
-#         into the peer-IP column.
-#     The enclosing `(?:${description}\s{2,})?` group is optional,
-#     so legacy-shape rows (no description column) still match: the
-#     group skips and `description` stays empty.
-#   - `address_family` is intentionally NOT captured here. EOS emits
-#     no in-band AFI label in the summary table; the per-AFI cue
-#     would have to come from the command-prologue ("BGP summary
-#     information for VRF default") which lacks the family token.
-#     The two AFIs land in the parser as one concatenated text run,
-#     so address_family stays empty on the wire and the UI groups
-#     rows on peer-IP family instead.
-# NOTE: do not introduce blank lines inside this header comment
-# block. gotextfsm treats the first blank line after the comment
-# preamble as terminating the Value-declaration section; a stray
-# blank above the `Value …` lines makes the parser error with
-# `Invalid state name 'Value Filldown …'`.
 Value Filldown local_asn (\d+)
 Value Filldown router_id ([0-9a-fA-F:.]+)
 Value Required peer_ip ([0-9a-fA-F:.]+)
@@ -89,29 +11,13 @@ Value prefixes_accepted (\d+)
 Start
   ^BGP summary information for VRF\s+\S+
   ^Router identifier\s+${router_id},\s+local AS number\s+${local_asn}
-  # MODERN: skip the free-standing legend line. No captures.
   ^\s*Neighbor Status Codes:.*$$
-  # Column header — accepts optional leading `Description` token.
   ^\s*(?:Description\s+)?Neighbor\s+V\s+AS\s+MsgRcvd\s+MsgSent.*$$ -> Peers
 
 Peers
-  # MODERN: a fresh VRF block may follow without a blank line
-  # separator. Transition back to Start so router_id / local_asn
-  # are re-filled from the new block's prologue.
   ^BGP summary information for VRF -> Start
-  # Skip the column-header line of a subsequent block (also
-  # tolerates a column header appearing mid-stream without a
-  # preceding "BGP summary information" line).
   ^\s*(?:Description\s+)?Neighbor\s+V\s+AS\s+MsgRcvd\s+MsgSent.*$$
-  # Skip a fresh Neighbor Status Codes legend if it reappears.
   ^\s*Neighbor Status Codes:.*$$
-  # Established row: trailing `Estab  PfxRcd  PfxAcc`. The
-  # `(?:${description}\s{2,})?` group is the optional MODERN
-  # Description column — captured when present, skipped on legacy
-  # rows (see header comment for rationale).
   ^\s+(?:${description}\s{2,})?${peer_ip}\s+\d+\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+${state}\s+${prefixes_received}\s+${prefixes_accepted}\s*$$ -> Record
-  # Non-Established row: trailing single state keyword (which may
-  # carry an inline `(NoIf)` etc. qualifier per the `state` Value
-  # pattern above).
   ^\s+(?:${description}\s{2,})?${peer_ip}\s+\d+\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+${state}\s*$$ -> Record
   ^\s*$$ -> Start

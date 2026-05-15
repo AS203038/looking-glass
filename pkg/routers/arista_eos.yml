@@ -1,53 +1,3 @@
-# ---------------------------------------------------------------------------
-# Vendor template: Arista EOS
-# ---------------------------------------------------------------------------
-# Target platform : Arista EOS, recent feature releases.
-# Login surface   : ssh into the EOS CLI; no eAPI/JSON-RPC dependency. The
-#                   SSH session MUST land at privilege level 15 because
-#                   `ping` and `traceroute` are priv-15-only commands in EOS
-#                   and the LG runs every command on a non-interactive exec
-#                   channel (cannot answer an `enable` password prompt).
-#                   Required device-side configuration:
-#                       username lookingglass privilege 15 role lg-readonly
-#                       aaa authorization exec default local
-#                   Without the `aaa authorization exec` line the `privilege
-#                   15` keyword is silently ignored, the session lands at
-#                   priv-1, and every command fails with
-#                       % Invalid input (privileged mode required)
-#                   The recommended bespoke role `lg-readonly` and the
-#                   complete EOS snippet are documented in
-#                   docs/router-hardening.md (Arista EOS section).
-# Notable choices :
-#   - EOS places the address-family tag *before* `bgp` (e.g. `show ip bgp`
-#     rather than Cisco IOS's `show bgp ipv4 unicast`). `bgp.route` therefore
-#     uses a Go-template conditional to emit `ip` for IPv4 and `ipv6` for
-#     IPv6 — a literal `{{.IP.Family}}` would be wrong here.
-#   - ping/traceroute split per family because the v4 form is `ip <addr>` and
-#     v6 is `ipv6 <addr>`; a single shared command line is not expressible.
-#   - community/large-community/aspath are issued per family because the
-#     operand carries no family information.
-#   - EOS BGP-show grammar (empirically verified on a recent EOS release):
-#       * `vrf <name>` is a *trailing* qualifier on every `show … bgp …`
-#         form (NOT a leading one like `show ip bgp vrf X …`). EOS will
-#         reject the leading-vrf form with `% Unrecognized command` as
-#         soon as a filter operand follows.
-#       * `detail` is accepted ONLY on `community` and `large-community`
-#         lookups, and must come BEFORE `vrf`, i.e.
-#             show ip bgp community <c> detail vrf <name>
-#             show ip bgp large-community <lc> detail vrf <name>
-#         Putting `detail` after `vrf <name>` is rejected.
-#       * `detail` is REJECTED entirely on prefix-lookup and `regexp`
-#         forms when `vrf <name>` is present (and even on `vrf default`
-#         in some releases). Those commands therefore omit `detail`;
-#         EOS still emits a per-path block whose `Received … ago` line
-#         the TextFSM parser anchors on.
-#   - Parsers: every operation uses TEXTFSM on plain CLI output. EOS does
-#     expose `| json` but we deliberately avoid it — Arista's JSON pipeline
-#     re-serialises text the box has already rendered (~1.5–3× the CPU and
-#     ~2–4× the byte volume on large outputs). Router CPU is the bottleneck;
-#     Looking Glass CPU is free.
-# ---------------------------------------------------------------------------
-
 name: arista_eos
 
 ping:
@@ -78,7 +28,6 @@ bgp:
         - show ip bgp regexp {{.ASPath}} vrf {{.Cfg.VRF}}
         - show ipv6 bgp regexp {{.ASPath}} vrf {{.Cfg.VRF}}
 
-
 parsers:
     ping:
         kind: textfsm
@@ -99,12 +48,5 @@ parsers:
         kind: textfsm
         template: arista_eos_show_bgp_paths
     bgp.aspath:
-        # bgp.aspath uses the `regexp` form, which EOS REJECTS the
-        # `detail` modifier on when a VRF is in play — see the
-        # grammar discussion in the file header. The output is the
-        # classic one-row-per-path RIB table (flag glyphs, prefix,
-        # nexthop, metric, AIGP, locpref, weight, AS-path, origin
-        # code), structurally distinct from the detail-block shape
-        # the other three BGP-list ops emit. Dedicated template:
         kind: textfsm
         template: arista_eos_show_bgp_table

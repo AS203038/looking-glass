@@ -1,13 +1,3 @@
-/**
- * Query store: which command + parameter the user has chosen, plus the
- * per-router result lifecycle for the most recent submission.
- *
- * One submission produces N parallel router executions; their state is
- * keyed by router-id stringified (bigint → string) because JS Map keys
- * compare by identity for objects/bigints which makes derived lookups
- * brittle.
- */
-
 import { writable, get } from 'svelte/store';
 import { LookingGlassClient, type Pb } from '$lib/grpc';
 import { selectedRouters } from './routers';
@@ -28,23 +18,12 @@ export const COMMANDS = [
 
 export type CommandValue = (typeof COMMANDS)[number]['value'];
 
-/**
- * Subset of commands that do not require a parameter. Used by the
- * CommandDock to skip parameter validation and by the dispatcher
- * here to forward an empty-target request.
- */
+/** Commands that accept no parameter. */
 export const COMMANDS_NO_PARAM: ReadonlyArray<CommandValue> = ['bgp_summary'];
 
 export type ExecStatus = 'pending' | 'running' | 'done' | 'error';
 
-/**
- * Parsed payload variants carried alongside each result. The
- * discriminator mirrors `resolvedCommand`; consumers (`ResultCard`)
- * narrow on it to pick the right structured view. Unset when the
- * server did not populate a structured payload (parse_status !=
- * PARSE_STATUS_OK) — clients then fall back to the raw `bytes`
- * viewer.
- */
+/** Parsed payload variants carried alongside each result. */
 export type ParsedPayload =
 	| { kind: 'ping'; data: Pb.PingStats }
 	| { kind: 'traceroute'; data: Pb.TracerouteParsed }
@@ -57,29 +36,17 @@ export interface ExecResult {
 	routerLocation: string;
 	status: ExecStatus;
 	timestamp: Date | null;
-	/** Raw response bytes, decoded lazily for display. Empty for 'error'. */
+	/** Raw response bytes, decoded lazily for display. */
 	bytes: Uint8Array | null;
-	/** Populated only for 'error'. */
+	/** Populated only when status is 'error'. */
 	error: string | null;
-	/** Sub-command resolved for this submission (e.g. 'bgp_large_community' under bgp_community). */
+	/** Sub-command resolved for this submission. */
 	resolvedCommand: string;
-	/**
-	 * Structured parser payload, when the server populated one
-	 * successfully. Unset means "no structured view available;
-	 * render `bytes` as the raw `<pre>`."
-	 */
+	/** Structured parser payload, when the server populated one. */
 	parsed: ParsedPayload | null;
-	/**
-	 * Server-reported parser provenance, useful for the UI's debug
-	 * chip ("parsed by: textfsm"). 0 (UNSPECIFIED) when no parser
-	 * was attempted.
-	 */
+	/** Server-reported parser provenance. */
 	parserKind: Pb.ParserKind;
-	/**
-	 * Server-reported parse outcome. PARSE_STATUS_OK when `parsed`
-	 * is populated. Other values inform the UI's fallback messaging
-	 * (template missing, vendor output drift, …).
-	 */
+	/** Server-reported parse outcome. */
 	parseStatus: Pb.ParseStatus;
 }
 
@@ -90,7 +57,7 @@ export const results = writable<Record<string, ExecResult>>({});
 /** Whether at least one submission has happened in this session. */
 export const hasRun = writable<boolean>(false);
 
-/** Detect the auto-resolved subcommand for the special bgp_community case. */
+/** Returns the resolved subcommand, auto-detecting standard vs large community. */
 export function resolveCommand(cmd: CommandValue, param: string): string {
 	if (cmd === 'bgp_community') {
 		const parts = param.split(':');
@@ -100,13 +67,7 @@ export function resolveCommand(cmd: CommandValue, param: string): string {
 	return cmd;
 }
 
-/**
- * Narrow a generic operation response (with optional `parsed` /
- * `parserKind` / `parseStatus`) into the [ParsedPayload]
- * discriminator. Returns null when the server signalled "no
- * structured view available" (parseStatus !== OK or the typed
- * payload is missing).
- */
+/** Narrows an operation response into a [ParsedPayload], or null when unavailable. */
 function pickParsed(
 	cmd: CommandValue,
 	res:
@@ -118,7 +79,6 @@ function pickParsed(
 		| Pb.BGPLargeCommunityResponse
 		| Pb.BGPASPathResponse
 ): ParsedPayload | null {
-	// PARSE_STATUS_OK = 0 in the generated TS bindings.
 	const ok = (res as { parseStatus?: number }).parseStatus === 0;
 	if (!ok) return null;
 	switch (cmd) {
@@ -137,8 +97,6 @@ function pickParsed(
 		case 'bgp_route':
 		case 'bgp_community':
 		case 'bgp_aspath_regex': {
-			// All three return BGPPaths; community responses use the
-			// same `parsed` shape regardless of standard-vs-large.
 			const d = (
 				res as
 					| Pb.BGPRouteResponse
@@ -164,7 +122,7 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 		resolvedCommand: resolveCommand(cmd, param),
 		parsed: null,
 		parserKind: 0,
-		parseStatus: 1 // DISABLED until proven OK
+		parseStatus: 1
 	};
 	results.update((r) => ({ ...r, [key]: base }));
 
@@ -248,21 +206,14 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 	}
 }
 
-/** Submit the current command + parameter against the currently-selected routers. */
+/** Submits the current command and parameter against the selected routers. */
 export async function run(cmd: CommandValue, param: string) {
 	const routers = get(selectedRouters);
 	if (routers.length === 0 || !cmd) return;
-	// Parameter-less commands skip the empty check.
 	if (!COMMANDS_NO_PARAM.includes(cmd) && !param) return;
 
 	hasRun.set(true);
-	// Pressing Execute is an explicit request to see results: open the
-	// sheet immediately (every time), so the user sees pending → running
-	// → done lifecycle as it happens. Decoupled from `hasRun` so this
-	// fires on every submission, not just the first one.
 	onRunStarted();
-	// Seed all rows as pending so the UI snaps into the result layout
-	// immediately, before any network round-trip completes.
 	const seed: Record<string, ExecResult> = {};
 	for (const r of routers) {
 		seed[r.id.toString()] = {

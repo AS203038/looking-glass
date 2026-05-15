@@ -6,10 +6,8 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
-// TestTextFSMTemplatesLoad confirms that every bundled `.textfsm`
-// template parses successfully at startup. A bundled template that
-// fails to parse is a packaging defect — failing this test is
-// preferable to silently shipping a broken vendor profile.
+// TestTextFSMTemplatesLoad asserts that every bundled `.textfsm`
+// template parses successfully via [resolveTemplate].
 func TestTextFSMTemplatesLoad(t *testing.T) {
 	files, err := templates.ReadDir("textfsm")
 	if err != nil {
@@ -48,10 +46,8 @@ func TestTextFSMParserMissing(t *testing.T) {
 	}
 }
 
-// TestTextFSMParserAristaPing verifies the canonical Arista ping
-// template extracts the expected fields. We reuse the iputils
-// sample from builtin_test.go because EOS shells out to the Linux
-// userland ping (identical output shape).
+// TestTextFSMParserAristaPing verifies the Arista ping template
+// against the shared iputils ping sample.
 func TestTextFSMParserAristaPing(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpPing, []byte(linuxPingIPv4Sample),
 		Config{Template: "arista_eos_ping"})
@@ -67,7 +63,6 @@ func TestTextFSMParserAristaPing(t *testing.T) {
 	}
 }
 
-// Canonical Cisco IOS / IOS-XE `ping` output.
 const ciscoIOSPingSample = `Type escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to 1.1.1.1, timeout is 2 seconds:
 Packet sent with a source address of 10.0.0.1
@@ -75,12 +70,8 @@ Packet sent with a source address of 10.0.0.1
 Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms
 `
 
-// TestTextFSMParserCiscoIOSPing exercises the Cisco-specific
-// success-rate ping format. The template captures
-// (received/sent) but does NOT capture loss_pct — IOS reports
-// success_pct instead. The projector tolerates the missing column
-// (loss_pct ends up zero, which is wire-correct on a 100%-success
-// sample).
+// TestTextFSMParserCiscoIOSPing exercises the Cisco success-rate
+// ping format (no loss_pct capture; loss_pct is left zero).
 func TestTextFSMParserCiscoIOSPing(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpPing, []byte(ciscoIOSPingSample),
 		Config{Template: "cisco_ios_ping"})
@@ -103,9 +94,6 @@ func TestTextFSMParserCiscoIOSPing(t *testing.T) {
 	}
 }
 
-// Canonical Cisco IOS / IOS-XE `traceroute` output. Three probes
-// per hop on a single line; hop 2 has one timed-out probe; hop 3
-// is a pure-star timeout.
 const ciscoIOSTracerouteSample = `Type escape sequence to abort.
 Tracing the route to one.one.one.one (1.1.1.1)
 VRF info: (vrf in name/id, vrf out name/id)
@@ -115,11 +103,8 @@ VRF info: (vrf in name/id, vrf out name/id)
   4 one.one.one.one (1.1.1.1) 8 msec 8 msec 8 msec
 `
 
-// TestTextFSMParserCiscoIOSTraceroute covers the multi-probe-per-
-// line shape: every hop must materialise three probes after the
-// projector expands ip1/rtt_ms1/…/rtt_ms3. Timeout slots (the
-// trailing `*` on hop 2 and the whole of hop 3) decay to empty
-// probes with RttMs == 0.
+// TestTextFSMParserCiscoIOSTraceroute covers the multi-probe-per-line
+// shape with mixed responses and timeouts.
 func TestTextFSMParserCiscoIOSTraceroute(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpTraceroute, []byte(ciscoIOSTracerouteSample),
 		Config{Template: "cisco_ios_traceroute"})
@@ -172,11 +157,6 @@ func TestTextFSMParserCiscoIOSTraceroute(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Juniper JunOS
-// ---------------------------------------------------------------------------
-
-// Canonical JunOS `ping … rapid` output.
 const juniperPingSample = `PING 1.1.1.1 (1.1.1.1): 56 data bytes
 !!!!!
 --- 1.1.1.1 ping statistics ---
@@ -209,7 +189,6 @@ func TestTextFSMParserJuniperPing(t *testing.T) {
 	}
 }
 
-// Canonical JunOS `traceroute` output (three probes per hop).
 const juniperTracerouteSample = `traceroute to 1.1.1.1 (1.1.1.1), 30 hops max, 40 byte packets
  1  gw.example.com (10.0.0.254)  0.234 ms  0.222 ms  0.211 ms
  2  192.0.2.1  1.123 ms  1.234 ms  1.345 ms
@@ -253,11 +232,6 @@ func TestTextFSMParserJuniperTraceroute(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Nokia SR OS / TiMOS
-// ---------------------------------------------------------------------------
-
-// Canonical TiMOS `ping` output.
 const nokiaPingSample = `PING 1.1.1.1 56 data bytes
 64 bytes from 1.1.1.1: icmp_seq=1 ttl=58 time=2.04ms.
 64 bytes from 1.1.1.1: icmp_seq=2 ttl=58 time=2.10ms.
@@ -294,7 +268,6 @@ func TestTextFSMParserNokiaPing(t *testing.T) {
 	}
 }
 
-// Canonical TiMOS `traceroute` output.
 const nokiaTracerouteSample = `traceroute to 1.1.1.1, 30 hops max, 40 byte packets
  1  10.0.0.254 (10.0.0.254)  0.234 ms  0.222 ms  0.211 ms
  2  one.one.one.one (1.1.1.1)  8 ms  8 ms  8 ms
@@ -328,11 +301,6 @@ func TestTextFSMParserNokiaTraceroute(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// MikroTik RouterOS
-// ---------------------------------------------------------------------------
-
-// Canonical RouterOS 7.x `/ping` output.
 const mikrotikPingSample = `  SEQ HOST                                     SIZE TTL TIME       STATUS
     0 1.1.1.1                                    56  58 2ms        echo reply
     1 1.1.1.1                                    56  58 2ms        echo reply
@@ -364,7 +332,6 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	}
 }
 
-// Canonical RouterOS 7.x `/tool traceroute` output (one full pass).
 const mikrotikTracerouteSample = ` # ADDRESS                                    LOSS SENT    LAST     AVG    BEST   WORST STD-DEV STATUS
  1 10.0.0.254                                   0%    1   0.2ms   0.2ms   0.2ms   0.2ms       0
  2 192.0.2.1                                    0%    1   1.1ms   1.1ms   1.1ms   1.1ms       0
@@ -402,17 +369,6 @@ func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// BGP detail / summary parsers — one canonical sample per vendor.
-//
-// These tests lock in the post-projector wire shape against vendor
-// CLI output to catch regressions in either the template or the
-// projector helpers (splitListToken, recBool, established-state
-// synthesis). Each sample is the smallest input that exercises
-// every Value capture path the template declares.
-// ---------------------------------------------------------------------------
-
-// Arista EOS BGP path detail.
 const aristaBGPPathsSample = `BGP routing table entry for 1.1.1.0/24
  Paths: (2 available, best #1)
  Advertised to peers:
@@ -464,16 +420,6 @@ func TestTextFSMParserAristaBGPPaths(t *testing.T) {
 	}
 }
 
-// Arista EOS BGP path detail — MODERN output shape (recent EOS
-// feature releases). Differs from the legacy shape in three
-// places: the `Origin` line gains trailing `IGP metric N, weight
-// N, tag N` fields and drops the flag tokens; the flag tokens
-// (including `best`) move to a new `Received <age> ago, …, best`
-// line; an `Extended Community:` line appears between
-// `Community:` and `Large Community:`; the block terminator is
-// `Rx SAFI:` rather than `Last update:`. Locks in that the
-// shared template handles both shapes — regression coverage for
-// the 2026-05 grammar/parser refresh.
 const aristaBGPPathsModernSample = `BGP routing table entry for 43.157.192.0/18
  Paths: 1 available
   3399 5511 7713 132203
@@ -526,14 +472,6 @@ func TestTextFSMParserAristaBGPPathsModern(t *testing.T) {
 	}
 }
 
-// Arista EOS BGP path detail — aggregated-prefix variant. When the
-// queried prefix is a BGP aggregate, EOS appends
-// `(aggregated by <ASN> <router-id>)` to the bare-ASN line. The
-// original bare-ASN anchor `^\s+${as_path}\s*$$` rejected this
-// suffix, so AS-path was silently dropped on aggregate routes
-// (1.1.1.0/24 in this real-world capture from a Cloudflare peer).
-// Regression coverage for that bug — sample is the verbatim
-// `eos-bgp-route.txt` fixture committed at fix time.
 const aristaBGPPathsAggregatedSample = `BGP routing table information for VRF PROUD-BEAVER
 Router identifier 0.0.0.4, local AS number 214503
 BGP routing table entry for 1.1.1.0/24
@@ -631,12 +569,6 @@ func TestTextFSMParserAristaBGPPathsAggregated(t *testing.T) {
 	}
 }
 
-// Verbatim operator paste of `show ip bgp regexp <regex> vrf
-// PROUD-BEAVER` against AS214503 — the **AS-path lookup**
-// (`bgp.aspath`) operation on EOS. Structurally distinct from
-// the detail-block shape exercised above: classic one-row-per-
-// path RIB table with flag glyphs, columns, and a trailing
-// origin-code letter.
 const aristaBGPTableSample = `BGP routing table information for VRF PROUD-BEAVER
 Router identifier 0.0.0.4, local AS number 214503
 Route status codes: s - suppressed, * - valid, > - active, E - ECMP head, e - ECMP
@@ -675,13 +607,8 @@ AS Path Attributes: Or-ID - Originator ID, C-LST - Cluster List, LL Nexthop - Li
  * >      195.128.254.0/23       195.128.254.232       0       -          100     0       3399 i
 `
 
-// TestTextFSMParserAristaBGPTable locks in the bgp.aspath fix.
-// Before the dedicated `arista_eos_show_bgp_table` template
-// existed, the EOS RIB-table form (emitted by `show ip bgp regexp
-// <regex> vrf <name>`) was routed to the detail-block template,
-// which produced zero records and therefore PARSE_STATUS_PARSE_FAILED.
-// The regression assertion is `len(paths) == 26` — the count of
-// real path rows in the verbatim operator sample.
+// TestTextFSMParserAristaBGPTable verifies parsing of the EOS RIB
+// table form emitted by `show ip bgp regexp`.
 func TestTextFSMParserAristaBGPTable(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpBGPASPath, []byte(aristaBGPTableSample),
 		Config{Template: "arista_eos_show_bgp_table"})
@@ -750,8 +677,6 @@ func TestTextFSMParserAristaBGPTable(t *testing.T) {
 	}
 }
 
-// Cisco IOS / IOS-XE BGP path detail.
-
 const ciscoBGPPathsSample = `BGP routing table entry for 1.1.1.0/24, version 5
   Paths: (1 available, best #1, table default)
   Advertised to update-groups:
@@ -800,7 +725,6 @@ func TestTextFSMParserCiscoIOSBGPPaths(t *testing.T) {
 	}
 }
 
-// Juniper JunOS BGP path detail (`show route … detail`).
 const juniperBGPPathsSample = `inet.0: 1000 destinations, 2000 routes (1000 active, 0 holddown, 0 hidden)
 1.1.1.0/24 (2 entries, 1 announced)
         *BGP    Preference: 170/-101
@@ -856,7 +780,6 @@ func TestTextFSMParserJuniperBGPPaths(t *testing.T) {
 	}
 }
 
-// Nokia SR OS / TiMOS BGP routes detail.
 const nokiaBGPRoutesSample = `===============================================================================
 BGP Router ID:10.0.0.1        AS:65000       Local AS:65000
 BGP RIB-In Entries
@@ -920,7 +843,6 @@ func TestTextFSMParserNokiaBGPRoutes(t *testing.T) {
 	}
 }
 
-// MikroTik RouterOS BGP advertisements detail.
 const mikrotikBGPAdvSample = ` Flags: A - active
   0 A peer="peer1" dst-address=1.1.1.0/24
       nexthop=10.0.0.2 origin=igp local-pref=100 med=0
@@ -961,7 +883,6 @@ func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	}
 }
 
-// Arista EOS BGP summary — mix of Established / Idle / OpenSent peers.
 const aristaBGPSummarySample = `BGP summary information for VRF default
 Router identifier 10.0.0.1, local AS number 65000
 Neighbor        V AS           MsgRcvd MsgSent  InQ OutQ  Up/Down State  PfxRcd PfxAcc
@@ -1012,15 +933,6 @@ func TestTextFSMParserAristaBGPSummary(t *testing.T) {
 	}
 }
 
-
-// Arista EOS BGP summary — MODERN shape (recent EOS feature
-// releases). Adds a per-row `Description` column, a free-standing
-// `Neighbor Status Codes:` legend line, an inline-parenthesised
-// state qualifier (`Idle(NoIf)` without a space before the paren),
-// and two back-to-back `BGP summary information for VRF X` blocks
-// (v4 then v6) in a single response. Locks in that the shared
-// template handles all four shape changes. Regression coverage
-// for the 2026-05 EOS BGP-summary parser refresh.
 const aristaBGPSummaryModernSample = `BGP summary information for VRF PROUD-BEAVER
 Router identifier 0.0.0.4, local AS number 214503
 Neighbor Status Codes: m - Under maintenance
@@ -1114,9 +1026,6 @@ func TestTextFSMParserAristaBGPSummaryModern(t *testing.T) {
 	}
 }
 
-
-// Cisco IOS BGP summary — overloaded "state-or-pfxcount" trailing column.
-
 const ciscoBGPSummarySample = `BGP router identifier 10.0.0.1, local AS number 65000
 BGP table version is 100, main routing table version 100
 100 network entries using 12345 bytes of memory
@@ -1161,8 +1070,6 @@ func TestTextFSMParserCiscoIOSBGPSummary(t *testing.T) {
 	}
 }
 
-// JunOS BGP summary — exercises the two-line `Establ` + `inet.0:`
-// follow-on path and the one-line non-Established path.
 const juniperBGPSummarySample = `Threading mode: BGP I/O
 Groups: 2 Peers: 3 Down peers: 0
 Table          Tot Paths  Act Paths Suppressed    History Damp State    Pending
@@ -1216,9 +1123,6 @@ func TestTextFSMParserJuniperBGPSummary(t *testing.T) {
 	}
 }
 
-// Nokia SR OS BGP summary — three physical lines per peer; middle
-// line carries either Rcv/Act/Sent triplet (Established) or a
-// single state keyword.
 const nokiaBGPSummarySample = `===============================================================================
 BGP Summary
 Legend : D - Dynamic Neighbor
@@ -1279,7 +1183,6 @@ func TestTextFSMParserNokiaBGPSummary(t *testing.T) {
 	}
 }
 
-// MikroTik RouterOS BGP summary — `E` flag on Established session.
 const mikrotikBGPSummarySample = ` Flags: E - established, * - dynamic
   0 E name="peer1"
       remote.address=10.0.0.2 .as=65001 .id=10.0.0.2 .refresh=yes
@@ -1328,19 +1231,6 @@ func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
 	}
 }
 
-// Arista EOS BGP route lookup with **zero matches** — operator
-// reproduction from the field. The box emits two complete header
-// blocks (v4 + v6, back-to-back) but no per-path blocks because
-// neither AFI's RIB carries any prefix matching the queried
-// community / large-community / aspath / route.
-//
-// Before the empty-result fix, `tfsmBGPPathsResult` flipped this
-// to PARSE_STATUS_PARSE_FAILED — the trailing `len(paths) == 0
-// → Failed` guard could not distinguish "template-preamble
-// matched cleanly but produced zero per-path records" from
-// "template engine errored". The WebUI/CLI then fell back to raw
-// bytes for every legitimate zero-result lookup, which is the
-// bug this regression test locks in the fix for.
 const aristaBGPPathsEmptySample = `BGP routing table information for VRF PROUD-BEAVER
 Router identifier 0.0.0.4, local AS number 214503
 
@@ -1349,11 +1239,8 @@ Router identifier 0.0.0.4, local AS number 214503
 
 `
 
-// TestTextFSMParserAristaBGPPathsEmpty pins the behaviour for a
-// legitimate zero-match BGP lookup: PARSE_STATUS_OK with an empty
-// `paths` slice, NOT PARSE_STATUS_PARSE_FAILED. The latter would
-// force the structured view back to raw bytes for every
-// no-results community/aspath/largecommunity query.
+// TestTextFSMParserAristaBGPPathsEmpty asserts that a zero-match
+// BGP lookup returns OK with an empty paths slice.
 func TestTextFSMParserAristaBGPPathsEmpty(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpBGPCommunity, []byte(aristaBGPPathsEmptySample),
 		Config{Template: "arista_eos_show_bgp_paths"})
@@ -1372,11 +1259,6 @@ func TestTextFSMParserAristaBGPPathsEmpty(t *testing.T) {
 	}
 }
 
-// Arista EOS BGP summary with **zero peers** — a freshly-configured
-// VRF or a VRF whose peers are administratively held down can emit
-// only the header preamble. Before the empty-result fix the
-// summary projector flipped that to PARSE_FAILED via the trailing
-// `len(summary.Peers) == 0 → Failed` guard.
 const aristaBGPSummaryEmptySample = `BGP summary information for VRF PROUD-BEAVER
 Router identifier 0.0.0.4, local AS number 214503
 Neighbor Status Codes: m - Under maintenance
@@ -1384,10 +1266,8 @@ Neighbor Status Codes: m - Under maintenance
 
 `
 
-// TestTextFSMParserAristaBGPSummaryEmpty pins the behaviour for a
-// header-only summary: PARSE_STATUS_OK with an empty `peers`
-// slice. Router-identifier / local-AS Filldown captures from the
-// header line are preserved even when no peer rows follow.
+// TestTextFSMParserAristaBGPSummaryEmpty asserts that a header-only
+// summary returns OK with an empty peers slice.
 func TestTextFSMParserAristaBGPSummaryEmpty(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(aristaBGPSummaryEmptySample),
 		Config{Template: "arista_eos_show_bgp_summary"})
@@ -1406,11 +1286,7 @@ func TestTextFSMParserAristaBGPSummaryEmpty(t *testing.T) {
 	}
 }
 
-// equalU32 reports whether two []uint32 slices have identical
-// length and per-index values. The standard library doesn't expose
-// a slice-comparison helper for non-comparable element types until
-// Go 1.21's slices.Equal, which we avoid here to stay
-// dependency-free in test code.
+// equalU32 reports whether two []uint32 slices are equal.
 func equalU32(a, b []uint32) bool {
 	if len(a) != len(b) {
 		return false
@@ -1423,8 +1299,7 @@ func equalU32(a, b []uint32) bool {
 	return true
 }
 
-// equalStr reports whether two []string slices have identical
-// length and per-index values.
+// equalStr reports whether two []string slices are equal.
 func equalStr(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

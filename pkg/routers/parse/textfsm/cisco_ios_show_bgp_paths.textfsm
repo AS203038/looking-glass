@@ -1,37 +1,3 @@
-# TextFSM template: Cisco IOS / IOS-XE
-# `show bgp vrf <VRF> {ipv4|ipv6} unicast <prefix|community|...>` /
-# `... regexp <as-path-regex>`. Shared by bgp.route / bgp.community
-# / bgp.largecommunity / bgp.aspath because all four commands emit
-# the same path-block shape.
-#
-# Canonical block (truncated):
-#   BGP routing table entry for 1.1.1.0/24, version 5
-#     Paths: (2 available, best #1, table default)
-#     Advertised to update-groups:
-#        1
-#     Refresh Epoch 1
-#     65001 65002
-#       10.0.0.2 from 10.0.0.2 (10.0.0.2)
-#         Origin IGP, metric 0, localpref 100, valid, external, best
-#         Community: 65000:100 65000:200
-#         Large-Community: 214503:8:3607
-#         rx pathid: 0, tx pathid: 0x0
-#         Updated on Aug 25 2025 16:00:00 UTC
-#
-# Capture strategy:
-#   - The AS-path appears on its own line *before* the nexthop
-#     block, as a space-separated list of ASNs. We capture the
-#     full run into a single `as_path` token; the projector's
-#     splitListToken() explodes it into per-ASN entries.
-#   - Communities and Large-Community lines likewise use single
-#     captures spanning the whole value list. Large-Community is
-#     hyphenated in IOS-XE (vs `Large Community:` in EOS).
-#   - `origin (\w+)` excludes the trailing comma so the wire field
-#     stays `igp` / `egp` / `incomplete` rather than `igp,`.
-#   - `best` is captured by a separate optional sub-pattern at the
-#     end of the Origin line.
-#   - `Updated on Aug 25 2025 16:00:00 UTC`-style age string
-#     captured for `age` (projector best-effort; degrades to 0).
 Value Filldown prefix ([0-9a-fA-F:.]+/\d+)
 Value as_path (\d+(?:\s+\d+)*)
 Value nexthop ([0-9a-fA-F:.]+)
@@ -49,9 +15,6 @@ Start
   ^\s+Refresh\s+Epoch\s+\d+
   ^\s+(?P<_as>${as_path})\s*$$
   ^\s+${nexthop}\s+from\s+${peer_ip}\s+\(\S+\)
-  # Origin / metric / localpref / best — comma-separated. The
-  # trailing `best` keyword (when present) lands on the same line,
-  # after an arbitrary number of comma-separated flag tokens.
   ^\s+Origin\s+${origin}(?:,\s+metric\s+${med})?(?:,\s+localpref\s+${local_pref})?(?:,.*?${best})?\s*$$
   ^\s+Community:\s+${communities}\s*$$
   ^\s+Large-Community:\s+${large_communities}\s*$$

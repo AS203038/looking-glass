@@ -14,12 +14,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// tplLogTag builds a credential-free identifier for a single render
-// attempt, suitable for prefixing operator-facing log lines. The
-// router type and operation are always included; the device name
-// and VRF are added when a [utils.RouterConfig] is available so
-// failures can be traced back to a specific configured device
-// without leaking secrets.
+// tplLogTag builds a credential-free log-tag for a single render attempt.
 func tplLogTag(routerType, op string, cfg *utils.RouterConfig) string {
 	tag := "router_type=" + routerType + " op=" + op
 	if cfg != nil {
@@ -28,129 +23,72 @@ func tplLogTag(routerType, op string, cfg *utils.RouterConfig) string {
 	return tag
 }
 
-// _tpl_data is the data context handed to every vendor-template
-// render. Template authors reference fields via `{{.Cfg.…}}`,
-// `{{.IP.…}}`, `{{.Community}}`, etc.; unused fields are left at
-// their zero values for operations that do not need them.
+// _tpl_data is the data context handed to every vendor-template render.
 type _tpl_data struct {
-	// Cfg is the per-device configuration (credentials, source
-	// addresses, VRF, location, …).
+	// Cfg is the per-device configuration.
 	Cfg *utils.RouterConfig
-	// IP is the validated IP/CIDR operand for ping, traceroute,
-	// and bgp.route operations.
+	// IP is the validated IP/CIDR operand.
 	IP *utils.IPNet
-	// Community is the RFC 1997 standard BGP community in
-	// "ASN:VALUE" form, populated for bgp.community lookups.
+	// Community is the RFC 1997 standard BGP community in "ASN:VALUE" form.
 	Community string
-	// LargeCommunity is the RFC 8092 large community in
-	// "GLOBAL:LOCAL1:LOCAL2" form, populated for bgp.largecommunity
-	// lookups.
+	// LargeCommunity is the RFC 8092 large community in "GLOBAL:LOCAL1:LOCAL2" form.
 	LargeCommunity string
-	// ASPath is the (already sanitised) AS-path regex used by
-	// bgp.aspath lookups. See [utils.SanitizeASPathRegex].
+	// ASPath is the sanitised AS-path regex.
 	ASPath string
 }
 
-// parserSpec is the YAML projection of a per-operation parser
-// declaration. Operators reference it from a template's top-level
-// `parsers:` map, keyed by operation name (e.g. "ping",
-// "bgp.summary"). Absent entries are treated as parser=raw.
+// parserSpec is the YAML projection of a per-operation parser declaration.
 type parserSpec struct {
-	// Kind selects the parser pipe. Recognised values are "raw"
-	// (default; emits no structured payload), "textfsm",
-	// "native_json" and "builtin". Unknown values are logged and
-	// fall back to "raw" at runtime so a stale schema cannot
-	// silently disable parsing across an upgrade.
+	// Kind selects the parser pipe: "raw", "textfsm", "native_json", or "builtin".
 	Kind string `yaml:"kind"`
-	// Template names the TextFSM template asset, relative to the
-	// `textfsm/` directory under either ROUTER_DIR or the bundled
-	// embed.FS. Used only when Kind == "textfsm".
+	// Template names the TextFSM template asset; used when Kind == "textfsm".
 	Template string `yaml:"template"`
-	// Schema selects the JSON normalisation schema used by the
-	// native-JSON parser (e.g. "frr_show_bgp_route_v1"). Used only
-	// when Kind == "native_json".
+	// Schema selects the JSON normalisation schema; used when Kind == "native_json".
 	Schema string `yaml:"schema"`
 }
 
-// Yaml is the [utils.Router] implementation that backs every shipped
-// vendor template. A single Yaml instance is parsed from disk at
-// process start and stored in the registry; it is treated as
-// immutable thereafter.
+// Yaml is the [utils.Router] implementation that backs every shipped vendor template.
 type Yaml struct {
 	// Path is the source filename, used only for log messages.
 	Path string
-	// Template holds the unmarshalled template body. The nested
-	// anonymous struct mirrors the YAML schema exactly so that
-	// `yaml.Unmarshal` populates it directly.
+	// Template holds the unmarshalled template body.
 	Template struct {
-		// Name is the unique template identifier referenced from
-		// [utils.RouterConfig.Type].
+		// Name is the unique template identifier.
 		Name string `yaml:"name"`
-		// Ping holds the command sequences for ping operations,
-		// keyed by IP family. When a family-specific list is empty
-		// the family-agnostic `any` list is used instead.
+		// Ping holds the ping command sequences, keyed by IP family.
 		Ping struct {
 			Any  []string `yaml:"any"`
 			IPv4 []string `yaml:"ipv4"`
 			IPv6 []string `yaml:"ipv6"`
 		} `yaml:"ping"`
-		// Traceroute mirrors the Ping shape, for traceroute
-		// operations.
+		// Traceroute holds the traceroute command sequences, keyed by IP family.
 		Traceroute struct {
 			Any  []string `yaml:"any"`
 			IPv4 []string `yaml:"ipv4"`
 			IPv6 []string `yaml:"ipv6"`
 		} `yaml:"traceroute"`
-		// BGP holds the BGP query command sequences. These are
-		// family-agnostic at the top level: where a vendor's CLI
-		// requires different commands per family the template uses
-		// `{{if eq .IP.Family "ipv4"}}…{{end}}` conditionals.
+		// BGP holds the BGP query command sequences.
 		BGP struct {
 			// Summary is the neighbour-summary command sequence.
-			// Templates that pre-date the bgp.summary RPC may
-			// leave this empty; the gRPC handler will then return
-			// errs.OperationUnknown.
 			Summary        []string `yaml:"summary"`
 			Route          []string `yaml:"route"`
 			Community      []string `yaml:"community"`
 			LargeCommunity []string `yaml:"largecommunity"`
 			ASPath         []string `yaml:"aspath"`
 		} `yaml:"bgp"`
-		// Parsers is the per-operation parser map. Keys are the
-		// operation names defined in [pkg/routers/parse]
-		// ("ping", "traceroute", "bgp.summary", "bgp.route",
-		// "bgp.community", "bgp.largecommunity", "bgp.aspath").
-		// Values declare which parser pipe should run against the
-		// concatenated command output. Templates that omit this
-		// block keep the pre-parsing wire shape (raw bytes only).
+		// Parsers is the per-operation parser declaration map.
 		Parsers map[string]parserSpec `yaml:"parsers"`
 	}
 }
 
-// compiledRouters embeds every `*.yml` file in this package directory
-// into the binary so that all shipped templates are available
-// without any filesystem dependency.
+// compiledRouters embeds every `*.yml` file in this package directory.
 //
 //go:embed all:*.yml
 var compiledRouters embed.FS
 
-// init populates the global template registry. Two sources are
-// consulted, in order:
-//
-//  1. The directory named by the ROUTER_DIR environment variable, if
-//     set. Templates discovered here win — they fully replace any
-//     bundled template with the same name. This is the supported
-//     escape hatch for operators who need to ship a custom or
-//     in-house vendor profile without forking the project.
-//  2. The embedded `*.yml` files in this package. Each is registered
-//     under its `name:` field unless an external template with the
-//     same name was already loaded in step 1, in which case a
-//     warning is logged and the embedded copy is ignored.
-//
-// Any parse / read / unmarshal error in this function panics
-// because a malformed template renders the router that depends on
-// it permanently inoperable; failing at startup is preferable to
-// surfacing template errors on every request.
+// init populates the global template registry, first from the optional
+// ROUTER_DIR directory (where loaded templates win on name collision)
+// and then from the bundled `*.yml` files. Panics on any parse error.
 func init() {
 	rd := os.Getenv("ROUTER_DIR")
 	if rd != "" {
@@ -204,24 +142,9 @@ func init() {
 	}
 }
 
-// _tpl renders the command sequence for the named operation against
-// data, returning one entry per command in the order declared by
-// the template.
-//
-// Operation routing:
-//
-//   - "ping" / "traceroute" pick the family-specific list when the
-//     operand has a definite [utils.IPFamily]; the family-agnostic
-//     `any` list otherwise.
-//   - "bgp.summary", "bgp.route", "bgp.community",
-//     "bgp.largecommunity", "bgp.aspath" map directly onto the
-//     matching template field.
-//
-// Returns [errs.OperationUnknown] when the template does not define
-// any commands for the requested operation, or when an individual
-// command fails to parse or execute as a [text/template]. The
-// underlying parse/execute error is logged server-side; clients
-// only see the sentinel.
+// _tpl renders the command sequence for the named operation against data.
+// Returns [errs.OperationUnknown] when the template defines no commands
+// for the operation or when an individual command fails to render.
 func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 	var tpl []string
 	var ret []string
@@ -275,66 +198,44 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 	return ret, nil
 }
 
-// Ping renders the ping command sequence for the supplied router
-// configuration and target. The family-specific template is used
-// when available, falling back to the family-agnostic `any` list.
+// Ping renders the ping command sequence for cfg and ip.
 func (rt *Yaml) Ping(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, error) {
 	return rt._tpl("ping", _tpl_data{Cfg: cfg, IP: ip})
 }
 
-// Traceroute renders the traceroute command sequence for the
-// supplied router configuration and target. Family selection is
-// identical to [Yaml.Ping].
+// Traceroute renders the traceroute command sequence for cfg and ip.
 func (rt *Yaml) Traceroute(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, error) {
 	return rt._tpl("traceroute", _tpl_data{Cfg: cfg, IP: ip})
 }
 
-// BGPSummary renders the neighbour-summary command sequence. The
-// operand-less request carries no family information, so most
-// templates issue one command per family or a single
-// family-agnostic command.
+// BGPSummary renders the neighbour-summary command sequence for cfg.
 func (rt *Yaml) BGPSummary(cfg *utils.RouterConfig) ([]string, error) {
 	return rt._tpl("bgp.summary", _tpl_data{Cfg: cfg})
 }
 
-// BGPRoute renders the BGP-route lookup command sequence. The
-// template typically embeds `{{.IP.Family}}` so that exactly one
-// command is issued for the operand's family rather than blindly
-// querying both v4 and v6.
+// BGPRoute renders the BGP-route lookup command sequence for cfg and ip.
 func (rt *Yaml) BGPRoute(cfg *utils.RouterConfig, ip *utils.IPNet) ([]string, error) {
 	return rt._tpl("bgp.route", _tpl_data{Cfg: cfg, IP: ip})
 }
 
-// BGPCommunity renders the standard-community (RFC 1997) lookup
-// command sequence for the supplied "ASN:VALUE" community string.
-// Community-style queries are family-agnostic by nature, so most
-// templates emit two commands here (one per family).
+// BGPCommunity renders the standard-community lookup command sequence.
 func (rt *Yaml) BGPCommunity(cfg *utils.RouterConfig, community string) ([]string, error) {
 	return rt._tpl("bgp.community", _tpl_data{Cfg: cfg, Community: community})
 }
 
-// BGPLargeCommunity renders the RFC 8092 large-community lookup
-// command sequence for the supplied
-// "GLOBAL:LOCAL1:LOCAL2" community string.
+// BGPLargeCommunity renders the large-community lookup command sequence.
 func (rt *Yaml) BGPLargeCommunity(cfg *utils.RouterConfig, largeCommunity string) ([]string, error) {
 	return rt._tpl("bgp.largecommunity", _tpl_data{Cfg: cfg, LargeCommunity: largeCommunity})
 }
 
 // BGPASPath renders the AS-path regex lookup command sequence.
-// The aspath string must already have been validated by
-// [utils.SanitizeASPathRegex] before reaching this method.
 func (rt *Yaml) BGPASPath(cfg *utils.RouterConfig, aspath string) ([]string, error) {
 	return rt._tpl("bgp.aspath", _tpl_data{Cfg: cfg, ASPath: aspath})
 }
 
-// Parser returns the parser declared by the template for op, plus
-// any parser-private configuration (TextFSM template name, JSON
-// schema selector). Templates that omit a `parsers:` entry return
-// [parse.RawParser], so the gRPC handlers degrade gracefully to
-// the pre-parsing "raw bytes only" wire shape.
-//
-// Unknown parser kinds are logged and treated as "raw", so a stale
-// schema cannot silently disable parsing across an upgrade.
+// Parser returns the parser declared for op together with its
+// parser-private configuration. Templates that omit a `parsers:`
+// entry return [parse.RawParser]. Unknown parser kinds fall back to raw.
 func (rt *Yaml) Parser(op string) (parse.Parser, parse.Config) {
 	spec, ok := rt.Template.Parsers[op]
 	if !ok {

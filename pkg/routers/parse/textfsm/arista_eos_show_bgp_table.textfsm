@@ -1,94 +1,3 @@
-# TextFSM template: Arista EOS `show ip|ipv6 bgp regexp <regex>
-# vrf <name>` output — i.e. the AS-path lookup operation.
-#
-# WHY THIS EXISTS (vs the sibling arista_eos_show_bgp_paths
-# template):
-#   EOS exposes two structurally distinct BGP-show shapes:
-#
-#   1. **Detail-block** (one stanza per path, headed by
-#      `BGP routing table entry for <prefix>` / `Paths: N
-#      available` / per-path `Origin … / Received … / Community:
-#      …` lines). Emitted by `show ip bgp <prefix>`,
-#      `show ip bgp community <c> detail`, and
-#      `show ip bgp large-community <lc> detail` — i.e. the
-#      `bgp.route` / `bgp.community` / `bgp.largecommunity`
-#      operations. Parsed by `arista_eos_show_bgp_paths.textfsm`.
-#
-#   2. **RIB table** (the classic `show ip bgp` summary view, one
-#      physical line per path with flag glyphs, prefix, nexthop,
-#      metric, AIGP, locpref, weight, AS-path-and-origin-code).
-#      Emitted by `show ip bgp regexp <regex> vrf <name>` —
-#      i.e. the `bgp.aspath` operation. **`detail` is rejected
-#      by EOS on the `regexp` form when a VRF is in play** (see
-#      the grammar discussion in the YAML template header), so
-#      the LG cannot ask the box for detail blocks here even if
-#      we wanted them — and we don't, because the AS-path lookup
-#      typically returns many paths and the table form is far
-#      more compact on the wire.
-#
-# Canonical sample (verbatim, AS214503 PROUD-BEAVER VRF):
-#
-#   BGP routing table information for VRF PROUD-BEAVER
-#   Router identifier 0.0.0.4, local AS number 214503
-#   Route status codes: s - suppressed, * - valid, > - active, E - ECMP head, e - ECMP
-#                       S - Stale, c - Contributing to ECMP, b - backup, L - labeled-unicast
-#                       % - Pending BGP convergence
-#   Origin codes: i - IGP, e - EGP, ? - incomplete
-#   RPKI Origin Validation codes: V - valid, I - invalid, U - unknown
-#   AS Path Attributes: Or-ID - Originator ID, C-LST - Cluster List, LL Nexthop - Link Local Nexthop
-#
-#             Network                Next Hop              Metric  AIGP       LocPref Weight  Path
-#    * >      45.141.108.0/22        195.128.254.232       0       -          100     0       3399 i
-#    * >      193.180.164.0/23       195.128.254.232       0       -          100     0       3399 i
-#
-# Column model (whitespace-separated):
-#   <flags>  <Network>  <Next Hop>  <Metric>  <AIGP>  <LocPref>  <Weight>  <Path…> <Origin>
-#
-# Notes on capture strategy:
-#   - **Flag glyphs**: the flag column carries a free-form
-#     combination of `s` (suppressed), `*` (valid), `>` (active),
-#     `E` (ECMP head), `e` (ECMP), `S` (Stale), `c` (Contributing),
-#     `b` (backup), `L` (labeled-unicast), `%` (Pending), in any
-#     order with arbitrary internal whitespace. We capture only
-#     the `>` (active/best) glyph into `${best}` since nothing
-#     else is surfaced on `BGPPath` today. `recBool` accepts `>`
-#     as truthy (see pkg/routers/parse/textfsm.go).
-#   - **`-` placeholders**: Metric / LocPref / Weight columns can
-#     render as `-` when the attribute is unset. We use a
-#     non-capturing alternation `(?:${med}|-)` so the wire field
-#     stays at its decoded-zero (which is also the proto3 default
-#     and indistinguishable from a literal `0` — same caveat as
-#     `BGPPath.med` carries elsewhere).
-#   - **AIGP column**: never numeric in practice on IPv4-unicast
-#     output (always `-`), and `BGPPath` has no AIGP field, so we
-#     consume it with a non-capturing `\S+`.
-#   - **AS-path + origin code**: the `Path` column is a
-#     whitespace-separated ASN list followed by a single-letter
-#     origin code (`i`/`e`/`?`). We capture the ASN list as one
-#     token via `${as_path}` (single permissive capture spanning
-#     the whole list — the projector's `splitListToken()` /
-#     `recUint32List()` explode it into `[]uint32`). The origin
-#     letter is captured into `${origin}` and the projector
-#     lower-cases it; downstream the wire field stays as `i`/`e`/
-#     `?` (consistent with what other vendor templates surface
-#     when no IANA-name translation is in scope).
-#     The AS-path branch is OPTIONAL because locally-originated
-#     routes render the path column as just the origin code.
-#   - **Filldown header context**: `router_id`, `local_asn`,
-#     `vrf` are captured from the preamble for future use; they
-#     are not surfaced on `BGPPath` today (the proto contract
-#     doesn't carry them on per-path messages) but recording
-#     them keeps the template self-documenting and lets a
-#     future projector enhancement consume them without a
-#     template change.
-#
-# Out of scope (deliberate, may revisit if real fixtures appear):
-#   - AS_SET / confederation notation in the Path column
-#     (`{...}` / `(...)`). Current sample carries plain integer
-#     paths only.
-#   - Multipath / ECMP set-membership distinction beyond the
-#     `>`/`E`/`e` glyphs — the wire payload's `best` bool is the
-#     only flag bit we surface.
 Value Filldown router_id ([\d.]+)
 Value Filldown local_asn (\d+)
 Value Filldown vrf (\S+)
@@ -102,19 +11,7 @@ Value origin ([ie?])
 Value best (>)
 
 Start
-  # Header preamble — captures VRF + local-AS + router-id into
-  # Filldown slots. No Record transition; values persist to the
-  # following per-path rows.
   ^\s*BGP routing table information for VRF\s+${vrf}\s*$$
   ^\s*Router identifier\s+${router_id},\s+local AS number\s+${local_asn}\s*$$
-  # Per-path row. Flag region uses two char classes around the
-  # optional `${best}` glyph so we capture `>` whenever present
-  # regardless of its position among the other status letters.
-  # Metric / LocPref / Weight tolerate a literal `-` placeholder.
-  # AS-path is optional (locally-originated routes render only
-  # the origin code in the Path column).
   ^[s*\s]*${best}?[EecbLS%\s]*${prefix}\s+${nexthop}\s+(?:${med}|-)\s+\S+\s+(?:${local_pref}|-)\s+${weight}\s+(?:${as_path}\s+)?${origin}\s*$$ -> Record
-  # Header / legend / blank lines fall through to the implicit
-  # no-op; no Error transition so a vendor-output drift on any
-  # non-row line never aborts parsing of the rows that DID match.
   ^\s*$$

@@ -12,7 +12,7 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
-// ANSI colour escapes (gated by isColorEnabled).
+// ANSI colour escape sequences.
 const (
 	ansiReset  = "\x1b[0m"
 	ansiGreen  = "\x1b[32m"
@@ -22,8 +22,7 @@ const (
 	ansiBold   = "\x1b[1m"
 )
 
-// isTTY returns true if `f` is an interactive terminal. We probe via Stat()
-// and check the character-device mode bit to avoid pulling in a dep.
+// isTTY reports whether f is an interactive terminal.
 func isTTY(f *os.File) bool {
 	info, err := f.Stat()
 	if err != nil {
@@ -32,10 +31,7 @@ func isTTY(f *os.File) bool {
 	return (info.Mode() & os.ModeCharDevice) != 0
 }
 
-// isColorEnabled returns true if pretty output should emit ANSI colour. We
-// honour --no-color (and the NO_COLOR / LG_NO_COLOR env vars baked into the
-// default), and additionally turn colour off when stdout is not a TTY (e.g.
-// piped or redirected).
+// isColorEnabled reports whether pretty output should emit ANSI colour.
 func isColorEnabled() bool {
 	if opts.NoColor {
 		return false
@@ -43,7 +39,7 @@ func isColorEnabled() bool {
 	return isTTY(os.Stdout)
 }
 
-// colorize wraps `s` in `code` + reset if colour is enabled.
+// colorize wraps s in code + reset when colour is enabled.
 func colorize(s, code string) string {
 	if !isColorEnabled() {
 		return s
@@ -51,23 +47,19 @@ func colorize(s, code string) string {
 	return code + s + ansiReset
 }
 
-// opResult is the canonical shape we emit for ping/traceroute/bgp queries.
+// opResult is the canonical JSON shape emitted for ping/traceroute/bgp queries.
 type opResult struct {
 	Result    string `json:"result"`
 	Timestamp string `json:"timestamp"`
-	// Parsed is the structured payload, included when populated by
-	// the server. Type is `any` because each operation returns a
-	// different protobuf message; we let `encoding/json` handle the
-	// reflection-based serialisation.
+	// Parsed is the structured payload, when populated.
 	Parsed any `json:"parsed,omitempty"`
-	// ParserKind is the symbolic provenance label, e.g. "textfsm".
+	// ParserKind is the symbolic provenance label.
 	ParserKind string `json:"parser_kind,omitempty"`
-	// ParseStatus is the symbolic parse outcome, e.g. "ok".
+	// ParseStatus is the symbolic parse outcome.
 	ParseStatus string `json:"parse_status,omitempty"`
 }
 
-// parserKindLabel maps a [pb.ParserKind] to its short string form
-// for `--output json` and the pretty footer.
+// parserKindLabel maps a [pb.ParserKind] to its short string form.
 func parserKindLabel(k pb.ParserKind) string {
 	switch k {
 	case pb.ParserKind_PARSER_KIND_TEXTFSM:
@@ -97,14 +89,8 @@ func parseStatusLabel(s pb.ParseStatus) string {
 	}
 }
 
-// printOpResult writes the result of a single-router operation according to
-// the global --output mode.
-//
-// Modes:
-//   - raw    : just the result body, no timestamp, no trailing newline added
-//   - json   : {"result": "...", "timestamp": "..."}\n
-//   - pretty : result body, then (unless --quiet) a dim "ts: <RFC3339>" footer
-//     on stderr so stdout stays clean for piping.
+// printOpResult writes the result of a single-router operation
+// according to the global --output mode.
 func printOpResult(result string, ts time.Time) error {
 	switch opts.Output {
 	case "raw":
@@ -115,11 +101,10 @@ func printOpResult(result string, ts time.Time) error {
 			Result:    result,
 			Timestamp: ts.Format(time.RFC3339),
 		})
-	default: // pretty
+	default:
 		if _, err := io.WriteString(os.Stdout, result); err != nil {
 			return err
 		}
-		// Ensure result ends with a newline before the footer.
 		if len(result) == 0 || result[len(result)-1] != '\n' {
 			fmt.Fprintln(os.Stdout)
 		}
@@ -133,19 +118,7 @@ func printOpResult(result string, ts time.Time) error {
 }
 
 // printParsedResult is the structured-aware variant of [printOpResult].
-//
-// When `--output pretty` and parsed is non-nil and parseStatus is OK,
-// emit a typed pretty-printer (one of [printPingPretty],
-// [printTraceroutePretty], …) instead of dumping the raw bytes. The
-// raw bytes are still available — under `--output raw` they are
-// always returned verbatim — but `pretty` mode is the only place
-// where the structured form is the primary view.
-//
-// When `--output json`, the parsed payload is serialised alongside
-// the raw bytes so downstream scripts can `jq .parsed` directly.
-//
-// parsed may be nil; the function then degrades to [printOpResult]'s
-// behaviour exactly.
+// When parsed is nil it degrades to [printOpResult]'s behaviour.
 func printParsedResult(result string, ts time.Time, parsed any, kind pb.ParserKind, status pb.ParseStatus) error {
 	switch opts.Output {
 	case "raw":
@@ -159,7 +132,7 @@ func printParsedResult(result string, ts time.Time, parsed any, kind pb.ParserKi
 			ParserKind:  parserKindLabel(kind),
 			ParseStatus: parseStatusLabel(status),
 		})
-	default: // pretty
+	default:
 		if parsed == nil || status != pb.ParseStatus_PARSE_STATUS_OK {
 			return printOpResult(result, ts)
 		}
@@ -173,7 +146,6 @@ func printParsedResult(result string, ts time.Time, parsed any, kind pb.ParserKi
 		case *pb.BGPPaths:
 			printBGPPathsPretty(p)
 		default:
-			// Unknown payload — fall back to raw.
 			return printOpResult(result, ts)
 		}
 		if !opts.Quiet {
@@ -218,8 +190,7 @@ func printPingPretty(s *pb.PingStats) {
 	w.Flush()
 }
 
-// printTraceroutePretty renders a [pb.TracerouteParsed] as a hop
-// table.
+// printTraceroutePretty renders a [pb.TracerouteParsed] as a hop table.
 func printTraceroutePretty(tp *pb.TracerouteParsed) {
 	if tp.GetTarget() != "" || tp.GetSource() != "" {
 		if tp.GetTarget() != "" {
@@ -256,8 +227,7 @@ func printTraceroutePretty(tp *pb.TracerouteParsed) {
 	w.Flush()
 }
 
-// printBGPSummaryPretty renders a [pb.BGPSummaryParsed] as a peer
-// table with state-coloured badges.
+// printBGPSummaryPretty renders a [pb.BGPSummaryParsed] as a peer table.
 func printBGPSummaryPretty(s *pb.BGPSummaryParsed) {
 	if s.GetLocalAsn() != 0 || s.GetRouterId() != "" {
 		if s.GetLocalAsn() != 0 {
@@ -296,10 +266,6 @@ func printBGPSummaryPretty(s *pb.BGPSummaryParsed) {
 }
 
 // printBGPPathsPretty renders a [pb.BGPPaths] as a paths table.
-// Columns: BEST glyph, PREFIX, NEXTHOP, MED, LOCAL_PREF, AS_PATH,
-// PEER, COMMUNITIES. MED and LOCAL_PREF render the canonical
-// "unset" character (—) when zero rather than the literal "0" so
-// the table doesn't lie about attributes a vendor may have omitted.
 func printBGPPathsPretty(paths *pb.BGPPaths) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, colorize("BEST\tPREFIX\tNEXTHOP\tMED\tLOCPREF\tAS_PATH\tPEER\tCOMMUNITIES", ansiBold))
@@ -343,9 +309,7 @@ func printBGPPathsPretty(paths *pb.BGPPaths) {
 	fmt.Fprintf(os.Stdout, "%d path(s)\n", len(paths.GetPaths()))
 }
 
-
-// fmtDuration renders a seconds count as a compact "1d02h" /
-// "2h05m" / "30m" / "45s" string.
+// fmtDuration renders a seconds count as a compact "1d02h"/"2h05m"/"30m"/"45s" string.
 func fmtDuration(sec uint64) string {
 	if sec == 0 {
 		return "—"
@@ -366,8 +330,7 @@ func fmtDuration(sec uint64) string {
 	}
 }
 
-// printJSON writes `v` as a JSON object to stdout (used by `instances`,
-// `routers`, `info` in --output json mode).
+// printJSON writes v as indented JSON to stdout.
 func printJSON(v any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")

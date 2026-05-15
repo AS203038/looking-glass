@@ -1,28 +1,4 @@
 <script lang="ts">
-	/**
-	 * Results sheet — anchored above the CommandDock, three-state model
-	 * (hidden / peek / expand) with resize-by-drag AND per-run auto-fit.
-	 *
-	 * Auto-fit policy (see `$lib/stores/sheet.ts` for the full spec):
-	 *   - Each `run()` bumps a `fitGeneration` counter. We watch it and,
-	 *     once the result cards have laid out (one rAF tick later), we
-	 *     measure the natural content height and decide:
-	 *       * if it fits *with generous headroom* above → grow exactly
-	 *         to content.
-	 *       * if it would leave only an awkward strip above (< 160 px)
-	 *         → snap to fullscreen instead.
-	 *   - The first time the user drags or arrow-keys the handle, we
-	 *     record their preference and stop auto-fitting (but still
-	 *     ensure new content fits — never shrink their window).
-	 *
-	 * Drag/click disambiguation:
-	 *   The handle is BOTH a click target (cycle state) and a drag
-	 *   handle (resize). Without care, releasing a real drag triggers a
-	 *   synthetic click that immediately undoes the drag. Solved with a
-	 *   `DRAG_THRESHOLD_PX` movement test: gestures below the threshold
-	 *   stay clicks; above it, we mark `wasDrag` and the click handler
-	 *   no-ops on release.
-	 */
 	import { onMount, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import {
@@ -51,9 +27,6 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import X from '@lucide/svelte/icons/x';
 
-	// Local mirrors of the stores. (`state` is reserved by Svelte's
-	// template compiler as the `$state` rune prefix; we use `sheetCurrent`
-	// instead.)
 	let sheetCurrent: SheetState = $state('hidden');
 	let heightPx = $state(0);
 	let dockPx = $state(0);
@@ -70,10 +43,6 @@
 	hasRun.subscribe((v) => (ran = v));
 	fitGeneration.subscribe((n) => (gen = n));
 
-	// Hard upper bound on the sheet's height — viewport minus header
-	// reserve minus the dock's current measured height. Re-evaluated
-	// whenever the dock changes size, the viewport resizes, or the
-	// orientation flips.
 	const maxHeightCss = $derived(
 		`calc(100dvh - ${HEADER_RESERVED_PX}px - ${Math.max(0, dockPx)}px)`
 	);
@@ -97,21 +66,7 @@
 		return c;
 	});
 
-	// ---- Auto-fit on each new run -----------------------------------------
-	// `gen` ticks for every Execute. We watch it and, on the next frame
-	// (when result cards have rendered their pending/running shells),
-	// measure their bounding-box and ask the store to apply the policy.
-	//
-	// We also schedule a *second* measurement after every result settles
-	// from `running` to `done`/`error`, because that's typically when the
-	// height changes most — the card grows from a spinner to a code block.
-	// We only do this while the user has *no preference* (the policy
-	// itself bails out otherwise), so it can never fight a manual resize.
 	let bodyEl: HTMLDivElement | null = $state(null);
-	// Tailwind responsive heights: 44 px on mobile (matches Apple HIG
-	// minimum touch target), 36 px from `sm:` upward where pointer
-	// devices are more common. The auto-fit logic uses the larger
-	// value as `chrome` so we never under-size the content area.
 	const HANDLE_PX = 44;
 
 	function autoFit() {
@@ -120,20 +75,14 @@
 		applyAutoHeight(measured, HANDLE_PX);
 	}
 
-	// Initial fit on every new run.
 	$effect(() => {
-		// Track gen so the effect re-runs on every Execute.
 		void gen;
 		if (!ran || sheetCurrent !== 'expand') return;
-		// rAF defers until the result-card shells are in layout.
 		requestAnimationFrame(() => {
 			tick().then(autoFit);
 		});
 	});
 
-	// Re-fit when status counts change (a result finished/errored and
-	// likely caused content to grow). Cheap when user has a preference —
-	// the store's policy no-ops in that case.
 	$effect(() => {
 		void counts.done;
 		void counts.error;
@@ -142,7 +91,6 @@
 		requestAnimationFrame(autoFit);
 	});
 
-	// ---- Drag/click logic --------------------------------------------------
 	const DRAG_THRESHOLD_PX = 4;
 	let dragging = $state(false);
 	let pointerActive = false;
@@ -159,7 +107,7 @@
 		try {
 			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		} catch {
-			/* pointer capture may be unavailable */
+			/* no-op */
 		}
 	}
 
@@ -175,11 +123,8 @@
 		}
 
 		const next = clampHeight(dragStartHeight + delta);
-		// Drag-resize is an explicit user preference: locks future
-		// auto-fits from clobbering it.
 		setHeightExplicit(next);
 
-		// Drag well below the floor → snap to peek.
 		if (dragStartHeight + delta < MIN_EXPAND_PX - 60) {
 			peekSheet();
 			endDrag(e);
@@ -193,7 +138,7 @@
 		try {
 			(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
 		} catch {
-			/* pointer already released */
+			/* no-op */
 		}
 	}
 
@@ -233,13 +178,6 @@
 </script>
 
 {#if sheetCurrent !== 'hidden' && ran}
-	<!--
-		The sheet is a flex child of the sticky bottom-bar wrapper in
-		`+layout.svelte`. It does NOT use `position: sticky` itself —
-		two sticky siblings on the same `bottom` anchor would overlap
-		(that's the very bug this layout fixes). The wrapper is sticky
-		for both children; the sheet just controls its own height.
-	-->
 	<aside
 		role="region"
 		aria-label="Results"
@@ -250,7 +188,6 @@
 		       max-height: {maxHeightCss};"
 		in:fly={{ y: 16, duration: 160 }}
 	>
-		<!-- ── Handle / summary bar ─────────────────────────────────────── -->
 		<div
 			role="button"
 			tabindex="0"
@@ -269,8 +206,6 @@
 				? 'Drag to resize. Click to collapse.'
 				: 'Click to expand results. Drag to resize.'}
 		>
-			<!-- Visible grab pill — wider/thicker on mobile so the affordance
-				 reads at a glance. -->
 			<span
 				class="pointer-events-none absolute top-1.5 left-1/2 h-1.5 w-12 -translate-x-1/2 rounded-full sm:top-1 sm:h-1 sm:w-10"
 				style="background-color: var(--color-overlay); opacity: 0.5;"
@@ -316,7 +251,6 @@
 			</button>
 		</div>
 
-		<!-- ── Body (only when expanded) ────────────────────────────────── -->
 		{#if sheetCurrent === 'expand'}
 			<div
 				id="lg-results-body"

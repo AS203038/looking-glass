@@ -6,7 +6,6 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
-// FRR `show bgp ipv4 unicast 1.1.1.0/24 json` shape (abbreviated).
 const frrBGPRouteSample = `{
   "vrfName": "default",
   "routerId": "10.0.0.1",
@@ -29,9 +28,6 @@ const frrBGPRouteSample = `{
   }
 }`
 
-// Two top-level objects concatenated, simulating an FRR template
-// that runs both `show bgp ipv4 ... json` and `show bgp ipv6 ...
-// json` in a single SSH session.
 const frrBGPRouteDual = frrBGPRouteSample + "\n" + `{
   "vrfName": "default",
   "routerId": "10.0.0.1",
@@ -79,8 +75,8 @@ const frrBGPSummarySample = `{
   }
 }`
 
-// TestJSONParserFRRRoute covers the single-object and AS-path
-// projection paths.
+// TestJSONParserFRRRoute verifies single-envelope decoding and the
+// AS-path projection.
 func TestJSONParserFRRRoute(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPRoute, []byte(frrBGPRouteSample),
 		Config{Schema: "frr_bgp_route_v1"})
@@ -116,9 +112,8 @@ func TestJSONParserFRRRoute(t *testing.T) {
 	}
 }
 
-// TestJSONParserFRRDualEnvelope verifies the brace-counting
-// envelope splitter handles the dual-AFI concatenation case used by
-// every two-command FRR BGP template.
+// TestJSONParserFRRDualEnvelope verifies splitting and decoding of
+// two concatenated top-level envelopes.
 func TestJSONParserFRRDualEnvelope(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPCommunity, []byte(frrBGPRouteDual),
 		Config{Schema: "frr_bgp_route_v1"})
@@ -140,9 +135,8 @@ func TestJSONParserFRRDualEnvelope(t *testing.T) {
 	}
 }
 
-// TestJSONParserFRRSummary verifies the summary envelope projects
-// each AFI's peers into one flat list with the address_family
-// label attached.
+// TestJSONParserFRRSummary verifies the wrapped multi-AFI summary
+// shape projects into a flat peer list with AFI labels attached.
 func TestJSONParserFRRSummary(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPSummary, []byte(frrBGPSummarySample),
 		Config{Schema: "frr_bgp_summary_v1"})
@@ -177,7 +171,8 @@ func TestJSONParserFRRSummary(t *testing.T) {
 	}
 }
 
-// TestJSONParserBadInput surfaces PARSE_FAILED on malformed JSON.
+// TestJSONParserBadInput verifies that malformed JSON returns
+// PARSE_FAILED.
 func TestJSONParserBadInput(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPRoute, []byte("not json at all"), Config{})
 	if r.Status != pb.ParseStatus_PARSE_STATUS_PARSE_FAILED {
@@ -185,9 +180,6 @@ func TestJSONParserBadInput(t *testing.T) {
 	}
 }
 
-// FRR's `show bgp <vrf> ipv4 unicast summary json` emits the
-// **direct** per-AFI form (no `ipv4Unicast` wrapper). This is what
-// the bundled FRR template actually runs, so it must parse cleanly.
 const frrBGPSummaryDirectV4 = `{
   "routerId": "10.0.0.1",
   "as": 65000,
@@ -220,11 +212,8 @@ const frrBGPSummaryDirectV6 = `{
   }
 }`
 
-// TestJSONParserFRRSummaryDirect verifies the parser accepts the
-// direct per-AFI shape (no `ipv4Unicast`/`ipv6Unicast` wrapper) and
-// that two such envelopes concatenated by the dual-AFI template
-// merge into one BGPSummaryParsed with AFI labels inferred from
-// the peer-address family.
+// TestJSONParserFRRSummaryDirect verifies decoding of the direct
+// per-AFI summary shape and merging of two concatenated envelopes.
 func TestJSONParserFRRSummaryDirect(t *testing.T) {
 	combined := frrBGPSummaryDirectV4 + "\n" + frrBGPSummaryDirectV6
 	r := JSONParser{}.Parse(OpBGPSummary, []byte(combined),
@@ -260,11 +249,6 @@ func TestJSONParserFRRSummaryDirect(t *testing.T) {
 	}
 }
 
-// FRR v9.x+ `show bgp ipv4 unicast 1.1.1.0/24 json` emits the
-// single-prefix detail shape with `aspath` as an object, the peer
-// id at the path level (`peerId`), and `lastUpdate.string` for the
-// age. None of these were captured by the original parser, so
-// real-router output looked structurally empty.
 const frrBGPRouteSinglePrefix = `{
   "prefix": "1.1.1.0/24",
   "paths": [
@@ -291,10 +275,8 @@ const frrBGPRouteSinglePrefix = `{
   ]
 }`
 
-// TestJSONParserFRRRouteSinglePrefix covers the v9.x+ single-prefix
-// detail shape: every field the previous parser silently dropped
-// (aspath as object, path-level peerId, lastUpdate.string for age,
-// `metric` instead of `med`) must now project onto the wire schema.
+// TestJSONParserFRRRouteSinglePrefix verifies decoding of the
+// FRR v9.x+ single-prefix detail shape.
 func TestJSONParserFRRRouteSinglePrefix(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPRoute, []byte(frrBGPRouteSinglePrefix),
 		Config{Schema: "frr_bgp_route_v1"})
@@ -324,9 +306,6 @@ func TestJSONParserFRRRouteSinglePrefix(t *testing.T) {
 	}
 }
 
-// FRR v9.x+ multi-prefix `routes` envelope where the aspath is an
-// object — checks that the same path projector handles both
-// envelope shapes against the v9.x aspath form.
 const frrBGPRouteV9MultiPrefix = `{
   "vrfName": "default",
   "routerId": "10.0.0.1",
@@ -347,19 +326,6 @@ const frrBGPRouteV9MultiPrefix = `{
   }
 }`
 
-// frrBGPCommunityRealSample is a real-router fragment captured
-// against the AS203038 demo's `show bgp ... community ... json`.
-// It exercises three shapes the original parser couldn't handle
-// and that fixed-up PR5c+d code path now supports:
-//
-//  1. `"bestpath": true` — bare-bool form (older parser expected
-//     `{"overall": true}` and got json.UnmarshalTypeError, which
-//     torpedoed the whole envelope decode → PARSE_FAILED).
-//  2. `"path": "13335"` — AS-path under the `path` key (older
-//     parser only checked `aspath`).
-//  3. Full routes-map envelope with `vrfId`/`vrfName`/`defaultLocPrf`/
-//     `localAS` sibling keys — must pass through cleanly without
-//     making the parser fall back to the single-prefix shape.
 const frrBGPCommunityRealSample = `{
   "vrfId": 12,
   "vrfName": "IBGP",
@@ -400,13 +366,8 @@ const frrBGPCommunityRealSample = `{
   }
 }`
 
-// TestJSONParserFRRCommunityRealSample is a regression test for the
-// dual issue reported when FRR community/largecommunity/aspath
-// queries returned raw JSON unparsed:
-//   - bare-bool `bestpath`
-//   - `path` key instead of `aspath`
-// The parser must produce a valid BGPPaths with best=true and a
-// populated as_path slice.
+// TestJSONParserFRRCommunityRealSample verifies decoding of an FRR
+// envelope using bare-bool `bestpath` and the `path` AS-path key.
 func TestJSONParserFRRCommunityRealSample(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPCommunity, []byte(frrBGPCommunityRealSample),
 		Config{Schema: "frr_bgp_route_v1"})
@@ -459,18 +420,6 @@ func TestJSONParserFRRRouteV9ASPathObject(t *testing.T) {
 	}
 }
 
-// FRR `show bgp ... community 65000:42 json` against a router that
-// holds *no* prefixes tagged with that community. Both v4 and v6
-// commands ran successfully; the envelope decoded cleanly; the
-// `routes` map is just empty. This is the verbatim output the
-// operator pasted in the bug report.
-//
-// Before the empty-result fix, `parseFRRBGPPaths` flipped this to
-// PARSE_STATUS_PARSE_FAILED via the trailing `len(paths)==0 →
-// Failed` guard — the WebUI/CLI then fell back to raw bytes for
-// every zero-match lookup. This regression test pins the corrected
-// semantics: zero-result is a successful parse with an empty
-// payload.
 const frrBGPEmptyResultsDual = `{
  "vrfId": 12,
  "vrfName": "IBGP",
@@ -490,11 +439,8 @@ const frrBGPEmptyResultsDual = `{
  "routes": {  }  } 
 `
 
-// TestJSONParserFRREmptyResultsEnvelope locks in the bug fix for
-// no-match FRR BGP lookups (community / large-community / aspath
-// / route). Both chunks decode structurally — `Routes` is non-nil
-// even when empty — so `decodedAny` flips true and the projector
-// returns PARSE_STATUS_OK with an empty `paths` slice.
+// TestJSONParserFRREmptyResultsEnvelope verifies that an envelope
+// with an empty `routes` map returns OK with no paths.
 func TestJSONParserFRREmptyResultsEnvelope(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPCommunity, []byte(frrBGPEmptyResultsDual),
 		Config{Schema: "frr_bgp_route_v1"})
@@ -514,11 +460,6 @@ func TestJSONParserFRREmptyResultsEnvelope(t *testing.T) {
 	}
 }
 
-// FRR summary direct-AFI form with `peers: {}`. A freshly-built
-// VRF with no peers configured yet — or a VRF whose peers haven't
-// been added to the AFI in question — produces this shape.
-// Before the fix, the trailing `len(out.Peers)==0 → Failed` guard
-// in `parseFRRBGPSummary` flipped this to PARSE_FAILED.
 const frrBGPSummaryEmptyPeersV4 = `{
   "routerId": "10.0.0.1",
   "as": 65000,
@@ -527,9 +468,8 @@ const frrBGPSummaryEmptyPeersV4 = `{
   "peers": { }
 }`
 
-// TestJSONParserFRRSummaryEmptyPeers pins the empty-peer-map
-// semantics: PARSE_STATUS_OK with an empty `peers` slice. Router
-// identifier + local-AS still propagate from the envelope header.
+// TestJSONParserFRRSummaryEmptyPeers verifies that a summary
+// envelope with an empty `peers` map returns OK with no peer rows.
 func TestJSONParserFRRSummaryEmptyPeers(t *testing.T) {
 	r := JSONParser{}.Parse(OpBGPSummary, []byte(frrBGPSummaryEmptyPeersV4),
 		Config{Schema: "frr_bgp_summary_v1"})
@@ -554,4 +494,3 @@ func TestJSONParserFRRSummaryEmptyPeers(t *testing.T) {
 		t.Errorf("RouterId = %q, want 10.0.0.1", summary.RouterId)
 	}
 }
-

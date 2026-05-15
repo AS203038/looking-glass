@@ -6,10 +6,8 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
-// TestRawParser verifies that the no-op parser always reports
-// DISABLED with no payload, regardless of operation or input. This
-// is the contract every gRPC handler relies on for the "no
-// behaviour change" guarantee of the schema-only PR.
+// TestRawParser verifies that [RawParser] always reports DISABLED
+// with no payload, regardless of operation or input.
 func TestRawParser(t *testing.T) {
 	var p Parser = RawParser{}
 	if p.Name() != "raw" {
@@ -42,8 +40,8 @@ func TestRawParser(t *testing.T) {
 	}
 }
 
-// TestResultHelpers verifies the canonical Result constructors emit
-// the exact Kind/Status pairs the gRPC layer projects onto the wire.
+// TestResultHelpers verifies the Kind/Status pairs returned by
+// [Disabled], [Missing], [Failed], and [OK].
 func TestResultHelpers(t *testing.T) {
 	if r := Disabled(); r.Kind != pb.ParserKind_PARSER_KIND_UNSPECIFIED ||
 		r.Status != pb.ParseStatus_PARSE_STATUS_DISABLED || r.Payload != nil {

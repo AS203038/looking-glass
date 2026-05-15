@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// routerView is the JSON shape we emit for `routers` and `info` (one per row).
+// routerView is the JSON shape emitted for `routers` and `info`.
 type routerView struct {
 	ID        int64  `json:"id"`
 	Name      string `json:"name"`
@@ -18,11 +18,7 @@ type routerView struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// newRoutersCmd builds the `routers <instance>` subcommand, which
-// pages through the instance's GetRouters RPC and renders the full
-// catalogue with the latest health badge per device. The ID column
-// is the value to pass as `<router>` to ping/traceroute/bgp
-// commands when you want to skip the substring-resolution step.
+// newRoutersCmd builds the `routers <instance>` subcommand.
 func newRoutersCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "routers <instance>",
@@ -64,7 +60,7 @@ func newRoutersCmd() *cobra.Command {
 					fmt.Printf("%d\t%s\n", rt.GetId(), rt.GetName())
 				}
 				return nil
-			default: // pretty
+			default:
 				tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 				fmt.Fprintln(tw, colorize("ID\tNAME\tLOCATION\tHEALTH\tLAST CHECK", ansiBold))
 				for _, rt := range routers {

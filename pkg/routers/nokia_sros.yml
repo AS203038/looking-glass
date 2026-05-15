@@ -1,32 +1,3 @@
-# ---------------------------------------------------------------------------
-# Vendor template: Nokia Service Router Operating System (SR OS / TiMOS)
-# ---------------------------------------------------------------------------
-# Target platform : Nokia (formerly Alcatel-Lucent) 7750 SR, 7950 XRS and
-#                   similar platforms running SR OS / TiMOS, classic CLI.
-# Login surface   : ssh into the SR OS classic CLI. Commands are issued from
-#                   exec-level prompts; the configured VRF is passed via the
-#                   `router <name>` qualifier so the same template covers the
-#                   base router and any service VPRN. The SSH user should be
-#                   bound to a bespoke `profile` with `default-action
-#                   deny-all` plus explicit permit entries for `show
-#                   router`, `ping`, and `traceroute` — see
-#                   docs/router-hardening.md (Nokia SR OS section).
-# Notable choices :
-#   - `show router … bgp routes <ip>` auto-detects address family from the
-#     operand, so `bgp.route` is a single command rather than one per family.
-#   - Large communities are queried via the `large:<value>` shorthand inside
-#     the existing `community` keyword — SR OS does not have a distinct
-#     `large-community` selector in the classic CLI.
-#   - `aspath-regex` requires double-quotes around the regex to survive the
-#     CLI tokeniser, mirroring JunOS.
-#   - `bgp.summary` uses the classic `show router … bgp summary` table; the
-#     command is family-agnostic at the wire level — SR OS reports per-AFI
-#     peer rows in the same table.
-#   - Parsers: every operation uses TEXTFSM on plain CLI output. SR OS's
-#     CLI is text-only on the classic shell; the MD-CLI variant does
-#     support `| as-json`, but coverage is uneven across feature releases
-#     and most LG operators deploy against the classic prompt.
-# ---------------------------------------------------------------------------
 name: nokia_sros
 
 ping:

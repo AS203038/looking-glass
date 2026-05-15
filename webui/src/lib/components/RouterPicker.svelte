@@ -1,39 +1,4 @@
 <script lang="ts">
-	/**
-	 * Router selection UI.
-	 *
-	 * Two scaling problems this design solves:
-	 *
-	 *   1. Many routers per location — collapsible location sections, one
-	 *      render path that scales from 1 to 100s of routers, with inline
-	 *      health badges and last-check timestamps for unhealthy routers
-	 *      (visible to all pointer types — old version was hover-popup
-	 *      only, broken on touch).
-	 *
-	 *   2. Many locations — three additive affordances:
-	 *      a) **Sticky group headers** so the user always sees which
-	 *         location they're scrolling through. They glue to the top of
-	 *         the viewport (just under the page header) instead of
-	 *         disappearing upward with the list.
-	 *      b) **Per-group bulk actions** ("Select all" / "Clear") in each
-	 *         header — operators who want "all of Frankfurt" can do it in
-	 *         one click instead of N.
-	 *      c) **Quick-Nav rail** (desktop only, when location count > 8)
-	 *         — an iOS-Contacts-style alphabetical jump rail. Each rail
-	 *         button scrolls its location into view; current section is
-	 *         highlighted via IntersectionObserver.
-	 *
-	 * Selection chip strip and selection counter live in `<CommandDock>`;
-	 * results live in `<ResultsSheet>` anchored above the dock. The picker
-	 * stays focused on a single responsibility: choosing routers.
-	 *
-	 * NB: we deliberately do NOT use `overflow-hidden` on group cards;
-	 * any `overflow != visible` ancestor establishes a scroll context and
-	 * silently disables `position: sticky` inside it, which is what broke
-	 * the sticky group headers in an earlier iteration. To still mask the
-	 * header background to the card's rounded corners, the header itself
-	 * carries `rounded-t-xl`.
-	 */
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import {
@@ -64,8 +29,6 @@
 	let query = $state('');
 	let collapsedLocations: Set<string> = $state(new Set());
 	let activeLocation = $state<string | null>(null);
-	// Subscribe to the ticking `$now` store so every relative-timestamp
-	// in the template auto-refreshes every 30 s without per-card setInterval.
 	let nowDate = $state(new Date());
 
 	routers.subscribe((r) => (allRouters = r));
@@ -75,7 +38,6 @@
 
 	onMount(loadRouters);
 
-	// Group routers by location, applying the search filter once at the top.
 	const filtered = $derived.by(() => {
 		const q = query.trim().toLowerCase();
 		if (!q) return allRouters;
@@ -92,12 +54,9 @@
 			if (!groups.has(loc)) groups.set(loc, []);
 			groups.get(loc)!.push(r);
 		}
-		// Preserve insertion order; locations appear in the order first seen.
 		return Array.from(groups.entries());
 	});
 
-	// Quick-Nav rail only earns its keep on desktop with many locations.
-	// We expose it from `>= 8` distinct (unfiltered) locations.
 	const totalLocationCount = $derived.by(() => {
 		const seen = new Set<string>();
 		for (const r of allRouters) seen.add(r.location || 'Other');
@@ -113,20 +72,15 @@
 	}
 
 	function isExpanded(loc: string): boolean {
-		// Auto-expand if there's only one location, or it's been explicitly toggled open.
 		if (grouped.length === 1) return true;
 		return !collapsedLocations.has(loc);
 	}
 
 	function selectAllInGroup(group: Pb.Router[]) {
-		// Only healthy routers can run queries, so don't lie to the user by
-		// including unhealthy ones in the "Select all" expectation.
 		selectMany(group.filter((r) => r.health?.healthy === true).map((r) => r.id));
 	}
 
 	function clearGroup(group: Pb.Router[]) {
-		// Inverse of selectAllInGroup — remove only this group's routers from
-		// the selection, leaving other locations' selections intact.
 		const groupIds = new Set(group.map((r) => r.id));
 		for (const id of groupIds) {
 			if (ids.has(id)) toggleSelection(id);
@@ -143,7 +97,6 @@
 	}
 
 	function locationAnchorId(loc: string): string {
-		// Stable slug for IntersectionObserver targets and Quick-Nav links.
 		return `lg-loc-${loc.replace(/[^a-zA-Z0-9_-]+/g, '_')}`;
 	}
 
@@ -152,7 +105,6 @@
 		if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	}
 
-	// Track which location is currently visible to highlight the Quick-Nav.
 	let observer: IntersectionObserver | null = null;
 	$effect(() => {
 		if (typeof window === 'undefined') return;
@@ -219,9 +171,6 @@
 			<span class="text-sm">Failed to load routers — see the toast for details.</span>
 		</div>
 	{:else}
-		<!-- Sticky search bar — pinned just under the page header. Uses
-			 the layout-defined header height var so future header changes
-			 don't desync this offset. -->
 		<div
 			class="sticky z-10 flex items-center backdrop-blur-md"
 			style="top: var(--lg-header-h);
@@ -249,21 +198,12 @@
 			</p>
 		{:else}
 			<div class="flex gap-3">
-				<!-- Main scrollable column.
-					 NOTE: NO `overflow-hidden` on the group cards — any
-					 overflow != visible silently disables `position: sticky`
-					 on descendants. -->
 				<div class="flex min-w-0 flex-1 flex-col gap-3">
 					{#each grouped as [location, routerGroup] (location)}
 						{@const expanded = isExpanded(location)}
 						{@const selState = groupSelectionState(routerGroup)}
 						{@const anchorId = locationAnchorId(location)}
 						<div class="lg-card" id={anchorId}>
-							<!-- Sticky location header — lands just under the sticky
-								 search row (header + search). The header carries its
-								 own `rounded-t-xl` so it visually clips to the card's
-								 rounded top corners without needing `overflow-hidden`
-								 on the parent (which would break sticky). -->
 							<div
 								class="sticky z-[5] flex items-center gap-2 rounded-t-xl border-b px-4 py-2.5 backdrop-blur-md"
 								style="top: calc(var(--lg-header-h) + var(--lg-picker-search-h));
@@ -392,7 +332,6 @@
 					{/each}
 				</div>
 
-				<!-- Quick-Nav rail (desktop only, ≥ 8 locations). -->
 				{#if showQuickNav}
 					<nav
 						class="sticky hidden h-max max-h-[calc(100vh-14rem)] w-32 shrink-0 flex-col gap-0.5 overflow-y-auto rounded-lg border p-2 lg:flex"

@@ -1,15 +1,3 @@
-# TextFSM template: Arista EOS `traceroute`.
-#
-# EOS shells out to the Linux userland `traceroute`, so the output
-# is iputils-shaped. The FRR template for `traceroute` would also
-# match this file — we keep them separate so vendor-specific
-# decorations (probe markers, MTU annotations) can diverge later.
-#
-# Sample output:
-#   traceroute to 1.1.1.1 (1.1.1.1) from 10.0.0.1, 30 hops max, 60 byte packets
-#    1  gw.example.com (10.0.0.254)  0.234 ms
-#    2  *
-#    3  one.one.one.one (1.1.1.1)  10.123 ms
 Value Filldown target (\S+)
 Value Filldown source (\S+)
 Value Required ttl (\d+)

@@ -1,27 +1,4 @@
 <script lang="ts">
-	/**
-	 * Single-router result card.
-	 *
-	 * Rendering policy:
-	 *   1. If the server returned a structured payload (`result.parsed`
-	 *      set with parse_status == OK), default to the matching
-	 *      `*View.svelte` component.
-	 *   2. A "Raw" toggle in the toolbar swaps into the verbatim
-	 *      output viewer (windowed line list, inline filter, copy,
-	 *      download). This path is the only path when no parser ran
-	 *      or when parsing failed.
-	 *   3. A parser-provenance chip in the toolbar lets operators see
-	 *      which pipe produced the structured view ("textfsm",
-	 *      "native_json", "builtin"), useful when debugging vendor
-	 *      output drift.
-	 *
-	 * Why a per-card toggle and not a global preference:
-	 *   Different ops want different defaults. Ping wants the stat
-	 *   strip 100% of the time. `bgp.route` for an unfamiliar prefix
-	 *   sometimes wants raw to copy/paste full attribute strings into
-	 *   a ticket. Per-card persistence would be overkill; a quick
-	 *   toggle is enough.
-	 */
 	import { fade } from 'svelte/transition';
 	import type { ExecResult } from '$lib/stores/query';
 	import Loader from './Loader.svelte';
@@ -49,21 +26,11 @@
 	let search = $state('');
 	let windowLimit = $state(500);
 	const WINDOW_STEP = 500;
-	// Live-ticking reference for relative-time rendering.
 	let nowDate = $state(new Date());
 	now.subscribe((d) => (nowDate = d));
 
-	// "structured" when the server gave us a parsed payload; the user
-	// can flip to "raw" to inspect the verbatim bytes.
 	let viewMode = $state<'structured' | 'raw'>('structured');
 	const canStructured = $derived(result.parsed != null);
-	// Reset to structured whenever the result mutates (e.g. a fresh
-	// run replaces the previous one).
-	$effect(() => {
-		if (result.parsed != null && viewMode === 'raw') {
-			// keep the user's manual choice within the same result
-		}
-	});
 
 	const lines = $derived.by(() => {
 		if (!result.bytes) return [] as string[];
@@ -80,8 +47,6 @@
 	const visibleLines = $derived(filteredLines.slice(0, windowLimit));
 	const hasMore = $derived(filteredLines.length > windowLimit);
 
-	// Map ParserKind enum (numeric in TS) to a label. Avoid importing
-	// the enum-as-value to keep this file's TS surface light.
 	const parserLabel = $derived.by(() => {
 		switch (result.parserKind) {
 			case 1:
@@ -121,7 +86,6 @@
 </script>
 
 <article class="lg-card flex flex-col overflow-hidden" in:fade={{ duration: 150 }}>
-	<!-- Header -->
 	<header
 		class="flex flex-wrap items-center gap-2 border-b px-4 py-3"
 		style="border-color: var(--color-border);"
@@ -136,7 +100,6 @@
 			{/if}
 		</div>
 
-		<!-- Status -->
 		{#if result.status === 'pending' || result.status === 'running'}
 			<span class="lg-badge">
 				{result.status === 'pending' ? 'queued' : 'running…'}
@@ -166,7 +129,6 @@
 		{/if}
 	</header>
 
-	<!-- Body -->
 	{#if result.status === 'pending' || result.status === 'running'}
 		<div class="flex justify-center p-8"><Loader label={result.status} size="sm" /></div>
 	{:else if result.status === 'error'}
@@ -178,7 +140,6 @@
 			<span class="font-mono break-words whitespace-pre-wrap">{result.error}</span>
 		</div>
 	{:else}
-		<!-- Toolbar: view toggle + parser provenance + filter (raw only) + copy/download -->
 		<div
 			class="flex flex-wrap items-center gap-2 border-b px-3 py-2"
 			style="border-color: var(--color-border);"
@@ -269,7 +230,6 @@
 			</button>
 		</div>
 
-		<!-- Output -->
 		{#if canStructured && viewMode === 'structured' && result.parsed}
 			{#if result.parsed.kind === 'ping'}
 				<PingView stats={result.parsed.data} />

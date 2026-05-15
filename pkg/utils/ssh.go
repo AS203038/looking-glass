@@ -9,12 +9,11 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// sshLogPrefix is prepended to every SSH-related server-side log line
-// so operators can easily grep for SSH issues.
+// sshLogPrefix is prepended to every SSH-related server-side log line.
 const sshLogPrefix = "SSH"
 
-// routerTag returns a short identifier for a router suitable for log lines.
-// It avoids leaking credentials and keeps the line compact.
+// routerTag returns a short, credential-free identifier for a router
+// suitable for log lines.
 func routerTag(router *RouterConfig) string {
 	if router == nil {
 		return "router=<nil>"
@@ -23,36 +22,11 @@ func routerTag(router *RouterConfig) string {
 }
 
 // SSHExec opens an SSH connection to the configured router and runs each
-// command sequentially, returning a slice of stdout strings (one per
-// command) in the same order.
-//
-// Supported authentication methods (offered to the server in this order;
-// the server picks whichever matches its policy):
-//
-//   - publickey       — offered when [RouterConfig.SSHKey] is set.
-//   - password        — offered when [RouterConfig.Password] is set.
-//   - keyboard-interactive — offered when [RouterConfig.Password] is set;
-//     every prompt the server issues is answered with the configured
-//     password. This matches the OpenSSH client default and is required
-//     by routers/PAM stacks that advertise only `keyboard-interactive`
-//     (notably JunOS in some configurations, MikroTik, and Linux hosts
-//     with `ChallengeResponseAuthentication yes` / `PasswordAuthentication
-//     no`). Multi-prompt MFA flows (e.g. TACACS+ OTP) cannot be satisfied
-//     by a static secret; those deployments should use publickey auth.
-//
-// Error-handling philosophy:
-//
-//   - Callers (and ultimately RPC clients) only ever see the coarse
-//     sentinel errors defined in pkg/errs (AuthFailed, ConnectionFailed,
-//     ExecFailed). This prevents information disclosure (hostnames,
-//     credentials, internal command text) to external users.
-//
-//   - The server operator, however, needs the full picture to diagnose
-//     issues. Every failure path therefore logs a detailed line via the
-//     standard logger (writes to stderr / stdout depending on log
-//     configuration) that includes the router identity, the specific
-//     stage that failed, the underlying Go error, and — crucially —
-//     any stderr captured from the remote session.
+// command sequentially, returning the per-command stdout strings in order.
+// Authentication methods offered: publickey (when SSHKey is set), password
+// and keyboard-interactive (both when Password is set). Failures are
+// returned as the coarse [errs] sentinels; detailed diagnostics are written
+// to the server log.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	auths := []ssh.AuthMethod{}
 	if router.SSHKey != "" {
@@ -73,12 +47,6 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	if router.Password != "" {
 		auths = append(auths,
 			ssh.Password(router.Password),
-			// keyboard-interactive: mirror every prompt with the
-			// configured password. The server controls prompt text
-			// ("Password:", "Verification code:", …); for the common
-			// single-prompt case this is exactly the password flow,
-			// and for multi-prompt flows there is no better static
-			// answer the LG can give.
 			ssh.KeyboardInteractive(func(user, instruction string, questions []string, echos []bool) ([]string, error) {
 				answers := make([]string, len(questions))
 				for i := range questions {
@@ -109,8 +77,6 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 				sshLogPrefix, routerTag(router), i, c, err)
 			return nil, errs.ExecFailed
 		}
-		// Capture stderr separately so we can surface it in the server
-		// log when a command exits non-zero or the session blows up.
 		var stderr bytes.Buffer
 		session.Stderr = &stderr
 		output, err := session.Output(c)
@@ -128,8 +94,7 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 }
 
 // truncate shortens s to at most n bytes, appending an ellipsis marker
-// if truncation occurred. Used to keep log lines bounded for noisy
-// router stderr output.
+// when truncation occurs.
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s

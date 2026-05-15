@@ -1,35 +1,3 @@
-# ---------------------------------------------------------------------------
-# Vendor template: MikroTik RouterOS
-# ---------------------------------------------------------------------------
-# Target platform : MikroTik RouterOS 7.x (the syntax differs significantly
-#                   from RouterOS 6.x; 6.x is not covered by this template).
-# Login surface   : ssh into the RouterOS console. Commands are issued in the
-#                   form RouterOS expects from a non-interactive shell, with
-#                   absolute paths (leading `/`) so they work regardless of
-#                   the menu the user lands in. The SSH user should be
-#                   placed in a bespoke `/user group` carrying only the
-#                   `ssh,read,test` policies (with everything else negated
-#                   via `!policy`). The `test` policy in particular is
-#                   required for `/ping` and `/tool traceroute`. See
-#                   docs/router-hardening.md (MikroTik RouterOS section).
-# Notable choices :
-#   - RouterOS's `/ping` and `/tool traceroute` infer the address family from
-#     the destination, so we don't need separate v4/v6 commands; we still
-#     split them so the source address (`src-address=…`) is family-correct.
-#   - RouterOS 7.x renamed the BGP peering object to `/routing/bgp/session`
-#     and the per-session "established" / "idle" state lives in the session
-#     print output. Pre-7.13 builds still have `/routing/bgp/peer/print`;
-#     operators on those builds should override this template via ROUTER_DIR.
-#   - `count=5` is bounded so the response shape is predictable for the
-#     ping TextFSM template's summary line.
-#   - `/tool traceroute` runs until the user interrupts; we constrain it
-#     with `count=1 duration=10s` so the LG run is bounded.
-#   - All BGP route queries use `/routing bgp advertisements print detail
-#     where …` with a regex filter (`~"…"`). A single command per operation
-#     suffices — `print` walks every advertisement and filters server-side.
-#   - Parsers: every operation uses TEXTFSM on plain CLI output. RouterOS
-#     does not expose a JSON pipeline on the SSH console.
-# ---------------------------------------------------------------------------
 name: mikrotik_routeros
 
 ping:

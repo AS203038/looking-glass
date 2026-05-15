@@ -1,33 +1,3 @@
-# ---------------------------------------------------------------------------
-# Vendor template: Cisco IOS / IOS-XE
-# ---------------------------------------------------------------------------
-# Target platform : classic Cisco IOS and IOS-XE (CSR1000v, ASR1000, ISR4000
-#                   and similar). NX-OS uses a different CLI grammar and is
-#                   not covered by this template.
-# Login surface   : exec-level CLI reached over SSH. All commands are issued
-#                   from the top-level prompt; no `terminal length 0` is
-#                   negotiated because every command emits bounded output.
-#                   The SSH user must be able to run `ping`, `traceroute`,
-#                   and `show bgp …` without typing `enable` — i.e., the
-#                   user must land in privileged EXEC (priv-15) at login, or
-#                   the LG-relevant commands must be remapped to a lower
-#                   privilege level via `privilege exec level N …`. A
-#                   bespoke `parser view LG-READONLY` is the recommended
-#                   scope — see docs/router-hardening.md (Cisco IOS section).
-# Notable choices :
-#   - `bgp.route` interpolates `{{.IP.Family}}` directly: IOS-XE expects the
-#     literal "ipv4" / "ipv6" keyword in this slot.
-#   - ping/traceroute use the `ipv6` keyword for v6 (no keyword for v4); the
-#     two cases are split into family-specific entries so we avoid Go-template
-#     conditionals in the command body.
-#   - community/large-community/aspath queries fan out to both address
-#     families because the operand carries no family hint.
-#   - Parsers: every operation uses TEXTFSM on plain CLI output. IOS-XE does
-#     expose `| json` on some platforms but coverage is uneven across train
-#     releases and the JSON pipeline is significantly more expensive than the
-#     plain text pipeline on the same RP. Router CPU is the bottleneck;
-#     Looking Glass CPU is free.
-# ---------------------------------------------------------------------------
 name: cisco_ios
 
 ping:

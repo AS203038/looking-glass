@@ -1,30 +1,7 @@
-# TextFSM template: MikroTik RouterOS 7.x `/tool traceroute`.
-#
-# RouterOS emits a continuously-updated tabular view (the `count=1
-# duration=10s` in the YAML template caps it at one full pass). Each
-# hop is one row:
-#
-#  # ADDRESS                                    LOSS SENT    LAST     AVG    BEST   WORST STD-DEV STATUS
-#  1 10.0.0.254                                   0%    1   0.2ms   0.2ms   0.2ms   0.2ms       0
-#  2 192.0.2.1                                    0%    1   1.1ms   1.1ms   1.1ms   1.1ms       0
-#  3 (timeout)                                  100%    1                                       0
-#  4 1.1.1.1                                      0%    1   8.0ms   8.0ms   8.0ms   8.0ms       0
-#
-# RouterOS reports a single AVG figure per hop (not three probes
-# per hop like JunOS / SR OS / IOS-XE). We map it onto the single-
-# probe convention (`ip`/`rtt_ms`); the projector emits one probe
-# per hop. A `(timeout)` placeholder in the ADDRESS column means a
-# fully-lost hop — captured as an empty probe (no IP, RTT=0).
-#
-# The `(timeout)` line carries no IP; we still Record so the hop
-# is visible in the rendered output (the projector will produce
-# one synthetic empty probe when both ip and rtt_ms are blank).
 Value Required ttl (\d+)
 Value ip ([0-9a-fA-F:.]+)
 Value rtt_ms (\d+(?:\.\d+)?)
 
 Start
-  # Resolved hop with RTT data.
   ^\s*${ttl}\s+${ip}\s+\d+%\s+\d+\s+\S+\s+${rtt_ms}ms -> Record
-  # Timed-out hop (the IP column literally reads "(timeout)").
   ^\s*${ttl}\s+\(timeout\)\s+\d+% -> Record

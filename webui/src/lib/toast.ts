@@ -1,12 +1,3 @@
-/**
- * Lightweight toast store. No external dep.
- *
- * Consumers:
- *   - `<Toasts />` renders the visible stack
- *   - `pushToast({ kind, title, message })` adds one
- *   - Each toast auto-dismisses after `ttl` ms (default 6 s)
- */
-
 import { writable } from 'svelte/store';
 
 export type ToastKind = 'error' | 'warning' | 'info' | 'success';
@@ -20,8 +11,10 @@ export interface Toast {
 }
 
 let nextId = 1;
+/** Reactive store of currently-visible toasts. */
 export const toasts = writable<Toast[]>([]);
 
+/** Adds a toast and schedules its auto-dismissal; returns the new toast id. */
 export function pushToast(t: Omit<Toast, 'id' | 'ttl'> & { ttl?: number }): number {
 	const id = nextId++;
 	const ttl = t.ttl ?? 6000;
@@ -33,6 +26,7 @@ export function pushToast(t: Omit<Toast, 'id' | 'ttl'> & { ttl?: number }): numb
 	return id;
 }
 
+/** Removes the toast with the given id. */
 export function dismissToast(id: number) {
 	toasts.update((list) => list.filter((t) => t.id !== id));
 }

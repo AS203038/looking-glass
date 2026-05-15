@@ -16,8 +16,7 @@ type LookingGlassIndex struct {
 	LookingGlasses []LookingGlass `yaml:"index"`
 }
 
-// LookingGlass is one entry in the public index. Name and ASN are matched
-// case-insensitively when resolving an instance argument.
+// LookingGlass is one entry in the public index.
 type LookingGlass struct {
 	ASN  string `yaml:"asn"  json:"asn"`
 	Name string `yaml:"name" json:"name"`
@@ -25,14 +24,12 @@ type LookingGlass struct {
 }
 
 // fetchIndex GETs the public index URL configured by --index / LG_INDEX_URL.
-// The HTTP request honours `ctx`.
 func fetchIndex(ctx context.Context) (*LookingGlassIndex, error) {
 	verbosef("fetching index from %s", opts.IndexURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, opts.IndexURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build index request: %w", err)
 	}
-	// The default client has no timeout; we rely on ctx instead.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch index: %w", err)
@@ -49,24 +46,17 @@ func fetchIndex(ctx context.Context) (*LookingGlassIndex, error) {
 }
 
 // resolveInstance turns a user-supplied instance string into a LookingGlass.
-//
-// Accepts: full URL, public-index name, or ASN (with/without "AS" prefix).
-// For URLs we synthesise a LookingGlass entry without contacting the index,
-// keeping local/private instances usable without a public registration.
+// Accepts a full URL, public-index name, or ASN (with/without "AS" prefix).
 func resolveInstance(ctx context.Context, arg string) (*LookingGlass, error) {
 	arg = strings.TrimSpace(arg)
 	if arg == "" {
 		return nil, fmt.Errorf("instance argument is required")
 	}
 
-	// URL? (has scheme://)
 	if u, err := url.Parse(arg); err == nil && u.Scheme != "" && u.Host != "" {
 		return &LookingGlass{Name: arg, URL: arg}, nil
 	}
 
-	// Fall back to index lookup. Use a tight timeout for the index fetch
-	// regardless of the global --timeout: we don't want a slow GitHub fetch
-	// to eat into the actual RPC budget.
 	idxCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	idx, err := fetchIndex(idxCtx)

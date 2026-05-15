@@ -1,12 +1,4 @@
 <script lang="ts">
-	/**
-	 * Structured traceroute view.
-	 *
-	 * Renders the parsed [Pb.TracerouteParsed] as a hop table. Each
-	 * row shows TTL, the responding IP + reverse-DNS hostname, and a
-	 * compact list of probe RTTs. Empty probes (timeout) are
-	 * rendered as a dim "*".
-	 */
 	import type { Pb } from '$lib/grpc';
 
 	interface Props {

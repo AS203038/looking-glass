@@ -12,9 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// globalOpts holds flags that apply to every subcommand. They are wired up on
-// the root command's PersistentFlags and read by leaf commands via the package
-// variable so we don't have to thread them through every constructor.
+// globalOpts holds flags that apply to every subcommand.
 type globalOpts struct {
 	IndexURL string
 	Output   string // pretty | json | raw
@@ -61,7 +59,6 @@ Router argument accepts:
 `),
 		SilenceUsage:  true,
 		SilenceErrors: false,
-		// Validate global flag combinations once, before any subcommand runs.
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			switch opts.Output {
 			case "pretty", "json", "raw":
@@ -75,8 +72,6 @@ Router argument accepts:
 		},
 	}
 
-	// Persistent flags + env-var fallbacks. Cobra evaluates defaults at
-	// command-build time, so we resolve env vars here.
 	root.PersistentFlags().StringVar(&opts.IndexURL, "index",
 		envOr("LG_INDEX_URL", defaultIndexURL),
 		"URL of the public Looking Glass index (env: LG_INDEX_URL)")
@@ -118,15 +113,11 @@ func parseDurationOr(s string, def time.Duration) time.Duration {
 	return d
 }
 
-// cmdContext returns a context that:
-//   - has the global --timeout deadline applied
-//   - is cancelled on SIGINT / SIGTERM so connections close promptly
-//
-// The returned cancel MUST be called by the caller (defer cancel()).
+// cmdContext returns a context honouring --timeout and SIGINT/SIGTERM.
+// The caller must defer the returned cancel.
 func cmdContext() (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
 	sigCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	// Wrap both cancels into one so the caller only needs to defer one.
 	return sigCtx, func() {
 		stop()
 		cancel()

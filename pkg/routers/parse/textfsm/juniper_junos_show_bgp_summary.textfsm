@@ -1,41 +1,3 @@
-# TextFSM template: Juniper JunOS `show bgp summary`.
-#
-# JunOS reports peer rows on one line, with optional indented per-RIB
-# follow-on lines (e.g. `inet.0: 500/1000/500/0`) holding prefix
-# counters. The State column carries either the canonical state
-# keyword (Active / Connect / Idle / OpenSent / OpenConfirm) for
-# non-Established peers, or `Establ` plus the per-RIB line for
-# Established peers.
-#
-# Sample output (truncated):
-#   Threading mode: BGP I/O
-#   Groups: 2 Peers: 3 Down peers: 0
-#   Table          Tot Paths  Act Paths Suppressed    History Damp State    Pending
-#   inet.0
-#                      1000        500          0          0          0          0
-#   inet6.0
-#                       200        100          0          0          0          0
-#   Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Accepted/Damped...
-#   10.0.0.2              65001       1234       1235       0       0     1d2h Establ
-#     inet.0: 500/1000/500/0
-#   10.0.0.3              65002          0          0       0       0    never Active
-#   2001:db8::2           65003        234        235       0       0  0:01:00 Establ
-#     inet6.0: 100/200/100/0
-#
-# Capture strategy — two distinct row patterns:
-#   1. **Established row**: matches the literal `Establ` keyword.
-#      The row captures peer_ip / peer_asn / uptime but defers
-#      Record so the follow-on `inet.0: …` line can populate
-#      prefix counters. `state` is left empty on that row; the
-#      projector synthesises "established" when prefix counts are
-#      non-zero.
-#   2. **Non-Established row**: captures state directly and
-#      Records immediately. There is no follow-on line.
-#
-# The follow-on `inet.0:`/`inet6.0:` line carries
-# `accepted/received/active/damped` counts in JunOS order; we
-# capture only the first two slots and leave the operator's
-# active/damped values for raw output.
 Value Filldown local_asn (\d+)
 Value Filldown router_id ([0-9a-fA-F:.]+)
 Value Required peer_ip ([0-9a-fA-F:.]+)
@@ -47,19 +9,13 @@ Value prefixes_accepted (\d+)
 Value prefixes_received (\d+)
 
 Start
-  # Optional preamble lines.
   ^Threading\s+mode:
   ^Groups:\s+\d+\s+Peers:
   ^Table\s+Tot\s+Paths
   ^Peer\s+AS\s+InPkt\s+OutPkt.*$$ -> Peers
 
 Peers
-  # Established peer row — captured fields wait for the follow-on
-  # inet.0 line. `state` deliberately left empty; the projector
-  # synthesises "established" from non-zero prefix counts.
   ^${peer_ip}\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+Establ\s*$$
-  # Non-Established peer row — Record immediately.
   ^${peer_ip}\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+${state}\s*$$ -> Record
-  # Per-RIB follow-on line; closes the most recent Established row.
   ^\s+${address_family}:\s+${prefixes_accepted}/${prefixes_received}/\d+/\d+\s*$$ -> Record
   ^\s*$$

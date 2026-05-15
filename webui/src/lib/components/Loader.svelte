@@ -1,17 +1,10 @@
 <script lang="ts">
-	/**
-	 * In-component loader (matches the pre-hydration overlay aesthetic).
-	 * Use for: per-router result fetching, router-list bootstrap, etc.
-	 *
-	 * Props let us scale the loader without re-implementing it.
-	 */
 	interface Props {
 		label?: string;
 		size?: 'sm' | 'md';
 	}
 	let { label = 'tracing route', size = 'md' }: Props = $props();
 
-	// Derive sizing reactively so changing `size` at runtime is reflected.
 	const hopSize = $derived(size === 'sm' ? 8 : 12);
 	const trackW = $derived(size === 'sm' ? 120 : 220);
 </script>
