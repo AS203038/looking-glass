@@ -225,12 +225,11 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 
 	if cfg.Web.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn:                cfg.Web.Sentry.DSN,
-			EnableTracing:      true,
-			TracesSampleRate:   cfg.Web.Sentry.SampleRate,
-			ProfilesSampleRate: 1.0,
-			Release:            strings.Split(utils.Version(), "+")[0],
-			Environment:        cfg.Web.Sentry.Environment,
+			Dsn:              cfg.Web.Sentry.DSN,
+			EnableTracing:    true,
+			TracesSampleRate: cfg.Web.Sentry.SampleRate,
+			Release:          strings.Split(utils.Version(), "+")[0],
+			Environment:      cfg.Web.Sentry.Environment,
 		})
 		if err != nil {
 			log.Println("WARNING: Failed to initialize Sentry:", err, "disabling Sentry middleware")
