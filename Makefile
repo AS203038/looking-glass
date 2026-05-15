@@ -22,6 +22,7 @@ VERSION        ?= $(shell git describe --tags --always --dirty 2>/dev/null || ec
 GO_LDFLAGS_SERVER := -X github.com/AS203038/looking-glass/pkg/utils.release=$(VERSION)
 GO_LDFLAGS_CLI    := -X main.Version=$(VERSION)
 GOFLAGS           ?=
+GOTOOLCHAIN       := auto
 
 IMAGE_NAME     ?= looking-glass
 IMAGE_TAG      ?= $(VERSION)
