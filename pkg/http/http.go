@@ -3,13 +3,8 @@
 package http
 
 import (
-	"bytes"
 	"context"
-	"crypto/md5"
 	"crypto/tls"
-	"encoding/json"
-	"fmt"
-	"io"
 	"io/fs"
 	stdlog "log"
 	"log/slog"
@@ -29,17 +24,12 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
-// redisClient is the process-global Redis client used by [cacheHandler].
-var redisClient *redis.Client
-
 // httpwriter is a recording [http.ResponseWriter] that captures the
-// status code and body bytes written through it.
+// status code written through it for the access log.
 type httpwriter struct {
 	http.ResponseWriter
 	// Status records the most recent value passed to WriteHeader.
 	Status int
-	// Body accumulates every byte written through Write.
-	Body []byte
 }
 
 // Header delegates to the wrapped ResponseWriter.
@@ -47,102 +37,15 @@ func (w *httpwriter) Header() http.Header {
 	return w.ResponseWriter.Header()
 }
 
+// Unwrap returns the wrapped ResponseWriter.
+func (w *httpwriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
 // WriteHeader records the status code locally and forwards the call.
 func (w *httpwriter) WriteHeader(status int) {
 	w.Status = status
 	w.ResponseWriter.WriteHeader(status)
-}
-
-// Write buffers the bytes locally and forwards them to the wrapped writer.
-func (w *httpwriter) Write(b []byte) (int, error) {
-	w.Body = append(w.Body, b...)
-	return w.ResponseWriter.Write(b)
-}
-
-// CacheEntry is the on-the-wire shape of a cached response stored in Redis.
-type CacheEntry struct {
-	// Body is the raw response body bytes.
-	Body []byte `json:"body"`
-	// Status is the response status code; zero means WriteHeader was never called.
-	Status int `json:"status"`
-	// Header is the full set of response headers recorded by the handler.
-	Header http.Header `json:"header"`
-}
-
-// cacheHandler wraps h with a Redis-backed response cache keyed by
-// MD5(path+body). Cache hits set the X-Cache: HIT response header;
-// cache writes are async. TTL falls back to 60s when malformed.
-func cacheHandler(cfg utils.RedisConfig, h http.Handler) http.Handler {
-	log := logging.Component("cache")
-	ttl, err := time.ParseDuration(cfg.TTL)
-	if err != nil {
-		log.Warn("ttl parse failed; using default",
-			slog.String("ttl", cfg.TTL),
-			slog.Duration("default", 60*time.Second),
-			slog.Any("err", err))
-		ttl = 60 * time.Second
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bd, _ := io.ReadAll(r.Body)
-		r.Body = io.NopCloser(bytes.NewReader(bd))
-		cacheKey := fmt.Sprintf("%x", md5.Sum([]byte(r.URL.Path+string(bd))))
-		cachedResponse, err := redisClient.Get(context.Background(), cacheKey).Result()
-		if err == nil {
-			var cacheEntry CacheEntry
-			err = json.Unmarshal([]byte(cachedResponse), &cacheEntry)
-			if err == nil {
-				log.Debug("cache hit",
-					slog.String("key", cacheKey),
-					slog.String("path", r.URL.Path),
-					slog.Int("body_bytes", len(cacheEntry.Body)))
-				w.Header().Set("X-Cache", "HIT")
-				for k, v := range cacheEntry.Header {
-					w.Header()[k] = v
-				}
-				if cacheEntry.Status > 0 {
-					w.WriteHeader(cacheEntry.Status)
-				}
-				w.Write(cacheEntry.Body)
-				return
-			}
-			log.Debug("cache entry malformed; treating as miss",
-				slog.String("key", cacheKey),
-				slog.Any("err", err))
-		} else {
-			log.Debug("cache miss",
-				slog.String("key", cacheKey),
-				slog.String("path", r.URL.Path))
-		}
-
-		responseWriter := &httpwriter{ResponseWriter: w}
-		h.ServeHTTP(responseWriter, r)
-
-		go func() {
-			cacheEntry := CacheEntry{
-				Body:   responseWriter.Body,
-				Status: responseWriter.Status,
-				Header: responseWriter.Header(),
-			}
-			cachejson, err := json.Marshal(cacheEntry)
-			if err != nil {
-				log.Error("marshal cache entry failed",
-					slog.String("key", cacheKey),
-					slog.Any("err", err))
-				return
-			}
-			_, err = redisClient.Set(context.Background(), cacheKey, cachejson, ttl).Result()
-			if err != nil {
-				log.Error("store cache entry failed",
-					slog.String("key", cacheKey),
-					slog.Any("err", err))
-				return
-			}
-			log.Debug("cache store ok",
-				slog.String("key", cacheKey),
-				slog.Int("body_bytes", len(cacheEntry.Body)),
-				slog.Duration("ttl", ttl))
-		}()
-	})
 }
 
 // loggingHandler wraps h with a structured slog access log and emits
@@ -195,6 +98,29 @@ func SecurityTxtInjector(cfg utils.SecurityTxtConfig) http.Handler {
 // listener described by cfg. It blocks for the lifetime of the listener.
 func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap, webfs fs.FS) error {
 	log := logging.Component("http")
+
+	if cfg.Redis.Enabled {
+		opts, err := redis.ParseURL(cfg.Redis.URI)
+		if err != nil {
+			log.Error("redis url parse failed; cache and health-coordination disabled",
+				slog.String("uri", cfg.Redis.URI),
+				slog.Any("err", err))
+		} else {
+			log.Info("connecting to redis", slog.String("uri", cfg.Redis.URI))
+			client := redis.NewClient(opts)
+			grpc.SetRedis(client)
+			ttl, perr := time.ParseDuration(cfg.Redis.TTL)
+			if perr != nil {
+				log.Warn("ttl parse failed; using default",
+					slog.String("ttl", cfg.Redis.TTL),
+					slog.Duration("default", 60*time.Second),
+					slog.Any("err", perr))
+				ttl = 60 * time.Second
+			}
+			grpc.SetRPCCache(client, ttl)
+		}
+	}
+
 	mux := http.NewServeMux()
 	if cfg.Grpc.Enabled {
 		grpc.Mux(ctx, mux, rts)
@@ -232,25 +158,11 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 			"Connect-Content-Encoding", // Unused in web browsers, but added for future-proofing.
 			"Grpc-Status",              // Required for gRPC-web.
 			"Grpc-Message",             // Required for gRPC-web.
+			"X-Cache",                  // Cache hit indicator emitted by RPC handlers.
 		},
 	})
 
-	var handler http.Handler = mux
-
-	if cfg.Redis.Enabled {
-		opts, err := redis.ParseURL(cfg.Redis.URI)
-		if err != nil {
-			log.Error("redis url parse failed; cache disabled",
-				slog.String("uri", cfg.Redis.URI),
-				slog.Any("err", err))
-		} else {
-			log.Info("connecting to redis", slog.String("uri", cfg.Redis.URI))
-			redisClient = redis.NewClient(opts)
-			handler = cacheHandler(cfg.Redis, handler)
-		}
-	}
-
-	handler = loggingHandler(corsHandler.Handler(handler))
+	handler := loggingHandler(corsHandler.Handler(mux))
 
 	if cfg.Web.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
@@ -274,9 +186,8 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 		}
 	}
 
-	// Route net/http server errors through slog at ERROR via the
-	// stdlib bridge installed by logging.Init.
 	srv := &http.Server{
+
 		Addr:     cfg.Grpc.Listen,
 		ErrorLog: stdlog.Default(),
 	}

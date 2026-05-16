@@ -26,11 +26,18 @@ func Mux(ctx context.Context, mux *http.ServeMux, rts utils.RouterMap) {
 	go healthcheck(ctx, rts)
 }
 
-// healthcheck periodically probes every configured router (one sweep
-// per minute) and updates its gRPC health status on state changes.
-// The function returns when ctx is cancelled.
+// healthcheck runs one [probeRouterOnce] sweep per minute over rts
+// and returns when ctx is cancelled.
 func healthcheck(ctx context.Context, rts utils.RouterMap) {
 	log := logging.Component("health")
+	if healthRedis != nil {
+		log.Info("healthcheck coordinated via redis",
+			slog.String("node", nodeID),
+			slog.Duration("lease_ttl", healthLeaseTTL),
+			slog.Duration("state_ttl", healthStateTTL))
+	} else {
+		log.Info("healthcheck uncoordinated; every replica probes every router")
+	}
 	ticker := time.NewTicker(time.Minute)
 	for {
 		select {
@@ -39,31 +46,104 @@ func healthcheck(ctx context.Context, rts utils.RouterMap) {
 		case <-ticker.C:
 			log.Debug("healthcheck tick", slog.Int("routers", len(rts)))
 			for _, r := range rts {
-				o := r.HealthCheck.Healthy
-				probeStart := time.Now()
-				err := r.Healthcheck()
-				probeDur := time.Since(probeStart)
-				if err == nil {
-					log.Debug("healthcheck probe ok",
-						slog.String("router", r.Config.Name),
-						slog.Duration("duration", probeDur))
-					if !o {
-						Health.SetStatus(lookingglassconnect.LookingGlassServiceName+"/"+r.Config.Name, grpchealth.StatusServing)
-						log.Info("router healthy", slog.String("router", r.Config.Name))
-					}
-				} else {
-					log.Debug("healthcheck probe failed",
-						slog.String("router", r.Config.Name),
-						slog.Duration("duration", probeDur),
-						slog.Any("err", err))
-					if o {
-						Health.SetStatus(lookingglassconnect.LookingGlassServiceName+"/"+r.Config.Name, grpchealth.StatusNotServing)
-						log.Warn("router unhealthy",
-							slog.String("router", r.Config.Name),
-							slog.Any("err", err))
-					}
-				}
+				probeRouterOnce(ctx, log, r)
 			}
 		}
 	}
+}
+
+// probeRouterOnce runs one health sweep for r. If [healthRedis] is
+// configured the probe is gated by [tryAcquireHealthLease]: the lease
+// holder probes and publishes via [writeHealthState], everyone else
+// reads via [readHealthState]. Without [healthRedis] r is probed
+// locally. The resulting Healthy bit is applied to r's
+// [utils.HealthCheck] record and the gRPC health checker.
+func probeRouterOnce(ctx context.Context, log *slog.Logger, r *utils.RouterInstance) {
+	prev := r.HealthCheck.Healthy
+
+	leased, err := tryAcquireHealthLease(ctx, r.Config.Name)
+	if err != nil {
+		log.Warn("healthcheck lease acquire failed; probing locally",
+			slog.String("router", r.Config.Name),
+			slog.Any("err", err))
+	}
+
+	if healthRedis == nil || leased {
+		probeStart := time.Now()
+		probeErr := r.Healthcheck()
+		probeDur := time.Since(probeStart)
+		healthy := probeErr == nil
+		if healthy {
+			log.Debug("healthcheck probe ok",
+				slog.String("router", r.Config.Name),
+				slog.Duration("duration", probeDur))
+		} else {
+			log.Debug("healthcheck probe failed",
+				slog.String("router", r.Config.Name),
+				slog.Duration("duration", probeDur),
+				slog.Any("err", probeErr))
+		}
+		if werr := writeHealthState(ctx, r.Config.Name, healthState{
+			Healthy: healthy,
+			Checked: time.Now(),
+			Source:  nodeID,
+		}); werr != nil {
+			log.Warn("healthcheck state publish failed",
+				slog.String("router", r.Config.Name),
+				slog.Any("err", werr))
+		}
+		applyHealthTransition(log, r, prev, healthy, probeErr, "local")
+		return
+	}
+
+	state, ok, err := readHealthState(ctx, r.Config.Name)
+	if err != nil {
+		log.Warn("healthcheck state read failed; probing locally",
+			slog.String("router", r.Config.Name),
+			slog.Any("err", err))
+		probeStart := time.Now()
+		probeErr := r.Healthcheck()
+		probeDur := time.Since(probeStart)
+		healthy := probeErr == nil
+		log.Debug("healthcheck fallback probe complete",
+			slog.String("router", r.Config.Name),
+			slog.Duration("duration", probeDur),
+			slog.Bool("healthy", healthy))
+		applyHealthTransition(log, r, prev, healthy, probeErr, "fallback")
+		return
+	}
+	if !ok {
+		log.Debug("healthcheck state not yet published; skipping",
+			slog.String("router", r.Config.Name))
+		return
+	}
+	log.Debug("healthcheck adopted peer state",
+		slog.String("router", r.Config.Name),
+		slog.String("peer", state.Source),
+		slog.Bool("healthy", state.Healthy),
+		slog.Time("checked", state.Checked))
+	r.HealthCheck.Healthy = state.Healthy
+	r.HealthCheck.Checked = state.Checked
+	applyHealthTransition(log, r, prev, state.Healthy, nil, "peer:"+state.Source)
+}
+
+// applyHealthTransition flips the gRPC health status for r when its
+// healthy bit changed between prev and now, emitting source and err
+// as context on the transition log line.
+func applyHealthTransition(log *slog.Logger, r *utils.RouterInstance, prev, now bool, err error, source string) {
+	if prev == now {
+		return
+	}
+	if now {
+		Health.SetStatus(lookingglassconnect.LookingGlassServiceName+"/"+r.Config.Name, grpchealth.StatusServing)
+		log.Info("router healthy",
+			slog.String("router", r.Config.Name),
+			slog.String("source", source))
+		return
+	}
+	Health.SetStatus(lookingglassconnect.LookingGlassServiceName+"/"+r.Config.Name, grpchealth.StatusNotServing)
+	log.Warn("router unhealthy",
+		slog.String("router", r.Config.Name),
+		slog.String("source", source),
+		slog.Any("err", err))
 }

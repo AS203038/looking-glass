@@ -211,9 +211,15 @@ spec:
         ports:
           - { name: http, containerPort: 8080 }
         readinessProbe:
-          httpGet: { path: /grpc.health.v1.Health/Check, port: 8080 }
-          # The health endpoint returns 200 once Mux marks the
-          # service as Serving (immediately after startup).
+          # Native Kubernetes gRPC probe (>=1.24, GA 1.27). The
+          # endpoint speaks the grpc.health.v1.Health protocol and
+          # is POST-only — an `httpGet:` probe would issue GET and
+          # the server would correctly reply 405 Method Not Allowed.
+          # The mux marks the service Serving immediately after
+          # startup.
+          grpc:
+            port: 8080
+            service: lookingglass.v0.LookingGlassService
           initialDelaySeconds: 2
           periodSeconds: 10
         livenessProbe:
@@ -259,9 +265,15 @@ A few things worth pointing out:
   server writes outside `/dev/stdout` — there is no on-disk state.
 * **`replicas: 3`** is sized to your fault tolerance, not your load:
   even a single replica handles thousands of requests per minute.
-* **`redis` is recommended for >1 replica** — without it, each
-  replica maintains its own cache (still correct, just lower hit
-  rate).
+* **`redis` is required for >1 replica** in any deployment that
+  cares about router login pressure. The shared Redis is not just a
+  response cache: the background health-check loop also uses it to
+  elect a per-router prober every 60 s. Without Redis, every replica
+  probes every router every minute (legacy uncoordinated behaviour);
+  with Redis, exactly one replica per tick opens an SSH session to a
+  given router and the rest read the published outcome. See
+  [Multi-replica health coordination](#multi-replica-health-coordination)
+  below.
 
 ### Ingress
 
@@ -304,6 +316,60 @@ Behind Cloudflare or another HTTP/2-capable proxy, set
 `grpc.tls.enabled: false` and let the proxy terminate. ConnectRPC's
 h2c mode will accept HTTP/2 cleartext between the proxy and the
 pod.
+
+## Multi-replica health coordination
+
+Looking Glass does **not** perform Kubernetes-native leader
+election. It does not talk to the Kubernetes API, hold a
+`coordination.k8s.io/Lease`, or require any cluster RBAC.
+
+What it does do, when `redis.enabled: true`, is gate every per-router
+health probe behind a Redis `SET … NX PX 70000` lease keyed on the
+router name. The replica that wins the `SETNX` race for a given tick
+opens the SSH session to that router; it then publishes the outcome
+(`{healthy, checked, source}`) under a second Redis key with a
+five-minute TTL. The losing replicas read that key and apply the
+outcome to their own in-memory `HealthCheck` record and gRPC health
+status without re-probing the router.
+
+Concretely, for `N` replicas and `M` routers:
+
+| Topology                  | Logins to each router  |
+| ------------------------- | ---------------------- |
+| 1 replica, no Redis       | 1 every 60 s           |
+| N replicas, no Redis      | **N every 60 s**       |
+| N replicas, shared Redis  | 1 every 60 s           |
+
+The startup behaviour matches: there is no boot-time per-router probe
+goroutine. The first probe for a given router fires on the first
+60-second tick after the leader-of-the-moment elects itself via Redis,
+which prevents an N×M login storm during rolling updates.
+
+Operational implications:
+
+* **Always point all replicas at the same Redis instance / DB.**
+  Different `/N` slot per *deployment*, but the same slot within one
+  deployment.
+* **Redis outages degrade gracefully.** A lease-acquire or state-read
+  error is logged at `WARN` on the `health` component and the replica
+  probes locally for that tick. Health is never wrong; it can only
+  fall back to "every replica probes every router" for the duration
+  of the Redis outage.
+* **gRPC health status is still per-process.** Each replica answers
+  `/grpc.health.v1.Health/Check` from its own in-memory state, which
+  is updated by the loop above. A replica that has only just started
+  will report `NOT_SERVING` for each router until it has either won a
+  lease or read a peer's state — typically within one 60-second tick.
+* **Kubernetes `livenessProbe` and `readinessProbe` are unaffected.**
+  The service-level health endpoint goes `SERVING` immediately at
+  startup; only the per-router sub-statuses depend on the
+  coordination loop.
+
+If you need leader-election semantics stronger than a SETNX lease
+(e.g. fencing, leader monitoring, fairness), put a different prober
+binary in front and have the looking-glass replicas read state only.
+For the typical "N stateless replicas behind a Service" topology the
+Redis lease is sufficient.
 
 ## Reverse proxy
 
@@ -445,9 +511,14 @@ Tuning notes:
   cache entries have no "must keep" property, evicting the LRU is
   safe.
 * **Sharing across instances** — multiple Looking Glass replicas
-  pointed at the same Redis share cache. Multiple unrelated
-  deployments should *not* share the same Redis DB; use different
-  `/N` slots in the URI (`redis://host:6379/0` vs `…/1`).
+  pointed at the same Redis share *both* the response cache and the
+  per-router health-probe lease (see
+  [Multi-replica health coordination](#multi-replica-health-coordination)).
+  Multiple unrelated deployments must *not* share the same Redis DB
+  — the lease keys are namespaced as `lg:health:lease:<router>` and
+  `lg:health:state:<router>`, so two deployments sharing a DB will
+  fight over each other's leases. Use different `/N` slots in the
+  URI (`redis://host:6379/0` vs `…/1`) per deployment.
 
 ## Sentry
 
@@ -487,8 +558,29 @@ logs alone:
   are silent.
 
 The standard `grpc.health.v1.Health/Check` endpoint is also wired
-up; use it for readiness probes. Per-router sub-statuses live at
-`<service>/<router name>`.
+up; per-router sub-statuses live at `<service>/<router name>`.
+It is a real gRPC service, so **every call must be `POST`** —
+the three supported wire formats (native gRPC over HTTP/2,
+gRPC-Web, and Connect / Connect-JSON) are all POST-only. A bare
+`GET` returns `405 Method Not Allowed`.
+
+Use one of:
+
+* **Kubernetes' native `grpc:` readiness probe** (>=1.24, GA 1.27),
+  as in the manifest above. It speaks the gRPC health protocol
+  over HTTP/2 directly.
+* **`grpc_health_probe`** — the standard CLI tool, e.g. from a
+  sidecar or `exec:` probe in older clusters:
+  ```bash
+  grpc_health_probe -addr=:8080 -service=lookingglass.v0.LookingGlassService
+  ```
+* **A POST'ed Connect-JSON call** — handy for `docker
+  HEALTHCHECK`, monitoring scripts, or curl-based sanity checks:
+  ```bash
+  curl -fsS -X POST -H 'Content-Type: application/json' -d '{}' \
+       http://localhost:8080/grpc.health.v1.Health/Check \
+       | jq -e '.status == "SERVING_STATUS_SERVING"'
+  ```
 
 ## Scaling
 
@@ -499,6 +591,7 @@ up; use it for readiness probes. Per-router sub-statuses live at
 | HTTPS termination         | Move TLS off the Looking Glass binary to an ingress.                                                         |
 | Public abuse              | Add rate limiting at the reverse proxy. The server itself does not rate-limit.                               |
 | Large fleets of routers   | Health-check goroutines are O(routers) but minute-scale; even hundreds of routers are fine on a small pod.   |
+| Health-probe login storm  | Point every replica at the **same** Redis. The probe-lease coordinator collapses N×M logins/min to M/min.   |
 
 The server is stateless: every replica can serve any request and
 the only cross-replica state is the (optional) shared Redis cache.
@@ -533,7 +626,7 @@ you're done.
 | Symptom                                              | Probable cause / fix                                                                                  |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Pod CrashLoopBackOff, log says "failed to parse config" | `config.yaml` not present in CWD. Check `workingDir` and `volumeMounts` paths.                       |
-| All routers stuck "unhealthy"                        | First probe fires after the 60-second ticker. Past that, check `SSH:` log lines for the real reason. |
+| All routers stuck "unhealthy"                        | First probe fires on the first 60-second tick (no boot-time probe). With shared Redis the lease holder probes; followers adopt the state. Past that, check `SSH:` log lines for the real reason. |
 | Ingress 502 on gRPC requests                         | Reverse proxy not speaking HTTP/2 / h2c. See [Reverse proxy](#reverse-proxy).                         |
 | `X-Cache: HIT` never appears                         | Redis URL parse error logged at startup; cache silently disabled.                                     |
 | Looking Glass restarts every minute                  | The binary doesn't watch `config.yaml`. Restarts come from your supervisor — check liveness probes.   |

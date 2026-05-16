@@ -222,6 +222,14 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 		logRPCError(tag, "parse_target", err)
 		return nil, errs.IPInvalid
 	}
+	key := pingCacheKey(rt, target.String())
+	var cached pb.PingResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
 	ret, err := ri.Ping(target)
 	if err != nil {
 		logRPCError(tag, "ping_exec", err)
@@ -238,6 +246,7 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	if ps, ok := pr.Payload.(*pb.PingStats); ok {
 		resp.Parsed = ps
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
@@ -258,6 +267,14 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 		logRPCError(tag, "parse_target", err)
 		return nil, errs.IPInvalid
 	}
+	key := tracerouteCacheKey(rt, target.String())
+	var cached pb.TracerouteResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
 	ret, err := ri.Traceroute(target)
 	if err != nil {
 		logRPCError(tag, "traceroute_exec", err)
@@ -274,6 +291,7 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	if tp, ok := pr.Payload.(*pb.TracerouteParsed); ok {
 		resp.Parsed = tp
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
@@ -289,6 +307,14 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 	tag := rpcLogTag("BGPSummary", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
+	key := bgpSummaryCacheKey(rt)
+	var cached pb.BGPSummaryResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
 	ret, err := ri.BGPSummary()
 	if err != nil {
 		logRPCError(tag, "bgp_summary_exec", err)
@@ -305,6 +331,7 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 	if bs, ok := pr.Payload.(*pb.BGPSummaryParsed); ok {
 		resp.Parsed = bs
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
@@ -325,6 +352,14 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 		logRPCError(tag, "parse_target", err)
 		return nil, errs.IPInvalid
 	}
+	key := bgpRouteCacheKey(rt, target.String())
+	var cached pb.BGPRouteResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
 	ret, err := ri.BGPRoute(target)
 	if err != nil {
 		logRPCError(tag, "bgp_route_exec", err)
@@ -341,6 +376,7 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
@@ -361,7 +397,16 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
 		return nil, errs.OperationUnknown
 	}
-	ret, err := ri.BGPCommunity(strconv.Itoa(int(community.Asn)) + ":" + strconv.Itoa(int(community.Value)))
+	commStr := strconv.Itoa(int(community.Asn)) + ":" + strconv.Itoa(int(community.Value))
+	key := bgpCommunityCacheKey(rt, commStr)
+	var cached pb.BGPCommunityResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
+	ret, err := ri.BGPCommunity(commStr)
 	if err != nil {
 		logRPCError(tag, "bgp_community_exec", err)
 		return nil, errs.ExecFailed
@@ -377,6 +422,7 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
@@ -400,6 +446,14 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	lc := strconv.FormatUint(uint64(community.GetGlobalAdmin()), 10) + ":" +
 		strconv.FormatUint(uint64(community.GetLocalData1()), 10) + ":" +
 		strconv.FormatUint(uint64(community.GetLocalData2()), 10)
+	key := bgpLargeCommunityCacheKey(rt, lc)
+	var cached pb.BGPLargeCommunityResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
 	ret, err := ri.BGPLargeCommunity(lc)
 	if err != nil {
 		logRPCError(tag, "bgp_largecommunity_exec", err)
@@ -416,6 +470,7 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
@@ -436,6 +491,14 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 		logRPCError(tag, "sanitize_aspath", err)
 		return nil, err
 	}
+	key := bgpASPathCacheKey(rt, aspath)
+	var cached pb.BGPASPathResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
 	ret, err := ri.BGPASPath(aspath)
 	if err != nil {
 		logRPCError(tag, "bgp_aspath_exec", err)
@@ -452,6 +515,7 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }

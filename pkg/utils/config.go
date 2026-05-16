@@ -16,10 +16,20 @@ var _version = ""
 // release is the build's release identifier, set via ldflags at build time.
 var release = "untracked"
 
-// Version returns the process version string in "<release>+<nanos-hex>" form.
+// Version returns the process version string. For ldflags-tagged
+// builds this is the bare value of [release], which is stable across
+// replicas of the same build so the RPC cache namespace, HTTP ETag,
+// and Sentry release roll-up agree cluster-wide. For untagged
+// development builds (release == "untracked") a per-process nanos
+// suffix is appended so the HTTP ETag still rotates across local
+// restarts and the operator's browser picks up edits.
 func Version() string {
 	if _version == "" {
-		_version = fmt.Sprintf("%s+%x", release, time.Now().UnixNano())
+		if release == "untracked" {
+			_version = fmt.Sprintf("%s+%x", release, time.Now().UnixNano())
+		} else {
+			_version = release
+		}
 	}
 	return _version
 }

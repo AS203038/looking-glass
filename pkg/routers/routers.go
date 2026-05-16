@@ -49,8 +49,8 @@ func Get(name string) utils.Router {
 
 // CreateRouterMap materialises cfg.Devices into a [utils.RouterMap].
 // Devices referencing an unknown template type are logged and skipped.
-// Each instance is started with an initial reachability probe in a
-// background goroutine.
+// Reachability is set by the background health-check loop in the grpc
+// package; no probe is launched here.
 func CreateRouterMap(cfg *utils.Config) utils.RouterMap {
 	var rm utils.RouterMap
 	skipped := 0
@@ -72,7 +72,6 @@ func CreateRouterMap(cfg *utils.Config) utils.RouterMap {
 			slog.String("router", v.Name),
 			slog.String("type", v.Type),
 			slog.String("host", v.Hostname))
-		go ri.Healthcheck()
 		rm = append(rm, ri)
 	}
 	routersLog.Info("router catalogue built",

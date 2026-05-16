@@ -446,8 +446,22 @@ The server also mounts `grpc.health.v1.Health` from
   — per-router health. Updated by the background ticker; the
   status mirrors `RouterHealth.healthy` from `GetRouters`.
 
-Use this for Kubernetes readiness probes (HTTP/2 needed) and the
-standard `grpc_health_probe` tool.
+Use this for Kubernetes readiness probes — prefer the native
+`grpc:` probe (k8s >=1.24, GA 1.27) over `httpGet:`, since
+`grpc.health.v1.Health/Check` is a real gRPC method and is
+**POST-only**. A bare `curl -X GET` returns
+`405 Method Not Allowed`; the wire formats the handler accepts
+(native gRPC over HTTP/2, gRPC-Web, Connect / Connect-JSON) are
+all POST. For a quick curl sanity check:
+
+```bash
+curl -fsS -X POST -H 'Content-Type: application/json' -d '{}' \
+     http://localhost:8080/grpc.health.v1.Health/Check
+# {"status":"SERVING_STATUS_SERVING"}
+```
+
+The standard `grpc_health_probe` CLI also works against the same
+endpoint.
 
 ## gRPC-Web specifics
 
