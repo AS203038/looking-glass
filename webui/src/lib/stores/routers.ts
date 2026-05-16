@@ -45,7 +45,6 @@ const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 let loadStarted = false;
 let refreshing = false;
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
-let visibilityHandler: (() => void) | null = null;
 
 const PAGE_SIZE = 50;
 
@@ -114,13 +113,6 @@ function startPeriodicRefresh() {
 	};
 
 	refreshTimer = setInterval(tick, REFRESH_INTERVAL_MS);
-
-	if (typeof document !== 'undefined') {
-		visibilityHandler = () => {
-			if (!document.hidden) void refreshRouters();
-		};
-		document.addEventListener('visibilitychange', visibilityHandler);
-	}
 }
 
 /** Stops the background refresh loop. */
@@ -128,10 +120,6 @@ export function stopPeriodicRefresh() {
 	if (refreshTimer !== null) {
 		clearInterval(refreshTimer);
 		refreshTimer = null;
-	}
-	if (visibilityHandler !== null && typeof document !== 'undefined') {
-		document.removeEventListener('visibilitychange', visibilityHandler);
-		visibilityHandler = null;
 	}
 }
 

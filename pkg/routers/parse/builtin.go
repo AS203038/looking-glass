@@ -1,14 +1,19 @@
 package parse
 
 import (
-	"log"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/AS203038/looking-glass/pkg/logging"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"google.golang.org/protobuf/proto"
 )
+
+// parseLog is the component-tagged logger shared by every parser in this
+// package.
+var parseLog = logging.Component("parse")
 
 // BuiltinParser is the [Parser] for Linux iputils ping and
 // traceroute output (used by FRRouting).
@@ -19,21 +24,33 @@ func (BuiltinParser) Name() string { return "builtin" }
 
 // Parse implements [Parser] by fanning out on op.
 func (p BuiltinParser) Parse(op Op, raw []byte, _ Config) Result {
+	parseLog.Debug("parser run",
+		slog.String("parser", "builtin"),
+		slog.String("op", string(op)),
+		slog.Int("raw_bytes", len(raw)))
 	switch op {
 	case OpPing:
 		stats := parseLinuxPing(raw)
 		if stats == nil {
 			return Failed(pb.ParserKind_PARSER_KIND_BUILTIN)
 		}
+		parseLog.Debug("parser ok",
+			slog.String("parser", "builtin"),
+			slog.String("op", string(op)))
 		return OK(pb.ParserKind_PARSER_KIND_BUILTIN, proto.Message(stats))
 	case OpTraceroute:
 		tp := parseLinuxTraceroute(raw)
 		if tp == nil {
 			return Failed(pb.ParserKind_PARSER_KIND_BUILTIN)
 		}
+		parseLog.Debug("parser ok",
+			slog.String("parser", "builtin"),
+			slog.String("op", string(op)),
+			slog.Int("hops", len(tp.Hops)))
 		return OK(pb.ParserKind_PARSER_KIND_BUILTIN, proto.Message(tp))
 	default:
-		log.Printf("PARSE: builtin parser has no handler for op=%s", op)
+		parseLog.Warn("builtin parser has no handler",
+			slog.String("op", string(op)))
 		return Failed(pb.ParserKind_PARSER_KIND_BUILTIN)
 	}
 }

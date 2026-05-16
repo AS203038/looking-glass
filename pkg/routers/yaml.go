@@ -2,25 +2,48 @@ package routers
 
 import (
 	"bytes"
+	"context"
 	"embed"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"text/template"
 
 	"github.com/AS203038/looking-glass/pkg/errs"
+	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/routers/parse"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// tplLogTag builds a credential-free log-tag for a single render attempt.
-func tplLogTag(routerType, op string, cfg *utils.RouterConfig) string {
-	tag := "router_type=" + routerType + " op=" + op
-	if cfg != nil {
-		tag += " router=" + cfg.Name + " vrf=" + cfg.VRF
+// tplLog is the component-tagged logger for template rendering events.
+var tplLog = logging.Component("tpl")
+
+// yamlLog is the component-tagged logger for YAML-loader events.
+var yamlLog = logging.Component("yaml")
+
+// Exit codes for fatal YAML-loader failures.
+const (
+	exitRouterDirRead     = 20
+	exitRouterDirReadFile = 21
+	exitRouterDirParse    = 22
+	exitBuiltinDirRead    = 23
+	exitBuiltinReadFile   = 24
+	exitBuiltinParse      = 25
+)
+
+// tplAttrs builds the slog attributes describing a single render attempt.
+func tplAttrs(routerType, op string, cfg *utils.RouterConfig) []slog.Attr {
+	attrs := []slog.Attr{
+		slog.String("router_type", routerType),
+		slog.String("op", op),
 	}
-	return tag
+	if cfg != nil {
+		attrs = append(attrs,
+			slog.String("router", cfg.Name),
+			slog.String("vrf", cfg.VRF))
+	}
+	return attrs
 }
 
 // _tpl_data is the data context handed to every vendor-template render.
@@ -88,15 +111,18 @@ var compiledRouters embed.FS
 
 // init populates the global template registry, first from the optional
 // ROUTER_DIR directory (where loaded templates win on name collision)
-// and then from the bundled `*.yml` files. Panics on any parse error.
+// and then from the bundled `*.yml` files. Exits the process on any
+// parse error.
 func init() {
 	rd := os.Getenv("ROUTER_DIR")
 	if rd != "" {
 		files, err := os.ReadDir(rd)
 		if err != nil {
-			log.Panicf("ERROR: Could not Read directory %s: %+v", rd, err)
+			yamlLog.Error("could not read router dir",
+				slog.String("dir", rd), slog.Any("err", err))
+			os.Exit(exitRouterDirRead)
 		}
-		log.Printf("NOTICE: Loading routers from %s\n", rd)
+		yamlLog.Info("loading routers from dir", slog.String("dir", rd))
 		for _, file := range files {
 			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yml") && !strings.HasSuffix(file.Name(), ".yaml")) {
 				continue
@@ -104,40 +130,63 @@ func init() {
 			y := &Yaml{Path: file.Name()}
 			yamlFile, err := os.ReadFile(rd + "/" + y.Path)
 			if err != nil {
-				log.Panicf("ERROR: Could not Read file %s/%s: %+v", rd, y.Path, err)
+				yamlLog.Error("could not read router file",
+					slog.String("dir", rd),
+					slog.String("path", y.Path),
+					slog.Any("err", err))
+				os.Exit(exitRouterDirReadFile)
 			}
 			err = yaml.Unmarshal(yamlFile, &y.Template)
 			if err != nil {
-				log.Panicf("ERROR: Could not Unmarshal file %s/%s: %+v", rd, y.Path, err)
+				yamlLog.Error("could not unmarshal router file",
+					slog.String("dir", rd),
+					slog.String("path", y.Path),
+					slog.Any("err", err))
+				os.Exit(exitRouterDirParse)
 			}
 			if y.Template.Name == "" {
-				log.Printf("ERROR: Router name cannot be empty (%s/%s)", rd, y.Path)
+				yamlLog.Error("router name cannot be empty",
+					slog.String("dir", rd),
+					slog.String("path", y.Path))
 				continue
 			}
 			register(y.Template.Name, y)
-			log.Printf("NOTICE: Router %s (%s/%s) registered\n", y.Template.Name, rd, y.Path)
+			yamlLog.Info("router registered",
+				slog.String("router", y.Template.Name),
+				slog.String("source", rd+"/"+y.Path))
 		}
 	}
 
 	files, err := compiledRouters.ReadDir(".")
 	if err != nil {
-		log.Panicf("ERROR: Could not Read builtin directory: %+v", err)
+		yamlLog.Error("could not read builtin dir", slog.Any("err", err))
+		os.Exit(exitBuiltinDirRead)
 	}
 	for _, file := range files {
 		y := &Yaml{Path: file.Name()}
 		yamlFile, err := compiledRouters.ReadFile(y.Path)
 		if err != nil {
-			log.Panicf("ERROR: Could not Read file builtin:%s: %+v", y.Path, err)
+			yamlLog.Error("could not read builtin file",
+				slog.String("path", y.Path),
+				slog.Any("err", err))
+			os.Exit(exitBuiltinReadFile)
 		}
 		err = yaml.Unmarshal(yamlFile, &y.Template)
 		if err != nil {
-			log.Panicf("ERROR: Could not Unmarshal file builtin:%s: %+v", y.Path, err)
+			yamlLog.Error("could not unmarshal builtin file",
+				slog.String("path", y.Path),
+				slog.Any("err", err))
+			os.Exit(exitBuiltinParse)
 		}
 		if _, ok := _routers[y.Template.Name]; !ok {
 			register(y.Template.Name, y)
-			log.Printf("NOTICE: Router %s (builtin:%s) registered\n", y.Template.Name, y.Path)
+			yamlLog.Info("router registered",
+				slog.String("router", y.Template.Name),
+				slog.String("source", "builtin:"+y.Path))
 		} else {
-			log.Printf("WARNING: Router %s already registered\n", y.Template.Name)
+			yamlLog.Warn("router already registered; skipping builtin",
+				slog.String("router", y.Template.Name),
+				slog.String("source", "builtin:"+y.Path))
 		}
 	}
 }
@@ -175,25 +224,39 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 		tpl = rt.Template.BGP.ASPath
 	}
 	if tpl == nil {
-		log.Printf("TPL: operation not defined for router (%s)",
-			tplLogTag(rt.Template.Name, name, data.Cfg))
+		attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
+		tplLog.LogAttrs(context.Background(), slog.LevelWarn, "operation not defined for router", attrs...)
 		return nil, errs.OperationUnknown
 	}
 	for i, t := range tpl {
 		var buf bytes.Buffer
 		tt, err := template.New(t).Parse(t)
 		if err != nil {
-			log.Printf("TPL: parse failed (%s cmd_index=%d raw=%q): %v",
-				tplLogTag(rt.Template.Name, name, data.Cfg), i, t, err)
+			attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
+			attrs = append(attrs,
+				slog.Int("cmd_index", i),
+				slog.String("raw", t),
+				slog.Any("err", err))
+			tplLog.LogAttrs(context.Background(), slog.LevelError, "parse failed", attrs...)
 			return nil, errs.OperationUnknown
 		}
 		err = tt.Execute(&buf, data)
 		if err != nil {
-			log.Printf("TPL: execute failed (%s cmd_index=%d raw=%q): %v",
-				tplLogTag(rt.Template.Name, name, data.Cfg), i, t, err)
+			attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
+			attrs = append(attrs,
+				slog.Int("cmd_index", i),
+				slog.String("raw", t),
+				slog.Any("err", err))
+			tplLog.LogAttrs(context.Background(), slog.LevelError, "execute failed", attrs...)
 			return nil, errs.OperationUnknown
 		}
-		ret = append(ret, buf.String())
+		rendered := buf.String()
+		debugAttrs := tplAttrs(rt.Template.Name, name, data.Cfg)
+		debugAttrs = append(debugAttrs,
+			slog.Int("cmd_index", i),
+			slog.String("rendered", rendered))
+		tplLog.LogAttrs(context.Background(), slog.LevelDebug, "tpl render", debugAttrs...)
+		ret = append(ret, rendered)
 	}
 	return ret, nil
 }
@@ -252,8 +315,10 @@ func (rt *Yaml) Parser(op string) (parse.Parser, parse.Config) {
 	case "builtin":
 		return parse.BuiltinParser{}, cfg
 	default:
-		log.Printf("WARNING: unknown parser kind %q for %s op %s; falling back to raw",
-			spec.Kind, rt.Template.Name, op)
+		yamlLog.Warn("unknown parser kind; falling back to raw",
+			slog.String("kind", spec.Kind),
+			slog.String("router_type", rt.Template.Name),
+			slog.String("op", op))
 		return parse.RawParser{}, parse.Config{}
 	}
 }

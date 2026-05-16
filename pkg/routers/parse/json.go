@@ -2,7 +2,7 @@ package parse
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"strings"
 
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
@@ -20,14 +20,36 @@ func (JSONParser) Name() string { return "native_json" }
 
 // Parse implements [Parser] by dispatching on op.
 func (p JSONParser) Parse(op Op, raw []byte, cfg Config) Result {
+	parseLog.Debug("parser run",
+		slog.String("parser", "native_json"),
+		slog.String("op", string(op)),
+		slog.String("schema", cfg.Schema),
+		slog.Int("raw_bytes", len(raw)))
 	switch op {
 	case OpBGPRoute, OpBGPCommunity, OpBGPLargeCommunity, OpBGPASPath:
-		return parseFRRBGPPaths(raw)
+		res := parseFRRBGPPaths(raw)
+		if bp, ok := res.Payload.(*pb.BGPPaths); ok {
+			parseLog.Debug("parser ok",
+				slog.String("parser", "native_json"),
+				slog.String("op", string(op)),
+				slog.String("schema", cfg.Schema),
+				slog.Int("paths", len(bp.Paths)))
+		}
+		return res
 	case OpBGPSummary:
-		return parseFRRBGPSummary(raw)
+		res := parseFRRBGPSummary(raw)
+		if bs, ok := res.Payload.(*pb.BGPSummaryParsed); ok {
+			parseLog.Debug("parser ok",
+				slog.String("parser", "native_json"),
+				slog.String("op", string(op)),
+				slog.String("schema", cfg.Schema),
+				slog.Int("peers", len(bs.Peers)))
+		}
+		return res
 	default:
-		log.Printf("PARSE: native_json parser has no handler for op=%s schema=%q",
-			op, cfg.Schema)
+		parseLog.Warn("native_json parser has no handler",
+			slog.String("op", string(op)),
+			slog.String("schema", cfg.Schema))
 		return Missing(pb.ParserKind_PARSER_KIND_NATIVE_JSON)
 	}
 }
@@ -127,7 +149,7 @@ func parseFRRBGPPaths(raw []byte) Result {
 	paths := &pb.BGPPaths{}
 	chunks := splitJSONObjects(raw)
 	if len(chunks) == 0 {
-		log.Printf("PARSE: frr bgp json: no top-level JSON objects found")
+		parseLog.Warn("frr bgp json: no top-level JSON objects found")
 		return Failed(pb.ParserKind_PARSER_KIND_NATIVE_JSON)
 	}
 	decodedAny := false
@@ -146,7 +168,7 @@ func parseFRRBGPPaths(raw []byte) Result {
 			decodedAny = true
 			continue
 		}
-		log.Printf("PARSE: frr bgp json: neither routes-map nor single-prefix envelope matched")
+		parseLog.Warn("frr bgp json: neither routes-map nor single-prefix envelope matched")
 	}
 	if !decodedAny {
 		return Failed(pb.ParserKind_PARSER_KIND_NATIVE_JSON)
@@ -412,7 +434,7 @@ func parseFRRBGPSummary(raw []byte) Result {
 	out := &pb.BGPSummaryParsed{}
 	chunks := splitJSONObjects(raw)
 	if len(chunks) == 0 {
-		log.Printf("PARSE: frr bgp summary json: no top-level JSON objects found")
+		parseLog.Warn("frr bgp summary json: no top-level JSON objects found")
 		return Failed(pb.ParserKind_PARSER_KIND_NATIVE_JSON)
 	}
 	decodedAny := false
@@ -427,7 +449,8 @@ func parseFRRBGPSummary(raw []byte) Result {
 		}
 		var direct frrBGPSummaryAFI
 		if err := json.Unmarshal(chunk, &direct); err != nil {
-			log.Printf("PARSE: frr bgp summary json unmarshal: %v", err)
+			parseLog.Warn("frr bgp summary json unmarshal",
+				slog.Any("err", err))
 			continue
 		}
 		if direct.Peers == nil {

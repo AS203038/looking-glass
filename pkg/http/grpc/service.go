@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/AS203038/looking-glass/pkg/errs"
+	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/routers/parse"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
@@ -18,18 +19,66 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// rpcLogTag builds a compact, credential-free server-side log tag.
-func rpcLogTag(op string, routerID int64, ri *utils.RouterInstance) string {
-	tag := "op=" + op + " router_id=" + strconv.FormatInt(routerID, 10)
-	if ri != nil && ri.Config != nil {
-		tag += " router=" + ri.Config.Name + " type=" + ri.Config.Type
+// rpcLog is the component-tagged logger used by every RPC handler.
+var rpcLog = logging.Component("rpc")
+
+// rpcLogTag builds the slog attributes describing one RPC invocation.
+func rpcLogTag(op string, routerID int64, ri *utils.RouterInstance) []slog.Attr {
+	attrs := []slog.Attr{
+		slog.String("op", op),
+		slog.Int64("router_id", routerID),
 	}
-	return tag
+	if ri != nil && ri.Config != nil {
+		attrs = append(attrs,
+			slog.String("router", ri.Config.Name),
+			slog.String("type", ri.Config.Type))
+	}
+	return attrs
 }
 
-// logRPCError writes a detailed server-side line describing a failed RPC.
-func logRPCError(tag, stage string, err error) {
-	log.Printf("RPC: %s stage=%s: %v", tag, stage, err)
+// logRPCError emits one structured WARN event describing a failed RPC.
+func logRPCError(tag []slog.Attr, stage string, err error) {
+	attrs := make([]slog.Attr, 0, len(tag)+2)
+	attrs = append(attrs, tag...)
+	attrs = append(attrs, slog.String("stage", stage), slog.Any("err", err))
+	rpcLog.LogAttrs(context.Background(), slog.LevelWarn, "rpc failed", attrs...)
+}
+
+// logRPCStart emits a DEBUG event at the top of a successful RPC handler.
+func logRPCStart(tag []slog.Attr) {
+	rpcLog.LogAttrs(context.Background(), slog.LevelDebug, "rpc start", tag...)
+}
+
+// logRPCOK emits an INFO event summarising a successful RPC.
+func logRPCOK(tag []slog.Attr, start time.Time, raw []byte, pr parse.Result) {
+	attrs := make([]slog.Attr, 0, len(tag)+4)
+	attrs = append(attrs, tag...)
+	attrs = append(attrs,
+		slog.Duration("duration", time.Since(start)),
+		slog.Int("result_bytes", len(raw)),
+		slog.String("parser_kind", pr.Kind.String()),
+		slog.String("parse_status", pr.Status.String()))
+	rpcLog.LogAttrs(context.Background(), slog.LevelInfo, "rpc ok", attrs...)
+}
+
+// logRPCMetaStart emits a DEBUG event at the top of a metadata RPC
+// handler (one with no router context, like GetInfo or GetRouters).
+func logRPCMetaStart(op string, extra ...slog.Attr) {
+	attrs := make([]slog.Attr, 0, len(extra)+1)
+	attrs = append(attrs, slog.String("op", op))
+	attrs = append(attrs, extra...)
+	rpcLog.LogAttrs(context.Background(), slog.LevelDebug, "rpc start", attrs...)
+}
+
+// logRPCMetaOK emits an INFO event summarising a successful metadata
+// RPC. Metadata RPCs have no parser kind / status, so those fields are
+// deliberately absent here.
+func logRPCMetaOK(op string, start time.Time, extra ...slog.Attr) {
+	attrs := make([]slog.Attr, 0, len(extra)+2)
+	attrs = append(attrs, slog.String("op", op),
+		slog.Duration("duration", time.Since(start)))
+	attrs = append(attrs, extra...)
+	rpcLog.LogAttrs(context.Background(), slog.LevelInfo, "rpc ok", attrs...)
 }
 
 // runParser invokes the vendor-template-declared parser for op against
@@ -83,22 +132,33 @@ func NewLookingGlassService(ctx context.Context, rts utils.RouterMap) lookinggla
 
 // GetInfo returns the server's hostname and version string.
 func (s *LookingGlassService) GetInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetInfoResponse], error) {
+	start := time.Now()
+	logRPCMetaStart("GetInfo")
 	h, err := os.Hostname()
 	if err != nil {
 		h = "unknown"
 	}
+	version := utils.Version()
+	logRPCMetaOK("GetInfo", start,
+		slog.String("hostname", h),
+		slog.String("version", version))
 	return connect.NewResponse(&pb.GetInfoResponse{
 		Hostname: h,
-		Version:  utils.Version(),
+		Version:  version,
 	}), nil
 }
 
 // GetRouters returns one page of the router catalogue. Defaults: limit=10, page=1.
 func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Request[pb.GetRoutersRequest]) (*connect.Response[pb.GetRoutersResponse], error) {
+	tStart := time.Now()
 	var ret []*pb.Router
 	lim := req.Msg.GetLimit()
 	page := req.Msg.GetPageToken()
-	len := uint32(len(s.rts))
+	total := uint32(len(s.rts))
+	logRPCMetaStart("GetRouters",
+		slog.Uint64("limit", uint64(lim)),
+		slog.Uint64("page", uint64(page)),
+		slog.Uint64("total", uint64(total)))
 	if lim == 0 {
 		lim = 10
 	}
@@ -107,10 +167,14 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 	}
 	start := (page - 1) * lim
 	end := start + lim
-	if end > len {
-		end = len
+	if end > total {
+		end = total
 	}
-	if start > len {
+	if start > total {
+		logRPCMetaOK("GetRouters", tStart,
+			slog.Int("returned", 0),
+			slog.Uint64("total", uint64(total)),
+			slog.Uint64("next_page", 0))
 		return connect.NewResponse(&pb.GetRoutersResponse{}), nil
 	}
 	for k, v := range s.rts[start:end] {
@@ -128,10 +192,14 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 		})
 	}
 	var nextPage uint32
-	if end < len {
+	if end < total {
 		np := page + 1
 		nextPage = np
 	}
+	logRPCMetaOK("GetRouters", tStart,
+		slog.Int("returned", len(ret)),
+		slog.Uint64("total", uint64(total)),
+		slog.Uint64("next_page", uint64(nextPage)))
 	return connect.NewResponse(&pb.GetRoutersResponse{
 		Routers:  ret,
 		NextPage: nextPage,
@@ -147,6 +215,8 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("Ping", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
 	if err != nil {
 		logRPCError(tag, "parse_target", err)
@@ -168,6 +238,7 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	if ps, ok := pr.Payload.(*pb.PingStats); ok {
 		resp.Parsed = ps
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
 
@@ -180,6 +251,8 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("Traceroute", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
 	if err != nil {
 		logRPCError(tag, "parse_target", err)
@@ -201,6 +274,7 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	if tp, ok := pr.Payload.(*pb.TracerouteParsed); ok {
 		resp.Parsed = tp
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
 
@@ -213,6 +287,8 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("BGPSummary", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	ret, err := ri.BGPSummary()
 	if err != nil {
 		logRPCError(tag, "bgp_summary_exec", err)
@@ -229,6 +305,7 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 	if bs, ok := pr.Payload.(*pb.BGPSummaryParsed); ok {
 		resp.Parsed = bs
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
 
@@ -241,6 +318,8 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("BGPRoute", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
 	if err != nil {
 		logRPCError(tag, "parse_target", err)
@@ -262,6 +341,7 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
 
@@ -274,6 +354,8 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("BGPCommunity", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	community := req.Msg.GetCommunity()
 	if community == nil {
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
@@ -295,6 +377,7 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
 
@@ -307,6 +390,8 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("BGPLargeCommunity", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	community := req.Msg.GetCommunity()
 	if community == nil {
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
@@ -331,6 +416,7 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }
 
@@ -343,6 +429,8 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 		return nil, errs.UnknownRouter
 	}
 	tag := rpcLogTag("BGPASPath", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
 	aspath, err := utils.SanitizeASPathRegex(req.Msg.GetPattern())
 	if err != nil {
 		logRPCError(tag, "sanitize_aspath", err)
@@ -364,5 +452,6 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
 		resp.Parsed = bp
 	}
+	logRPCOK(tag, start, raw, pr)
 	return connect.NewResponse(resp), nil
 }

@@ -19,6 +19,23 @@ grpc:                                                                     # gRPC
         cert: "/path/to/cert"                                             #     certificate path (becomes optional if self_signed is true)
         key: "/path/to/key"                                               #     private key path (becomes optional if self_signed is true)
 
+logging:                                                                  # Logging event-stream Settings (all optional)
+    level: info                                                           #   default minimum level: debug | info | warn | error
+    format: json                                                          #   encoder: json (default) | text
+    output: stdout                                                        #   sink: stdout (default) | stderr | <file path>
+    source: false                                                         #   add file:line annotations to each record
+    components:                                                           #   optional per-component level overrides
+        ssh: info                                                         #     ssh: SSH client (publickey/password/keyboard-interactive)
+        http: info                                                        #     http: listener / TLS / Sentry / Redis wiring
+        httpaccess: info                                                  #     httpaccess: per-request structured access log
+        cache: info                                                       #     cache: Redis response cache middleware
+        rpc: info                                                         #     rpc: per-RPC failure diagnostics
+        health: info                                                      #     health: background router health-check loop
+        routers: info                                                     #     routers: device-to-template binding
+        yaml: info                                                        #     yaml: router-template YAML loader
+        tpl: info                                                         #     tpl: vendor-template command rendering
+        parse: info                                                       #     parse: textfsm/native_json/builtin output parsers
+
 redis:                                                                    #   Redis Cache Settings
     enabled: true                                                         #     Enable or disable cache
     ttl: 5m                                                               #     Cache TTL in seconds

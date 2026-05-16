@@ -96,7 +96,7 @@ jobs:
         sbom: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
         build-args: |
-          BUILD_DATE=${{ github.event.release.created_at }}
-          COMMIT=${{ github.sha }}
           VERSION=${{ github.event.release.tag_name }}

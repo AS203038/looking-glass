@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -81,22 +81,40 @@ func (TextFSMParser) Name() string { return "textfsm" }
 // Parse runs the configured TextFSM template against raw and projects
 // the resulting record list into the typed payload for op.
 func (p TextFSMParser) Parse(op Op, raw []byte, cfg Config) Result {
+	parseLog.Debug("parser run",
+		slog.String("parser", "textfsm"),
+		slog.String("op", string(op)),
+		slog.String("template", cfg.Template),
+		slog.Int("raw_bytes", len(raw)))
 	tpl, err := resolveTemplate(cfg.Template)
 	if err != nil {
 		if errors.Is(err, errTemplateMissing) {
-			log.Printf("PARSE: textfsm template missing op=%s name=%q", op, cfg.Template)
+			parseLog.Warn("textfsm template missing",
+				slog.String("op", string(op)),
+				slog.String("template", cfg.Template))
 			return Missing(pb.ParserKind_PARSER_KIND_TEXTFSM)
 		}
-		log.Printf("PARSE: textfsm template %q load failed op=%s: %v", cfg.Template, op, err)
+		parseLog.Error("textfsm template load failed",
+			slog.String("op", string(op)),
+			slog.String("template", cfg.Template),
+			slog.Any("err", err))
 		return Failed(pb.ParserKind_PARSER_KIND_TEXTFSM)
 	}
 	out := gotextfsm.ParserOutput{}
 	out.Reset(tpl)
 	if err := out.ParseTextString(string(raw), tpl, true); err != nil {
-		log.Printf("PARSE: textfsm exec failed op=%s name=%q: %v", op, cfg.Template, err)
+		parseLog.Error("textfsm exec failed",
+			slog.String("op", string(op)),
+			slog.String("template", cfg.Template),
+			slog.Any("err", err))
 		return Failed(pb.ParserKind_PARSER_KIND_TEXTFSM)
 	}
 	records := out.Dict
+	parseLog.Debug("parser ok",
+		slog.String("parser", "textfsm"),
+		slog.String("op", string(op)),
+		slog.String("template", cfg.Template),
+		slog.Int("records", len(records)))
 	switch op {
 	case OpPing:
 		return tfsmPingResult(records)
@@ -107,7 +125,8 @@ func (p TextFSMParser) Parse(op Op, raw []byte, cfg Config) Result {
 	case OpBGPRoute, OpBGPCommunity, OpBGPLargeCommunity, OpBGPASPath:
 		return tfsmBGPPathsResult(records)
 	default:
-		log.Printf("PARSE: textfsm parser has no projection for op=%s", op)
+		parseLog.Warn("textfsm parser has no projection",
+			slog.String("op", string(op)))
 		return Failed(pb.ParserKind_PARSER_KIND_TEXTFSM)
 	}
 }

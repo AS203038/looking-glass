@@ -19,6 +19,7 @@ devices:        []          # required (may be empty but key must exist)
 grpc:           {}          # gRPC/HTTP listener
 web:            {}          # embedded WebUI + runtime env
 redis:          {}          # optional response cache
+logging:        {}          # optional slog-based event-stream settings
 security.txt:   {}          # optional RFC 9116 endpoint
 ```
 
@@ -183,12 +184,85 @@ The cache key is `md5(request_path || request_body)`. Hits replay
 the entire stored response (status, headers, body) and set
 `X-Cache: HIT` so the access log shows cache effectiveness:
 
-```
-192.0.2.42 "POST /lookingglass.v0.LookingGlassService/Ping HTTP/2.0" 200 1234 "" "grpc-web/1.0" 12.4ms HIT
+```json
+{"time":"2026-05-16T06:00:00Z","level":"INFO","msg":"http access","component":"httpaccess","remote":"192.0.2.42","method":"POST","uri":"/lookingglass.v0.LookingGlassService/Ping","status":200,"duration":12400000,"cache":"HIT"}
 ```
 
 There is no manual invalidation API. Wait for the TTL or flush the
 Redis database.
+
+## `logging` (optional)
+
+The server emits every diagnostic event through `log/slog`. Records
+are filtered by a configurable minimum level (default `info`),
+encoded in a configurable format (default `json`), and written to a
+configurable sink (default `stdout`). Each event carries a
+`component=<name>` attribute identifying the subsystem so operators
+can grep / filter / aggregate by subsystem.
+
+```yaml
+logging:
+  level: info               # debug | info | warn | error
+  format: json              # json | text
+  output: stdout            # stdout | stderr | <file path>
+  source: false             # add file:line annotations
+  components:               # per-component level overrides
+    ssh: debug
+    parse: warn
+```
+
+| Key          | Type   | Default  | Notes                                                                                                                                          |
+| ------------ | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `level`      | string | `info`   | Default minimum level for all components.                                                                                                       |
+| `format`     | string | `json`   | `json` for machine-parseable output; `text` for slog's `key=value` form when tailing a terminal.                                               |
+| `output`     | string | `stdout` | Sink. `stdout`, `stderr`, or a filesystem path. Files are opened with `O_APPEND|O_CREATE`; rotate them out-of-process.                          |
+| `source`     | bool   | `false`  | When true, each record carries `source` (file:line). Useful for debugging at higher cost.                                                       |
+| `components` | map    | `{}`     | Per-component level overrides; a component's threshold replaces `level` for that subsystem. Unknown components are accepted (no-op).            |
+
+The HTTP access log, previously emitted in Apache Common Log Format,
+is now a structured `INFO` record on the `httpaccess` component
+carrying every field the old single-line format carried.
+
+### Components
+
+Each component emits events at the levels below. Setting `level: debug`
+globally (or for one component via `components: { name: debug }`) turns
+on the additional per-request / per-tick / per-render visibility marked
+"DEBUG". The default `level: info` is appropriate for production.
+
+| Component    | DEBUG events                                                                                  | INFO/WARN/ERROR events                                                       |
+| ------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `server`     | —                                                                                             | `server starting` (version, pid, devices) / `server shutting down`.          |
+| `http`       | —                                                                                             | `listening` / `connecting to redis` / TLS choice / Sentry init.              |
+| `httpaccess` | —                                                                                             | One `INFO http access` record per request.                                   |
+| `cache`      | `cache hit` / `cache miss` / `cache entry malformed` / `cache store ok`.                      | `marshal cache entry failed` / `store cache entry failed` (ERROR).           |
+| `rpc`        | `rpc start` (per handler entry).                                                              | `rpc ok` (INFO per success: op, router, duration, parser kind/status); `rpc failed` (WARN). |
+| `health`     | `healthcheck tick` (per minute) / `healthcheck probe ok` / `healthcheck probe failed` (per router). | State transitions only: `router healthy` (INFO) / `router unhealthy` (WARN). |
+| `ssh`        | `ssh dial start` / `ssh dial ok` / `ssh exec start` / `ssh exec ok` / `ssh client close`.    | `dial failed` / `new session failed` / `command failed` (ERROR).             |
+| `routers`    | `router bound` per device.                                                                    | `router catalogue built` summary (INFO); `router type not found` (ERROR).    |
+| `yaml`       | —                                                                                             | `router registered` per template; `unknown parser kind` (WARN); load failures (ERROR + exit). |
+| `tpl`        | `tpl render` per rendered command (with the final rendered string).                          | `operation not defined for router` (WARN); `parse failed` / `execute failed` (ERROR). |
+| `parse`      | `parser run` / `parser ok` (per parser invocation: parser, op, raw bytes, records/paths/peers/hops). | `template missing` / `no projection` (WARN); load / exec failures (ERROR).  |
+| `stdlog`     | —                                                                                             | Anything routed via the stdlib `log` package (e.g. `net/http` server errors). |
+
+### Process exit codes
+
+The server uses distinct exit codes for distinct startup failures so
+the cause is recoverable from the shell without scraping log output:
+
+| Code | Source                              | Meaning                                                |
+| ---: | ----------------------------------- | ------------------------------------------------------ |
+|    2 | `cmd/server/main.go`                | Embedded WebUI filesystem unavailable.                 |
+|    3 | `cmd/server/main.go`                | `config.yaml` parse failed.                            |
+|    4 | `cmd/server/main.go`                | `logging.Init` failed (bad level / format / output).   |
+|   10 | `pkg/routers/routers.go::register`  | Router template registered with an empty name.         |
+|   11 | `pkg/routers/routers.go::register`  | Duplicate router-template name.                        |
+|   20 | `pkg/routers/yaml.go::init`         | `ROUTER_DIR` directory unreadable.                     |
+|   21 | `pkg/routers/yaml.go::init`         | YAML file in `ROUTER_DIR` unreadable.                  |
+|   22 | `pkg/routers/yaml.go::init`         | YAML file in `ROUTER_DIR` unparseable.                 |
+|   23 | `pkg/routers/yaml.go::init`         | Embedded template directory unreadable.                |
+|   24 | `pkg/routers/yaml.go::init`         | Embedded template file unreadable.                     |
+|   25 | `pkg/routers/yaml.go::init`         | Embedded template file unparseable.                    |
 
 ## `security.txt` (optional)
 
@@ -233,11 +307,13 @@ Loading rules (see `pkg/routers/yaml.go`):
    no template under its name has been registered yet; otherwise a
    warning is logged and the bundled copy is skipped.
 
-Any parse or read error at this stage **panics** — a malformed
-template would otherwise render the device that references it
-permanently broken at request time, and failing at startup is
-strictly better than failing on every request. Validate templates
-before deploying them.
+Any parse or read error at this stage logs an `ERROR` event and
+exits the process with a distinct non-zero exit code (20–25,
+[see exit-code table](#process-exit-codes)) — a malformed template
+would otherwise render the device that references it permanently
+broken at request time, and failing at startup is strictly better
+than failing on every request. Validate templates before deploying
+them.
 
 See [router-templates.md](./router-templates.md) for authoring
 guidance.
@@ -309,13 +385,14 @@ In case it saves you time grepping:
 
 | Input                                   | Behaviour                                                              |
 | --------------------------------------- | ---------------------------------------------------------------------- |
-| `config.yaml` missing                   | `log.Fatalf` (process exits).                                          |
-| Malformed YAML                          | `log.Fatalf` (process exits).                                          |
+| `config.yaml` missing                   | Logged at ERROR; process exits with code 3.                            |
+| Malformed YAML                          | Logged at ERROR; process exits with code 3.                            |
+| Invalid `logging.*` key                 | Logged at ERROR; process exits with code 4.                            |
 | Device without `hostname`               | Silently dropped from `devices`.                                       |
 | Device without `source4` / `source6`    | Defaults inserted (`127.0.0.1` / `::1`).                                |
 | Device with unknown `type:`             | Logged and skipped; remaining devices keep their IDs from list order. |
 | Invalid `redis.ttl`                     | Falls back to 60s; logged at WARNING.                                  |
 | Invalid `redis.uri`                     | Cache disabled; logged at ERROR; server keeps starting.                |
 | Bundled template name clash             | Embedded copy skipped; external (ROUTER_DIR) copy wins; warning logged. |
-| External template parse error           | Panic at startup.                                                      |
+| External template parse error           | Logged at ERROR; process exits with code 22.                           |
 | Template missing requested op           | RPC returns `errs.OperationUnknown` ("operation unknown").             |

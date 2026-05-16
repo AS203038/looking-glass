@@ -11,13 +11,15 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
+	stdlog "log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/AS203038/looking-glass/pkg/http/grpc"
 	"github.com/AS203038/looking-glass/pkg/http/webui"
+	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
@@ -71,9 +73,13 @@ type CacheEntry struct {
 // MD5(path+body). Cache hits set the X-Cache: HIT response header;
 // cache writes are async. TTL falls back to 60s when malformed.
 func cacheHandler(cfg utils.RedisConfig, h http.Handler) http.Handler {
+	log := logging.Component("cache")
 	ttl, err := time.ParseDuration(cfg.TTL)
 	if err != nil {
-		log.Println("WARNING: Failed to parse TTL:", err, "using default of 60 seconds")
+		log.Warn("ttl parse failed; using default",
+			slog.String("ttl", cfg.TTL),
+			slog.Duration("default", 60*time.Second),
+			slog.Any("err", err))
 		ttl = 60 * time.Second
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +91,10 @@ func cacheHandler(cfg utils.RedisConfig, h http.Handler) http.Handler {
 			var cacheEntry CacheEntry
 			err = json.Unmarshal([]byte(cachedResponse), &cacheEntry)
 			if err == nil {
+				log.Debug("cache hit",
+					slog.String("key", cacheKey),
+					slog.String("path", r.URL.Path),
+					slog.Int("body_bytes", len(cacheEntry.Body)))
 				w.Header().Set("X-Cache", "HIT")
 				for k, v := range cacheEntry.Header {
 					w.Header()[k] = v
@@ -95,6 +105,13 @@ func cacheHandler(cfg utils.RedisConfig, h http.Handler) http.Handler {
 				w.Write(cacheEntry.Body)
 				return
 			}
+			log.Debug("cache entry malformed; treating as miss",
+				slog.String("key", cacheKey),
+				slog.Any("err", err))
+		} else {
+			log.Debug("cache miss",
+				slog.String("key", cacheKey),
+				slog.String("path", r.URL.Path))
 		}
 
 		responseWriter := &httpwriter{ResponseWriter: w}
@@ -108,20 +125,30 @@ func cacheHandler(cfg utils.RedisConfig, h http.Handler) http.Handler {
 			}
 			cachejson, err := json.Marshal(cacheEntry)
 			if err != nil {
-				log.Println("ERROR: Failed to marshal cache entry:", err)
+				log.Error("marshal cache entry failed",
+					slog.String("key", cacheKey),
+					slog.Any("err", err))
 				return
 			}
 			_, err = redisClient.Set(context.Background(), cacheKey, cachejson, ttl).Result()
 			if err != nil {
-				log.Println("ERROR: Failed to cache response:", err)
+				log.Error("store cache entry failed",
+					slog.String("key", cacheKey),
+					slog.Any("err", err))
+				return
 			}
+			log.Debug("cache store ok",
+				slog.String("key", cacheKey),
+				slog.Int("body_bytes", len(cacheEntry.Body)),
+				slog.Duration("ttl", ttl))
 		}()
 	})
 }
 
-// loggingHandler wraps h with an Apache Common Log Format access log
-// and emits the process version as an ETag for static asset 304s.
+// loggingHandler wraps h with a structured slog access log and emits
+// the process version as an ETag for static asset 304s.
 func loggingHandler(h http.Handler) http.Handler {
+	log := logging.Component("httpaccess")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -136,22 +163,21 @@ func loggingHandler(h http.Handler) http.Handler {
 			h.ServeHTTP(wr, r)
 		}
 
-		p := r.Header.Get("X-Forwarded-For")
-		if p == "" {
-			p = r.RemoteAddr
+		remote := r.Header.Get("X-Forwarded-For")
+		if remote == "" {
+			remote = r.RemoteAddr
 		}
-		c := wr.Header().Get("X-Cache")
-		log.Printf("%s \"%s %s %s\" %d %d \"%s\" \"%s\" %s %s",
-			p,
-			r.Method,
-			r.RequestURI,
-			r.Proto,
-			wr.Status,
-			r.ContentLength,
-			r.Referer(),
-			r.UserAgent(),
-			time.Since(start),
-			c,
+		log.Info("http access",
+			slog.String("remote", remote),
+			slog.String("method", r.Method),
+			slog.String("uri", r.RequestURI),
+			slog.String("proto", r.Proto),
+			slog.Int("status", wr.Status),
+			slog.Int64("content_length", r.ContentLength),
+			slog.String("referer", r.Referer()),
+			slog.String("user_agent", r.UserAgent()),
+			slog.Duration("duration", time.Since(start)),
+			slog.String("cache", wr.Header().Get("X-Cache")),
 		)
 	})
 }
@@ -168,6 +194,7 @@ func SecurityTxtInjector(cfg utils.SecurityTxtConfig) http.Handler {
 // ListenAndServe builds the middleware stack and starts the HTTP/2
 // listener described by cfg. It blocks for the lifetime of the listener.
 func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap, webfs fs.FS) error {
+	log := logging.Component("http")
 	mux := http.NewServeMux()
 	if cfg.Grpc.Enabled {
 		grpc.Mux(ctx, mux, rts)
@@ -213,9 +240,11 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 	if cfg.Redis.Enabled {
 		opts, err := redis.ParseURL(cfg.Redis.URI)
 		if err != nil {
-			log.Println("ERROR: Failed to parse Redis URL:", err, "disabling Redis cache")
+			log.Error("redis url parse failed; cache disabled",
+				slog.String("uri", cfg.Redis.URI),
+				slog.Any("err", err))
 		} else {
-			log.Println("NOTICE: Connecting to Redis at", cfg.Redis.URI)
+			log.Info("connecting to redis", slog.String("uri", cfg.Redis.URI))
 			redisClient = redis.NewClient(opts)
 			handler = cacheHandler(cfg.Redis, handler)
 		}
@@ -232,9 +261,10 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 			Environment:      cfg.Web.Sentry.Environment,
 		})
 		if err != nil {
-			log.Println("WARNING: Failed to initialize Sentry:", err, "disabling Sentry middleware")
+			log.Warn("sentry init failed; sentry middleware disabled",
+				slog.Any("err", err))
 		} else {
-			log.Println("NOTICE: Sentry initialized")
+			log.Info("sentry initialized")
 			handler = sentryhttp.New(
 				sentryhttp.Options{
 					Repanic:         true,
@@ -244,16 +274,18 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 		}
 	}
 
+	// Route net/http server errors through slog at ERROR via the
+	// stdlib bridge installed by logging.Init.
 	srv := &http.Server{
 		Addr:     cfg.Grpc.Listen,
-		ErrorLog: log.Default(),
+		ErrorLog: stdlog.Default(),
 	}
 
 	if cfg.Grpc.TLS.Enabled {
-		log.Printf("NOTICE: Listening on %s with TLS", cfg.Grpc.Listen)
+		log.Info("listening", slog.String("addr", cfg.Grpc.Listen), slog.Bool("tls", true))
 		srv.Handler = handler
 		if cfg.Grpc.TLS.SelfSigned {
-			log.Printf("NOTICE: Using self-signed certificate")
+			log.Info("using self-signed certificate")
 			key, crt, err := utils.GenerateSelfSignedPair()
 			if err != nil {
 				panic(err)
@@ -266,11 +298,12 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 			}
 			srv.ListenAndServeTLS("", "")
 		} else {
-			log.Printf("NOTICE: Using certificate %s", cfg.Grpc.TLS.Cert)
+			log.Info("using configured certificate",
+				slog.String("cert", cfg.Grpc.TLS.Cert))
 			srv.ListenAndServeTLS(cfg.Grpc.TLS.Cert, cfg.Grpc.TLS.Key)
 		}
 	} else {
-		log.Printf("NOTICE: Listening on %s", cfg.Grpc.Listen)
+		log.Info("listening", slog.String("addr", cfg.Grpc.Listen), slog.Bool("tls", false))
 		srv.Handler = h2c.NewHandler(handler, &http2.Server{})
 		srv.ListenAndServe()
 	}

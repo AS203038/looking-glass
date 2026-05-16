@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AS203038/looking-glass/pkg/logging"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -35,6 +36,8 @@ type Config struct {
 	SecurityTxt SecurityTxtConfig `yaml:"security.txt"`
 	// Redis configures the optional response cache.
 	Redis RedisConfig `yaml:"redis"`
+	// Logging controls the slog-based event stream.
+	Logging logging.Config `yaml:"logging"`
 }
 
 // RouterConfig describes a single managed device.
