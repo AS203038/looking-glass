@@ -2,7 +2,6 @@ SHELL          := /usr/bin/env bash
 .SHELLFLAGS    := -eu -o pipefail -c
 
 GO             ?= go
-NPM            ?= npm
 PNPM           ?= pnpm
 BUF            ?= buf
 DOCKER         ?= docker
@@ -65,7 +64,7 @@ install-webui: ## Install webui npm/pnpm dependencies
 .PHONY: install-proto
 install-proto: ## Install protobuf workspace dependencies
 	@printf "$(BOLD)>> Installing protobuf dependencies$(RESET)\n"
-	cd $(PROTO_DIR) && $(NPM) install
+	cd $(PROTO_DIR) && $(PNPM) install
 
 .PHONY: install-tools
 install-tools: ## Install developer CLI tools (buf)

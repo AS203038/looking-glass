@@ -20,23 +20,39 @@
 			{#if oldStats.lossPct !== newStats.lossPct}
 				<span class="line-through opacity-50">{oldStats.lossPct}%</span>
 			{/if}
-			<span class="font-semibold" style="color: {newStats.lossPct > 0 ? 'var(--color-danger)' : 'var(--color-success)'}">
+			<span
+				class="font-semibold"
+				style="color: {newStats.lossPct > 0 ? 'var(--color-danger)' : 'var(--color-success)'}"
+			>
 				{newStats.lossPct}%
 			</span>
 		</div>
 	</div>
 	<div class="flex flex-col gap-1">
 		<span style="color: var(--color-fg-muted);">Sent / Recv</span>
-		<span>{diffStr(oldStats.packetsSent, newStats.packetsSent)} / {diffStr(oldStats.packetsReceived, newStats.packetsReceived)}</span>
+		<span
+			>{diffStr(oldStats.packetsSent, newStats.packetsSent)} / {diffStr(
+				oldStats.packetsReceived,
+				newStats.packetsReceived
+			)}</span
+		>
 	</div>
 	<div class="flex flex-col gap-1">
 		<span style="color: var(--color-fg-muted);">Min / Avg / Max</span>
 		<span>
-			{oldStats.rttMinMs === newStats.rttMinMs ? newStats.rttMinMs : `${oldStats.rttMinMs}➔${newStats.rttMinMs}`}/{oldStats.rttAvgMs === newStats.rttAvgMs ? newStats.rttAvgMs : `${oldStats.rttAvgMs}➔${newStats.rttAvgMs}`}/{oldStats.rttMaxMs === newStats.rttMaxMs ? newStats.rttMaxMs : `${oldStats.rttMaxMs}➔${newStats.rttMaxMs}`}
+			{oldStats.rttMinMs === newStats.rttMinMs
+				? newStats.rttMinMs
+				: `${oldStats.rttMinMs}➔${newStats.rttMinMs}`}/{oldStats.rttAvgMs === newStats.rttAvgMs
+				? newStats.rttAvgMs
+				: `${oldStats.rttAvgMs}➔${newStats.rttAvgMs}`}/{oldStats.rttMaxMs === newStats.rttMaxMs
+				? newStats.rttMaxMs
+				: `${oldStats.rttMaxMs}➔${newStats.rttMaxMs}`}
 		</span>
 	</div>
 	<div class="flex flex-col gap-1">
 		<span style="color: var(--color-fg-muted);">Target</span>
-		<span class="truncate" title="{diffStr(oldStats.target, newStats.target)}">{diffStr(oldStats.target, newStats.target)}</span>
+		<span class="truncate" title={diffStr(oldStats.target, newStats.target)}
+			>{diffStr(oldStats.target, newStats.target)}</span
+		>
 	</div>
 </div>

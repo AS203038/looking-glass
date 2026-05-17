@@ -42,15 +42,15 @@
 			if (map.has(k)) {
 				const existing = map.get(k)!;
 				existing.new = p;
-				
+
 				const o = existing.old!;
-				const changed = 
-					o.best !== p.best || 
-					o.localPref !== p.localPref || 
-					o.med !== p.med || 
+				const changed =
+					o.best !== p.best ||
+					o.localPref !== p.localPref ||
+					o.med !== p.med ||
 					o.origin !== p.origin ||
 					o.asPath?.join(' ') !== p.asPath?.join(' ');
-					
+
 				existing.status = changed ? 'changed' : 'unchanged';
 			} else {
 				map.set(k, { key: k, new: p, status: 'added' });
@@ -74,7 +74,11 @@
 
 	const virtualized = $derived(rows.length > VIRTUAL_THRESHOLD);
 	const startIdx = $derived(virtualized ? Math.max(0, Math.floor(scrollTop / ROW_PX) - 5) : 0);
-	const visibleCount = $derived(virtualized ? Math.min(rows.length - startIdx, Math.ceil(clientHeight / ROW_PX) + 10) : rows.length);
+	const visibleCount = $derived(
+		virtualized
+			? Math.min(rows.length - startIdx, Math.ceil(clientHeight / ROW_PX) + 10)
+			: rows.length
+	);
 	const endIdx = $derived(startIdx + visibleCount);
 	const padTopPx = $derived(virtualized ? startIdx * ROW_PX : 0);
 	const padBotPx = $derived(virtualized ? (rows.length - endIdx) * ROW_PX : 0);
@@ -93,7 +97,10 @@
 	bind:clientHeight
 >
 	<table class="w-full font-mono text-xs">
-		<thead class="sticky top-0 z-10" style="background-color: var(--color-bg-inset); color: var(--color-fg-subtle);">
+		<thead
+			class="sticky top-0 z-10"
+			style="background-color: var(--color-bg-inset); color: var(--color-fg-subtle);"
+		>
 			<tr class="text-left">
 				<th class="w-6 px-2 py-2"></th>
 				<th class="w-6 px-2 py-2">Diff</th>
@@ -108,10 +115,21 @@
 				<tr style="height: {padTopPx}px;"><td colspan="6"></td></tr>
 			{/if}
 			{#each visibleRows as r (r.key)}
-				<tr class="border-t" style="border-color: var(--color-border); height: {virtualized ? ROW_PX + 'px' : 'auto'}; background-color: {r.status === 'added' ? 'color-mix(in oklab, var(--color-success) 10%, transparent)' : r.status === 'removed' ? 'color-mix(in oklab, var(--color-danger) 10%, transparent)' : r.status === 'changed' ? 'color-mix(in oklab, var(--color-warning) 10%, transparent)' : 'transparent'};">
+				<tr
+					class="border-t"
+					style="border-color: var(--color-border); height: {virtualized
+						? ROW_PX + 'px'
+						: 'auto'}; background-color: {r.status === 'added'
+						? 'color-mix(in oklab, var(--color-success) 10%, transparent)'
+						: r.status === 'removed'
+							? 'color-mix(in oklab, var(--color-danger) 10%, transparent)'
+							: r.status === 'changed'
+								? 'color-mix(in oklab, var(--color-warning) 10%, transparent)'
+								: 'transparent'};"
+				>
 					<td class="px-2 py-1.5 align-top">
 						{#if (r.new || r.old)?.best}
-							<Check size={14} class="mt-0.5 text-green-500" title="Best path" />
+							<Check size={14} class="mt-0.5 text-(--color-success)" title="Best path" />
 						{/if}
 					</td>
 					<td class="px-2 py-1.5 align-top font-bold">
@@ -121,29 +139,29 @@
 						{/if}
 					</td>
 					<td class="px-3 py-1.5 align-top whitespace-nowrap">{(r.new || r.old)?.nexthop}</td>
-					
-					<td class="px-3 py-1.5 align-top text-right whitespace-nowrap">
+
+					<td class="px-3 py-1.5 text-right align-top whitespace-nowrap">
 						{#if r.status === 'changed' && r.old?.med !== r.new?.med}
-							<span class="line-through opacity-50 mr-1">{r.old?.med ?? '—'}</span>
-							<span class="font-bold text-green-500">{r.new?.med ?? '—'}</span>
+							<span class="mr-1 line-through opacity-50">{r.old?.med ?? '—'}</span>
+							<span class="font-bold text-(--color-success)">{r.new?.med ?? '—'}</span>
 						{:else}
 							{(r.new || r.old)?.med ?? '—'}
 						{/if}
 					</td>
-					
-					<td class="px-3 py-1.5 align-top text-right whitespace-nowrap">
+
+					<td class="px-3 py-1.5 text-right align-top whitespace-nowrap">
 						{#if r.status === 'changed' && r.old?.localPref !== r.new?.localPref}
-							<span class="line-through opacity-50 mr-1">{r.old?.localPref ?? '—'}</span>
-							<span class="font-bold text-green-500">{r.new?.localPref ?? '—'}</span>
+							<span class="mr-1 line-through opacity-50">{r.old?.localPref ?? '—'}</span>
+							<span class="font-bold text-(--color-success)">{r.new?.localPref ?? '—'}</span>
 						{:else}
 							{(r.new || r.old)?.localPref ?? '—'}
 						{/if}
 					</td>
 
-					<td class="px-3 py-1.5 align-top min-w-0 break-words">
+					<td class="min-w-0 px-3 py-1.5 align-top break-words">
 						{#if r.status === 'changed' && r.old?.asPath?.join(' ') !== r.new?.asPath?.join(' ')}
 							<div class="line-through opacity-50">{r.old?.asPath?.join(' ') || '—'}</div>
-							<div class="font-bold text-green-500">{r.new?.asPath?.join(' ') || '—'}</div>
+							<div class="font-bold text-(--color-success)">{r.new?.asPath?.join(' ') || '—'}</div>
 						{:else}
 							{(r.new || r.old)?.asPath?.join(' ') || '—'}
 						{/if}

@@ -53,6 +53,8 @@ export interface ExecResult {
 	parserKind: Pb.ParserKind;
 	/** Server-reported parse outcome. */
 	parseStatus: Pb.ParseStatus;
+	/** True if the result was served from the backend cache. */
+	cached: boolean;
 }
 
 export const command = writable<CommandValue | ''>('');
@@ -129,11 +131,21 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 		resolvedCommand: resolveCommand(cmd, param),
 		parsed: null,
 		parserKind: 0,
-		parseStatus: 1
+		parseStatus: 1,
+		cached: false
 	};
 	results.update((r) => ({ ...r, [key]: base }));
 
 	const client = LookingGlassClient();
+	let isCached = false;
+	const callOptions = {
+		onHeader: (headers: Headers) => {
+			if (headers.get('x-cache') === 'HIT') {
+				isCached = true;
+			}
+		}
+	};
+
 	try {
 		let res:
 			| Pb.PingResponse
@@ -146,33 +158,39 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 
 		switch (cmd) {
 			case 'ping':
-				res = await client.ping({ routerId: router.id, target: param });
+				res = await client.ping({ routerId: router.id, target: param }, callOptions);
 				break;
 			case 'traceroute':
-				res = await client.traceroute({ routerId: router.id, target: param });
+				res = await client.traceroute({ routerId: router.id, target: param }, callOptions);
 				break;
 			case 'bgp_summary':
-				res = await client.bGPSummary({ routerId: router.id });
+				res = await client.bGPSummary({ routerId: router.id }, callOptions);
 				break;
 			case 'bgp_route':
-				res = await client.bGPRoute({ routerId: router.id, target: param });
+				res = await client.bGPRoute({ routerId: router.id, target: param }, callOptions);
 				break;
 			case 'bgp_community': {
 				const parts = param.split(':');
 				if (parts.length === 2) {
-					res = await client.bGPCommunity({
-						routerId: router.id,
-						community: { asn: parseInt(parts[0], 10), value: parseInt(parts[1], 10) }
-					});
+					res = await client.bGPCommunity(
+						{
+							routerId: router.id,
+							community: { asn: parseInt(parts[0], 10), value: parseInt(parts[1], 10) }
+						},
+						callOptions
+					);
 				} else if (parts.length === 3) {
-					res = await client.bGPLargeCommunity({
-						routerId: router.id,
-						community: {
-							globalAdmin: parseInt(parts[0], 10),
-							localData1: parseInt(parts[1], 10),
-							localData2: parseInt(parts[2], 10)
-						}
-					});
+					res = await client.bGPLargeCommunity(
+						{
+							routerId: router.id,
+							community: {
+								globalAdmin: parseInt(parts[0], 10),
+								localData1: parseInt(parts[1], 10),
+								localData2: parseInt(parts[2], 10)
+							}
+						},
+						callOptions
+					);
 				} else {
 					throw new Error(
 						`Invalid community "${param}": expected ASN:VALUE or GLOBAL:LOCAL1:LOCAL2`
@@ -181,7 +199,7 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 				break;
 			}
 			case 'bgp_aspath_regex':
-				res = await client.bGPASPath({ routerId: router.id, pattern: param });
+				res = await client.bGPASPath({ routerId: router.id, pattern: param }, callOptions);
 				break;
 			default:
 				throw new Error(`Unknown command: ${cmd}`);
@@ -195,7 +213,8 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 			timestamp: new Date(tsSeconds * 1000),
 			parsed: pickParsed(cmd, res),
 			parserKind: (res as { parserKind?: Pb.ParserKind }).parserKind ?? 0,
-			parseStatus: (res as { parseStatus?: Pb.ParseStatus }).parseStatus ?? 1
+			parseStatus: (res as { parseStatus?: Pb.ParseStatus }).parseStatus ?? 1,
+			cached: isCached
 		};
 		results.update((r) => ({ ...r, [key]: done }));
 		return done;
@@ -236,12 +255,13 @@ export async function run(cmd: CommandValue, param: string) {
 			resolvedCommand: resolveCommand(cmd, param),
 			parsed: null,
 			parserKind: 0,
-			parseStatus: 1
+			parseStatus: 1,
+			cached: false
 		};
 	}
 	results.set(seed);
 
 	await Promise.all(routers.map((r) => runOne(r, cmd, param)));
-	
+
 	pushHistory(cmd, param, routers, get(results));
 }

@@ -39,9 +39,11 @@
 
 	let viewMode = $state<'structured' | 'raw'>('structured');
 	const canStructured = $derived(result.parsed != null);
-	
+
 	let compareWith = $state<ExecResult | null>(null);
-	let diffViewMode = $state<'diff' | 'raw-split' | 'structured-split' | 'structured-diff'>('structured-diff');
+	let diffViewMode = $state<'diff' | 'raw-split' | 'structured-split' | 'structured-diff'>(
+		'structured-diff'
+	);
 
 	const pastRuns = $derived.by(() => {
 		if (!result || !result.timestamp) return [];
@@ -52,7 +54,7 @@
 				if (!pastRes || !pastRes.timestamp) continue;
 				// Skip if it's the exact same execution instance
 				if (pastRes.timestamp.getTime() === result.timestamp.getTime()) continue;
-				
+
 				if (pastRes.status === 'done') {
 					matches.push({ timestamp: h.timestamp, result: pastRes });
 				}
@@ -73,26 +75,30 @@
 		return decoder.decode(bytes);
 	}
 
-	interface DiffLine { value: string; added?: boolean; removed?: boolean; }
+	interface DiffLine {
+		value: string;
+		added?: boolean;
+		removed?: boolean;
+	}
 	let diffLinesArr = $state<DiffLine[]>([]);
 	let diffLoading = $state(false);
 	let diffError = $state<string | null>(null);
 	let diffWorker: Worker | null = null;
-	
+
 	$effect(() => {
 		if (!compareWith || diffViewMode !== 'diff') return;
-		
+
 		const oldStr = decode(compareWith.bytes);
 		const newStr = decode(result.bytes);
-		
+
 		diffLoading = true;
 		diffError = null;
 		diffLinesArr = [];
-		
+
 		if (!diffWorker) {
 			diffWorker = new DiffWorker();
 		}
-		
+
 		diffWorker.onmessage = (e) => {
 			if (e.data.type === 'success') {
 				diffLinesArr = e.data.lines;
@@ -101,10 +107,10 @@
 			}
 			diffLoading = false;
 		};
-		
+
 		diffWorker.postMessage({ oldStr, newStr });
 	});
-	
+
 	onDestroy(() => {
 		if (diffWorker) {
 			diffWorker.terminate();
@@ -184,7 +190,11 @@
 	}
 </script>
 
-<article class="lg-card flex flex-col overflow-hidden" style="max-height: calc(var(--sheet-body-height) - 2rem);" in:fade={{ duration: 150 }}>
+<article
+	class="lg-card flex flex-col overflow-hidden"
+	style="max-height: calc(var(--sheet-body-height) - 2rem);"
+	in:fade={{ duration: 150 }}
+>
 	<header
 		class="flex flex-wrap items-center gap-2 border-b px-4 py-3"
 		style="border-color: var(--color-border);"
@@ -217,34 +227,47 @@
 
 		<div class="ml-auto flex items-center gap-2">
 			{#if pastRuns.length > 0}
-				<select 
-					class="lg-input py-1 px-2 text-xs h-7 min-w-[100px]" 
+				<select
+					class="lg-input h-7 min-w-[100px] px-2 py-1 text-xs"
 					style="background-color: var(--color-bg-inset);"
-					value={compareWith && compareWith.timestamp ? String(compareWith.timestamp.getTime()) : ''} 
+					value={compareWith && compareWith.timestamp
+						? String(compareWith.timestamp.getTime())
+						: ''}
 					onchange={(e) => {
 						const val = e.currentTarget.value;
 						if (!val) {
 							compareWith = null;
 						} else {
 							const ts = parseInt(val);
-							compareWith = pastRuns.find(r => r.result.timestamp && r.result.timestamp.getTime() === ts)?.result || null;
+							compareWith =
+								pastRuns.find((r) => r.result.timestamp && r.result.timestamp.getTime() === ts)
+									?.result || null;
 						}
 					}}
 				>
 					<option value="">Compare…</option>
 					{#each pastRuns as run}
-						<option value={run.result.timestamp ? String(run.result.timestamp.getTime()) : ''}>vs {relativeTime(run.timestamp, nowDate)}</option>
+						<option value={run.result.timestamp ? String(run.result.timestamp.getTime()) : ''}
+							>vs {relativeTime(run.timestamp, nowDate)}</option
+						>
 					{/each}
 				</select>
+			{/if}
+
+			{#if result.cached}
+				<span
+					class="lg-badge lg-badge-info tracking-wider uppercase"
+					style="font-size: 9px; padding: 0.125rem 0.375rem; height: max-content;">Cached</span
+				>
 			{/if}
 
 			{#if result.timestamp}
 				<time
 					class="flex items-center gap-1 font-mono text-xs"
-				style="color: var(--color-fg-subtle);"
-				datetime={isoTime(result.timestamp)}
-				title={absoluteTime(result.timestamp)}
-			>
+					style="color: var(--color-fg-subtle);"
+					datetime={isoTime(result.timestamp)}
+					title={absoluteTime(result.timestamp)}
+				>
 					<Clock size={11} class="opacity-60" />
 					{relativeTime(result.timestamp, nowDate)}
 				</time>
@@ -268,12 +291,17 @@
 			style="border-color: var(--color-border);"
 		>
 			{#if compareWith}
-				<div class="inline-flex overflow-hidden rounded-md border" style="border-color: var(--color-border);">
+				<div
+					class="inline-flex overflow-hidden rounded-md border"
+					style="border-color: var(--color-border);"
+				>
 					<button
 						type="button"
 						class="flex items-center gap-1 px-2 py-1 text-xs"
 						class:font-semibold={diffViewMode === 'diff'}
-						style:background-color={diffViewMode === 'diff' ? 'var(--color-bg-inset)' : 'transparent'}
+						style:background-color={diffViewMode === 'diff'
+							? 'var(--color-bg-inset)'
+							: 'transparent'}
 						onclick={() => (diffViewMode = 'diff')}
 						title="Unified Diff"
 					>
@@ -284,7 +312,9 @@
 						type="button"
 						class="flex items-center gap-1 px-2 py-1 text-xs"
 						class:font-semibold={diffViewMode === 'raw-split'}
-						style:background-color={diffViewMode === 'raw-split' ? 'var(--color-bg-inset)' : 'transparent'}
+						style:background-color={diffViewMode === 'raw-split'
+							? 'var(--color-bg-inset)'
+							: 'transparent'}
 						onclick={() => (diffViewMode = 'raw-split')}
 						title="Raw Side-by-Side"
 					>
@@ -296,7 +326,9 @@
 							type="button"
 							class="flex items-center gap-1 px-2 py-1 text-xs"
 							class:font-semibold={diffViewMode === 'structured-diff'}
-							style:background-color={diffViewMode === 'structured-diff' ? 'var(--color-bg-inset)' : 'transparent'}
+							style:background-color={diffViewMode === 'structured-diff'
+								? 'var(--color-bg-inset)'
+								: 'transparent'}
 							onclick={() => (diffViewMode = 'structured-diff')}
 							title="Structured Diff"
 						>
@@ -307,7 +339,9 @@
 							type="button"
 							class="flex items-center gap-1 px-2 py-1 text-xs"
 							class:font-semibold={diffViewMode === 'structured-split'}
-							style:background-color={diffViewMode === 'structured-split' ? 'var(--color-bg-inset)' : 'transparent'}
+							style:background-color={diffViewMode === 'structured-split'
+								? 'var(--color-bg-inset)'
+								: 'transparent'}
 							onclick={() => (diffViewMode = 'structured-split')}
 							title="Structured Side-by-Side"
 						>
@@ -413,27 +447,67 @@
 						Failed to compute diff: {diffError}
 					</div>
 				{:else}
-					<div class="flex-1 overflow-auto px-4 py-3 text-xs font-mono whitespace-pre leading-relaxed" style="background-color: var(--color-bg-inset); color: var(--color-fg-base);">
+					<div
+						class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
+						style="background-color: var(--color-bg-inset); color: var(--color-fg-base);"
+					>
 						{#each visibleDiffLines as part}
-							<div style="color: {part.added ? 'var(--color-success)' : part.removed ? 'var(--color-danger)' : 'inherit'}; background-color: {part.added ? 'color-mix(in oklab, var(--color-success) 15%, transparent)' : part.removed ? 'color-mix(in oklab, var(--color-danger) 15%, transparent)' : 'transparent'};">{part.value}</div>
+							<div
+								style="color: {part.added
+									? 'var(--color-success)'
+									: part.removed
+										? 'var(--color-danger)'
+										: 'inherit'}; background-color: {part.added
+									? 'color-mix(in oklab, var(--color-success) 15%, transparent)'
+									: part.removed
+										? 'color-mix(in oklab, var(--color-danger) 15%, transparent)'
+										: 'transparent'};"
+							>
+								{part.value}
+							</div>
 						{/each}
 					</div>
 					{#if hasMoreDiff}
-						<div class="flex items-center justify-between border-t px-4 py-2 text-xs" style="border-color: var(--color-border); color: var(--color-fg-muted); background-color: var(--color-bg-base);">
+						<div
+							class="flex items-center justify-between border-t px-4 py-2 text-xs"
+							style="border-color: var(--color-border); color: var(--color-fg-muted); background-color: var(--color-bg-base);"
+						>
 							<span>Showing {diffWindowLimit.toLocaleString()} diff lines</span>
-							<button type="button" class="lg-btn lg-btn-ghost h-7 !px-2 text-xs" onclick={() => (diffWindowLimit += WINDOW_STEP)}>Show more</button>
+							<button
+								type="button"
+								class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
+								onclick={() => (diffWindowLimit += WINDOW_STEP)}>Show more</button
+							>
 						</div>
 					{/if}
 				{/if}
 			{:else if diffViewMode === 'raw-split'}
-				<div class="grid grid-cols-2 divide-x flex-1 overflow-hidden" style="border-color: var(--color-border); background-color: var(--color-bg-inset);">
-					<div class="flex flex-col min-w-0 h-full">
-						<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b shrink-0" style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);">Older</div>
-						<pre class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre" style="color: var(--color-fg-base);"><code>{visibleCompareLines.join('\n')}</code></pre>
+				<div
+					class="grid flex-1 grid-cols-2 divide-x overflow-hidden"
+					style="border-color: var(--color-border); background-color: var(--color-bg-inset);"
+				>
+					<div class="flex h-full min-w-0 flex-col">
+						<div
+							class="shrink-0 border-b px-3 py-1.5 text-[10px] font-semibold tracking-wider uppercase"
+							style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);"
+						>
+							Older
+						</div>
+						<pre
+							class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
+							style="color: var(--color-fg-base);"><code>{visibleCompareLines.join('\n')}</code
+							></pre>
 					</div>
-					<div class="flex flex-col min-w-0 h-full">
-						<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b shrink-0" style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);">Newer</div>
-						<pre class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre" style="color: var(--color-fg-base);"><code>{visibleLines.join('\n')}</code></pre>
+					<div class="flex h-full min-w-0 flex-col">
+						<div
+							class="shrink-0 border-b px-3 py-1.5 text-[10px] font-semibold tracking-wider uppercase"
+							style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);"
+						>
+							Newer
+						</div>
+						<pre
+							class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
+							style="color: var(--color-fg-base);"><code>{visibleLines.join('\n')}</code></pre>
 					</div>
 				</div>
 				{#if hasMore || hasMoreCompare}
@@ -455,25 +529,41 @@
 				{/if}
 			{:else if diffViewMode === 'structured-diff'}
 				{#if compareWith.parsed && result.parsed && compareWith.parsed.kind === result.parsed.kind}
-					<div class="flex-1 flex flex-col min-h-0 border-b" style="border-color: var(--color-border);">
+					<div
+						class="flex min-h-0 flex-1 flex-col border-b"
+						style="border-color: var(--color-border);"
+					>
 						{#if result.parsed.kind === 'ping' && compareWith.parsed.kind === 'ping'}
 							<DiffPingView oldStats={compareWith.parsed.data} newStats={result.parsed.data} />
 						{:else if result.parsed.kind === 'traceroute' && compareWith.parsed.kind === 'traceroute'}
 							<DiffTracerouteView oldTp={compareWith.parsed.data} newTp={result.parsed.data} />
 						{:else if result.parsed.kind === 'bgp_summary' && compareWith.parsed.kind === 'bgp_summary'}
-							<DiffBGPSummaryView oldSummary={compareWith.parsed.data} newSummary={result.parsed.data} />
+							<DiffBGPSummaryView
+								oldSummary={compareWith.parsed.data}
+								newSummary={result.parsed.data}
+							/>
 						{:else if result.parsed.kind === 'bgp_paths' && compareWith.parsed.kind === 'bgp_paths'}
 							<DiffBGPPathsView oldPaths={compareWith.parsed.data} newPaths={result.parsed.data} />
 						{/if}
 					</div>
 				{:else}
-					<div class="p-4 text-xs italic" style="color: var(--color-fg-subtle);">Structured data format mismatch or unavailable</div>
+					<div class="p-4 text-xs italic" style="color: var(--color-fg-subtle);">
+						Structured data format mismatch or unavailable
+					</div>
 				{/if}
 			{:else if diffViewMode === 'structured-split'}
-				<div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x flex-1 overflow-hidden" style="border-color: var(--color-border);">
-					<div class="flex flex-col min-w-0 bg-(--color-bg-base) h-full">
-						<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b shrink-0" style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);">Older</div>
-						<div class="flex-1 flex flex-col min-h-0">
+				<div
+					class="grid flex-1 grid-cols-1 divide-y overflow-hidden md:grid-cols-2 md:divide-x md:divide-y-0"
+					style="border-color: var(--color-border);"
+				>
+					<div class="flex h-full min-w-0 flex-col bg-(--color-bg-base)">
+						<div
+							class="shrink-0 border-b px-3 py-1.5 text-[10px] font-semibold tracking-wider uppercase"
+							style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);"
+						>
+							Older
+						</div>
+						<div class="flex min-h-0 flex-1 flex-col">
 							{#if compareWith.parsed}
 								{#if compareWith.parsed.kind === 'ping'}
 									<PingView stats={compareWith.parsed.data} />
@@ -485,13 +575,23 @@
 									<BGPPathsView paths={compareWith.parsed.data} />
 								{/if}
 							{:else}
-								<div class="p-4 text-xs italic flex-1 overflow-auto" style="color: var(--color-fg-subtle);">No structured data available</div>
+								<div
+									class="flex-1 overflow-auto p-4 text-xs italic"
+									style="color: var(--color-fg-subtle);"
+								>
+									No structured data available
+								</div>
 							{/if}
 						</div>
 					</div>
-					<div class="flex flex-col min-w-0 bg-(--color-bg-base) h-full">
-						<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b shrink-0" style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);">Newer</div>
-						<div class="flex-1 flex flex-col min-h-0">
+					<div class="flex h-full min-w-0 flex-col bg-(--color-bg-base)">
+						<div
+							class="shrink-0 border-b px-3 py-1.5 text-[10px] font-semibold tracking-wider uppercase"
+							style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-fg-muted);"
+						>
+							Newer
+						</div>
+						<div class="flex min-h-0 flex-1 flex-col">
 							{#if result.parsed}
 								{#if result.parsed.kind === 'ping'}
 									<PingView stats={result.parsed.data} />
@@ -503,49 +603,52 @@
 									<BGPPathsView paths={result.parsed.data} />
 								{/if}
 							{:else}
-								<div class="p-4 text-xs italic flex-1 overflow-auto" style="color: var(--color-fg-subtle);">No structured data available</div>
+								<div
+									class="flex-1 overflow-auto p-4 text-xs italic"
+									style="color: var(--color-fg-subtle);"
+								>
+									No structured data available
+								</div>
 							{/if}
 						</div>
 					</div>
 				</div>
 			{/if}
-		{:else}
-			{#if canStructured && viewMode === 'structured' && result.parsed}
-				<div class="flex-1 flex flex-col min-h-0">
-					{#if result.parsed.kind === 'ping'}
-						<PingView stats={result.parsed.data} />
-					{:else if result.parsed.kind === 'traceroute'}
-						<TracerouteView tp={result.parsed.data} />
-					{:else if result.parsed.kind === 'bgp_summary'}
-						<BGPSummaryView summary={result.parsed.data} />
-					{:else if result.parsed.kind === 'bgp_paths'}
-						<BGPPathsView paths={result.parsed.data} />
-					{/if}
-				</div>
-			{:else}
-				<pre
-					class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
-					style="background-color: var(--color-bg-inset); color: var(--color-fg);"><code
-						>{visibleLines.join('\n')}</code
-					></pre>
-
-				{#if hasMore}
-					<div
-						class="flex items-center justify-between border-t px-4 py-2 text-xs"
-						style="border-color: var(--color-border); color: var(--color-fg-muted);"
-					>
-						<span>
-							Showing {windowLimit.toLocaleString()} of {filteredLines.length.toLocaleString()} lines
-						</span>
-						<button
-							type="button"
-							class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
-							onclick={() => (windowLimit += WINDOW_STEP)}
-						>
-							Show {Math.min(WINDOW_STEP, filteredLines.length - windowLimit)} more
-						</button>
-					</div>
+		{:else if canStructured && viewMode === 'structured' && result.parsed}
+			<div class="flex min-h-0 flex-1 flex-col">
+				{#if result.parsed.kind === 'ping'}
+					<PingView stats={result.parsed.data} />
+				{:else if result.parsed.kind === 'traceroute'}
+					<TracerouteView tp={result.parsed.data} />
+				{:else if result.parsed.kind === 'bgp_summary'}
+					<BGPSummaryView summary={result.parsed.data} />
+				{:else if result.parsed.kind === 'bgp_paths'}
+					<BGPPathsView paths={result.parsed.data} />
 				{/if}
+			</div>
+		{:else}
+			<pre
+				class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
+				style="background-color: var(--color-bg-inset); color: var(--color-fg);"><code
+					>{visibleLines.join('\n')}</code
+				></pre>
+
+			{#if hasMore}
+				<div
+					class="flex items-center justify-between border-t px-4 py-2 text-xs"
+					style="border-color: var(--color-border); color: var(--color-fg-muted);"
+				>
+					<span>
+						Showing {windowLimit.toLocaleString()} of {filteredLines.length.toLocaleString()} lines
+					</span>
+					<button
+						type="button"
+						class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
+						onclick={() => (windowLimit += WINDOW_STEP)}
+					>
+						Show {Math.min(WINDOW_STEP, filteredLines.length - windowLimit)} more
+					</button>
+				</div>
 			{/if}
 		{/if}
 	{/if}

@@ -94,6 +94,28 @@ export function pushHistory(
 	results: Record<string, ExecResult>
 ) {
 	history.update((h) => {
+		const resultsArray = Object.values(results);
+		if (resultsArray.length > 0 && resultsArray.every((r) => r.cached)) {
+			const isDuplicate = h.some((entry) => {
+				if (entry.command !== command || entry.parameter !== parameter) return false;
+				if (entry.routers.length !== routers.length) return false;
+				if (!entry.routers.every((r, i) => r.id === routers[i].id)) return false;
+
+				return Object.entries(results).every(([rid, res]) => {
+					const prevRes = entry.results[rid];
+					return (
+						prevRes?.timestamp &&
+						res?.timestamp &&
+						prevRes.timestamp.getTime() === res.timestamp.getTime()
+					);
+				});
+			});
+
+			if (isDuplicate) {
+				return h;
+			}
+		}
+
 		const entry: HistoryEntry = {
 			id: crypto.randomUUID(),
 			timestamp: new Date(),

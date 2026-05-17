@@ -56,8 +56,8 @@
 		return c;
 	});
 
-	let bodyEl: HTMLDivElement | null = $state(null);
-	let handleEl: HTMLDivElement | null = $state(null);
+	let bodyEl = $state<HTMLDivElement | null>(null);
+	let handleEl = $state<HTMLDivElement | null>(null);
 
 	let dragHeightPx = $state(0);
 
@@ -114,7 +114,7 @@
 			const dPeek = Math.abs(dragHeightPx - peekPx);
 			const dHalf = Math.abs(dragHeightPx - halfPx);
 			const dFull = Math.abs(dragHeightPx - maxPx);
-			
+
 			const min = Math.min(dPeek, dHalf, dFull);
 			if (min === dFull) setSheetState('full');
 			else if (min === dHalf) setSheetState('half');
@@ -233,12 +233,13 @@
 		{#if sheetCurrent === 'half' || sheetCurrent === 'full' || dragging}
 			<div
 				id="lg-results-body"
-				class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 flex flex-col"
-				style="overscroll-behavior: contain; --sheet-body-height: {currentHeightPx - (handleEl ? handleEl.offsetHeight : 44)}px;"
+				class="flex flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-6"
+				style="overscroll-behavior: contain; --sheet-body-height: {currentHeightPx -
+					(handleEl ? handleEl.offsetHeight : 44)}px;"
 				bind:this={bodyEl}
 			>
 				<div
-					class="grid w-full gap-3 flex-1 items-start"
+					class="grid w-full flex-1 items-start gap-3"
 					style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 40rem), 1fr));"
 				>
 					{#each ordered as r (r.routerId)}
