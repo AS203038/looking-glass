@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import { LookingGlassClient, type Pb } from '$lib/grpc';
 import { selectedRouters } from './routers';
 import { onRunStarted } from './sheet';
+import { pushHistory } from './history';
 
 export const COMMANDS = [
 	{ value: 'ping', label: 'Ping', placeholder: 'IPv4 or IPv6 address' },
@@ -40,6 +41,10 @@ export interface ExecResult {
 	bytes: Uint8Array | null;
 	/** Populated only when status is 'error'. */
 	error: string | null;
+	/** Original user command. */
+	queryCommand: CommandValue;
+	/** Original user parameter. */
+	queryParameter: string;
 	/** Sub-command resolved for this submission. */
 	resolvedCommand: string;
 	/** Structured parser payload, when the server populated one. */
@@ -119,6 +124,8 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 		timestamp: null,
 		bytes: null,
 		error: null,
+		queryCommand: cmd,
+		queryParameter: param,
 		resolvedCommand: resolveCommand(cmd, param),
 		parsed: null,
 		parserKind: 0,
@@ -224,6 +231,8 @@ export async function run(cmd: CommandValue, param: string) {
 			timestamp: null,
 			bytes: null,
 			error: null,
+			queryCommand: cmd,
+			queryParameter: param,
 			resolvedCommand: resolveCommand(cmd, param),
 			parsed: null,
 			parserKind: 0,
@@ -233,4 +242,6 @@ export async function run(cmd: CommandValue, param: string) {
 	results.set(seed);
 
 	await Promise.all(routers.map((r) => runOne(r, cmd, param)));
+	
+	pushHistory(cmd, param, routers, get(results));
 }

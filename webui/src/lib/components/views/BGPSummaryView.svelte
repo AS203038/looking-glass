@@ -51,7 +51,7 @@
 			>{/if}
 	</div>
 {/if}
-<div class="max-h-96 overflow-auto">
+<div class="flex-1 overflow-auto">
 	<table class="w-full font-mono text-xs">
 		<thead
 			class="sticky top-0"

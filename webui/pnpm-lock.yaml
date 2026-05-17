@@ -26,6 +26,9 @@ importers:
       '@sentry/svelte':
         specifier: ^10.53.1
         version: 10.53.1(svelte@5.55.7(@typescript-eslint/types@8.59.3))
+      diff:
+        specifier: ^9.0.0
+        version: 9.0.0
     devDependencies:
       '@eslint/compat':
         specifier: ^2.1.0
@@ -649,6 +652,10 @@ packages:
 
   devalue@5.8.1:
     resolution: {integrity: sha512-4CXDYRBGqN+57wVJkuXBYmpAVUSg3L6JAQa/DFqm238G73E1wuyc/JhGQJzN7vUf/CMphYau2zXbfWzDR5aTEw==}
+
+  diff@9.0.0:
+    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
+    engines: {node: '>=0.3.1'}
 
   enhanced-resolve@5.21.3:
     resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
@@ -1760,6 +1767,8 @@ snapshots:
   detect-libc@2.1.2: {}
 
   devalue@5.8.1: {}
+
+  diff@9.0.0: {}
 
   enhanced-resolve@5.21.3:
     dependencies:

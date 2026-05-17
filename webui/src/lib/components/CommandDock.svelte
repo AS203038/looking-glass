@@ -17,6 +17,7 @@
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import X from '@lucide/svelte/icons/x';
 	import RouterIcon from '@lucide/svelte/icons/router';
+	import { history } from '$lib/stores/history';
 
 	let cmd = $state<CommandValue | ''>('');
 	let param = $state('');
@@ -33,6 +34,17 @@
 	const paramOptional = $derived(
 		cmd !== '' && (COMMANDS_NO_PARAM as readonly string[]).includes(cmd)
 	);
+
+	const paramHistory = $derived.by(() => {
+		if (!cmd) return [];
+		const params = new Set<string>();
+		for (const h of $history) {
+			if (h.command === cmd && h.parameter) {
+				params.add(h.parameter);
+			}
+		}
+		return Array.from(params);
+	});
 
 	const validation = $derived.by(() => {
 		if (!cmd || !param) return null;
@@ -206,7 +218,13 @@
 							autocorrect="off"
 							spellcheck="false"
 							inputmode="text"
+							list="lg-param-history"
 						/>
+						<datalist id="lg-param-history">
+							{#each paramHistory as p}
+								<option value={p}></option>
+							{/each}
+						</datalist>
 					</div>
 				</div>
 

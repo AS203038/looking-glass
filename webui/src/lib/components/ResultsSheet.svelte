@@ -3,18 +3,12 @@
 	import { fly } from 'svelte/transition';
 	import {
 		sheetState,
-		sheetHeight,
-		fitGeneration,
 		dockHeight,
 		toggleSheet,
 		peekSheet,
-		expandSheet,
+		setSheetState,
 		hideSheet,
-		setHeightExplicit,
-		applyAutoHeight,
-		reclamp,
-		clampHeight,
-		MIN_EXPAND_PX,
+		maxHeight,
 		HEADER_RESERVED_PX,
 		type SheetState
 	} from '$lib/stores/sheet';
@@ -28,20 +22,16 @@
 	import X from '@lucide/svelte/icons/x';
 
 	let sheetCurrent: SheetState = $state('hidden');
-	let heightPx = $state(0);
 	let dockPx = $state(0);
 	let res = $state<Record<string, ExecResult>>({});
 	let selected = $state<Pb.Router[]>([]);
 	let ran = $state(false);
-	let gen = $state(0);
 
 	sheetState.subscribe((s) => (sheetCurrent = s));
-	sheetHeight.subscribe((h) => (heightPx = h));
 	dockHeight.subscribe((d) => (dockPx = d));
 	results.subscribe((v) => (res = v));
 	selectedRouters.subscribe((v) => (selected = v));
 	hasRun.subscribe((v) => (ran = v));
-	fitGeneration.subscribe((n) => (gen = n));
 
 	const maxHeightCss = $derived(
 		`calc(100dvh - ${HEADER_RESERVED_PX}px - ${Math.max(0, dockPx)}px)`
@@ -67,28 +57,19 @@
 	});
 
 	let bodyEl: HTMLDivElement | null = $state(null);
-	const HANDLE_PX = 44;
+	let handleEl: HTMLDivElement | null = $state(null);
 
-	function autoFit() {
-		if (!bodyEl) return;
-		const measured = bodyEl.scrollHeight;
-		applyAutoHeight(measured, HANDLE_PX);
-	}
+	let dragHeightPx = $state(0);
 
-	$effect(() => {
-		void gen;
-		if (!ran || sheetCurrent !== 'expand') return;
-		requestAnimationFrame(() => {
-			tick().then(autoFit);
-		});
-	});
+	const maxPx = $derived(maxHeight());
+	const halfPx = $derived(Math.max(200, maxPx / 2));
+	const peekPx = $derived(handleEl ? handleEl.offsetHeight : 44);
 
-	$effect(() => {
-		void counts.done;
-		void counts.error;
-		void counts.running;
-		if (!ran || sheetCurrent !== 'expand') return;
-		requestAnimationFrame(autoFit);
+	const currentHeightPx = $derived.by(() => {
+		if (dragging) return dragHeightPx;
+		if (sheetCurrent === 'full') return maxPx;
+		if (sheetCurrent === 'half') return halfPx;
+		return peekPx;
 	});
 
 	const DRAG_THRESHOLD_PX = 4;
@@ -103,7 +84,7 @@
 		pointerActive = true;
 		wasDrag = false;
 		dragStartY = e.clientY;
-		dragStartHeight = heightPx;
+		dragStartHeight = currentHeightPx;
 		try {
 			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		} catch {
@@ -119,22 +100,26 @@
 			if (Math.abs(delta) < DRAG_THRESHOLD_PX) return;
 			dragging = true;
 			wasDrag = true;
-			if (sheetCurrent === 'peek') expandSheet();
+			dragHeightPx = dragStartHeight;
 		}
 
-		const next = clampHeight(dragStartHeight + delta);
-		setHeightExplicit(next);
-
-		if (dragStartHeight + delta < MIN_EXPAND_PX - 60) {
-			peekSheet();
-			endDrag(e);
-		}
+		dragHeightPx = Math.max(peekPx, Math.min(maxPx, dragStartHeight + delta));
 	}
 
 	function endDrag(e: PointerEvent) {
 		if (!pointerActive) return;
 		pointerActive = false;
-		dragging = false;
+		if (dragging) {
+			dragging = false;
+			const dPeek = Math.abs(dragHeightPx - peekPx);
+			const dHalf = Math.abs(dragHeightPx - halfPx);
+			const dFull = Math.abs(dragHeightPx - maxPx);
+			
+			const min = Math.min(dPeek, dHalf, dFull);
+			if (min === dFull) setSheetState('full');
+			else if (min === dHalf) setSheetState('half');
+			else setSheetState('peek');
+		}
 		try {
 			(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
 		} catch {
@@ -156,44 +141,38 @@
 			toggleSheet();
 			return;
 		}
-		if (sheetCurrent === 'expand') {
+		if (sheetCurrent === 'half' || sheetCurrent === 'full') {
 			if (e.key === 'ArrowUp') {
 				e.preventDefault();
-				setHeightExplicit(heightPx + 40);
+				setSheetState(sheetCurrent === 'half' ? 'full' : 'full');
 			} else if (e.key === 'ArrowDown') {
 				e.preventDefault();
-				const next = heightPx - 40;
-				if (next < MIN_EXPAND_PX) peekSheet();
-				else setHeightExplicit(next);
+				setSheetState(sheetCurrent === 'full' ? 'half' : 'peek');
 			}
 		}
 	}
-
-	onMount(() => {
-		if (typeof window === 'undefined') return;
-		const onResize = () => reclamp();
-		window.addEventListener('resize', onResize);
-		return () => window.removeEventListener('resize', onResize);
-	});
 </script>
 
 {#if sheetCurrent !== 'hidden' && ran}
 	<aside
 		role="region"
 		aria-label="Results"
-		class="flex flex-col border-t backdrop-blur-md"
+		class="flex flex-col border-t backdrop-blur-md transition-[height]"
 		style="background-color: color-mix(in oklab, var(--color-bg-mantle) 96%, transparent);
 		       border-color: var(--color-border);
-		       height: {sheetCurrent === 'expand' ? `${heightPx}px` : 'auto'};
+		       height: {currentHeightPx}px;
+		       transition-duration: {dragging ? '0ms' : '200ms'};
+		       transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 		       max-height: {maxHeightCss};"
 		in:fly={{ y: 16, duration: 160 }}
 	>
 		<div
 			role="button"
 			tabindex="0"
+			bind:this={handleEl}
 			class="relative flex h-11 shrink-0 cursor-row-resize items-center gap-3 border-b px-4 select-none sm:h-9 sm:px-6"
 			style="border-color: var(--color-border); touch-action: none; -webkit-user-select: none; -webkit-touch-callout: none;"
-			aria-expanded={sheetCurrent === 'expand'}
+			aria-expanded={sheetCurrent === 'half' || sheetCurrent === 'full'}
 			aria-controls="lg-results-body"
 			onpointerdown={onHandlePointerDown}
 			onpointermove={onHandlePointerMove}
@@ -202,7 +181,7 @@
 			oncontextmenu={(e) => e.preventDefault()}
 			onkeydown={onHandleKeyDown}
 			onclick={onHandleClick}
-			title={sheetCurrent === 'expand'
+			title={sheetCurrent === 'half' || sheetCurrent === 'full'
 				? 'Drag to resize. Click to collapse.'
 				: 'Click to expand results. Drag to resize.'}
 		>
@@ -213,7 +192,7 @@
 			></span>
 
 			<span class="flex items-center gap-2 text-xs">
-				{#if sheetCurrent === 'expand'}
+				{#if sheetCurrent === 'half' || sheetCurrent === 'full'}
 					<ChevronDown size={14} class="opacity-60" />
 				{:else}
 					<ChevronUp size={14} class="opacity-60" />
@@ -251,16 +230,16 @@
 			</button>
 		</div>
 
-		{#if sheetCurrent === 'expand'}
+		{#if sheetCurrent === 'half' || sheetCurrent === 'full' || dragging}
 			<div
 				id="lg-results-body"
-				class="flex-1 overflow-y-auto px-4 py-4 sm:px-6"
-				style="overscroll-behavior: contain;"
+				class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 flex flex-col"
+				style="overscroll-behavior: contain; --sheet-body-height: {currentHeightPx - (handleEl ? handleEl.offsetHeight : 44)}px;"
 				bind:this={bodyEl}
 			>
 				<div
-					class="grid w-full gap-3"
-					style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));"
+					class="grid w-full gap-3 flex-1 items-start"
+					style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 40rem), 1fr));"
 				>
 					{#each ordered as r (r.routerId)}
 						<ResultCard result={r} />

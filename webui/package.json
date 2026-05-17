@@ -19,7 +19,8 @@
 		"@connectrpc/connect": "^2.1.1",
 		"@connectrpc/connect-web": "^2.1.1",
 		"@lucide/svelte": "^1.16.0",
-		"@sentry/svelte": "^10.53.1"
+		"@sentry/svelte": "^10.53.1",
+		"diff": "^9.0.0"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.0",

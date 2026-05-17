@@ -13,7 +13,7 @@
 	const virtualized = $derived(total > VIRTUAL_THRESHOLD);
 
 	const ROW_PX = 28;
-	const VIEW_PX = 384;
+	let viewPx = $state(384);
 	const OVERSCAN = 6;
 
 	let scrollEl: HTMLDivElement | undefined = $state();
@@ -34,7 +34,7 @@
 	const startIdx = $derived(
 		virtualized ? Math.max(0, Math.floor(scrollTop / ROW_PX) - OVERSCAN) : 0
 	);
-	const visibleCount = $derived(Math.ceil(VIEW_PX / ROW_PX) + 2 * OVERSCAN);
+	const visibleCount = $derived(Math.ceil(viewPx / ROW_PX) + 2 * OVERSCAN);
 	const endIdx = $derived(virtualized ? Math.min(total, startIdx + visibleCount) : total);
 	const visible = $derived(virtualized ? rows.slice(startIdx, endIdx) : rows);
 	const padTopPx = $derived(virtualized ? startIdx * ROW_PX : 0);
@@ -43,9 +43,9 @@
 
 <div
 	bind:this={scrollEl}
+	bind:clientHeight={viewPx}
 	onscroll={onScroll}
-	class="overflow-auto"
-	style="max-height: {VIEW_PX}px;"
+	class="flex-1 overflow-auto"
 >
 	<table class="w-full font-mono text-xs">
 		<thead
