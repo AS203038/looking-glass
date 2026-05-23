@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
 
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
@@ -44,11 +43,11 @@ func newInfoCmd() *cobra.Command {
 				fmt.Println(info.GetVersion())
 				return nil
 			default:
-				tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-				fmt.Fprintf(tw, "%s\t%s\n", colorize("Instance:", ansiBold), lg.Name)
-				fmt.Fprintf(tw, "%s\t%s\n", colorize("URL:", ansiBold), lg.URL)
-				fmt.Fprintf(tw, "%s\t%s\n", colorize("Hostname:", ansiBold), info.GetHostname())
-				fmt.Fprintf(tw, "%s\t%s\n", colorize("Version:", ansiBold), info.GetVersion())
+				tw := newTabWriter(os.Stdout)
+				fmt.Fprintf(tw, "%sInstance:%s\t%s\n", cBold, cReset, lg.Name)
+				fmt.Fprintf(tw, "%sURL:%s\t%s\n", cBold, cReset, lg.URL)
+				fmt.Fprintf(tw, "%sHostname:%s\t%s\n", cBold, cReset, info.GetHostname())
+				fmt.Fprintf(tw, "%sVersion:%s\t%s\n", cBold, cReset, info.GetVersion())
 				return tw.Flush()
 			}
 		},

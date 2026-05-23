@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -37,7 +36,7 @@ func newRoutersCmd() *cobra.Command {
 			}
 			client := newClient(lg)
 
-			routers, err := fetchAllRouters(ctx, client)
+			routers, err := fetchAllRouters(ctx, client, lg.URL, true)
 			if err != nil {
 				return err
 			}
@@ -61,20 +60,23 @@ func newRoutersCmd() *cobra.Command {
 				}
 				return nil
 			default:
-				tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-				fmt.Fprintln(tw, colorize("ID\tNAME\tLOCATION\tHEALTH\tLAST CHECK", ansiBold))
+				tw := newTabWriter(os.Stdout)
+				fmt.Fprintln(tw, cBold+"ID\tNAME\tLOCATION\tHEALTH\tLAST CHECK"+cReset)
 				for _, rt := range routers {
 					h := rt.GetHealth()
-					healthStr := colorize("✗ unhealthy", ansiRed)
+					healthMsg := "✗ unhealthy"
+					sColor := cRed
 					if h.GetHealthy() {
-						healthStr = colorize("✓ healthy", ansiGreen)
+						healthMsg = "✓ healthy"
+						sColor = cGreen
 					}
 					ts := "-"
 					if h != nil && h.GetTimestamp() != nil {
 						ts = h.GetTimestamp().AsTime().Format(time.RFC3339)
 					}
-					fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\n",
-						rt.GetId(), rt.GetName(), rt.GetLocation(), healthStr, ts)
+					fmt.Fprintf(tw, "%d\t%s\t%s\t%s%s%s\t%s\n",
+						rt.GetId(), rt.GetName(), rt.GetLocation(),
+						sColor, healthMsg, cReset, ts)
 				}
 				return tw.Flush()
 			}

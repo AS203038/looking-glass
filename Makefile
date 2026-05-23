@@ -49,7 +49,7 @@ version: ## Print computed version
 	@echo "$(VERSION)"
 
 .PHONY: install
-install: install-go install-proto install-webui ## Install all dependencies
+install: install-go install-proto install-webui install-tools ## Install all dependencies
 
 .PHONY: install-go
 install-go: ## Download Go module dependencies
@@ -74,17 +74,24 @@ install-tools: ## Install developer CLI tools (buf)
 .PHONY: generate
 generate: proto ## Run all code generation
 
+.PHONY: ensure-buf
+ensure-buf:
+	@command -v $(BUF) >/dev/null 2>&1 || { \
+		printf "$(BOLD)>> Installing developer tools (buf)$(RESET)\n"; \
+		$(GO) install github.com/bufbuild/buf/cmd/buf@latest; \
+	}
+
 .PHONY: proto
-proto: ## Generate Go and TypeScript code from .proto files
+proto: ensure-buf ## Generate Go and TypeScript code from .proto files
 	@printf "$(BOLD)>> Generating protobuf code$(RESET)\n"
 	cd $(PROTO_DIR) && $(BUF) generate
 
 .PHONY: proto-lint
-proto-lint: ## Lint .proto files
+proto-lint: ensure-buf ## Lint .proto files
 	cd $(PROTO_DIR) && $(BUF) lint
 
 .PHONY: proto-format
-proto-format: ## Format .proto files in place
+proto-format: ensure-buf ## Format .proto files in place
 	cd $(PROTO_DIR) && $(BUF) format -w
 
 .PHONY: dev-webui
@@ -116,7 +123,7 @@ preview-webui: ## Preview the production webui build
 .PHONY: build-server
 build-server: $(DIST_DIR) ## Build the server binary (requires webui build)
 	@printf "$(BOLD)>> Building server binary$(RESET)\n"
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) \
+	CGO_ENABLED=0 GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) build $(GOFLAGS) \
 		-ldflags="$(GO_LDFLAGS_SERVER)" \
 		-o $(SERVER_BIN) ./cmd/server
 
@@ -136,7 +143,7 @@ run: build ## Build everything and run the resulting binary
 .PHONY: build-cli
 build-cli: ## Build the lg-cli binary
 	@printf "$(BOLD)>> Building lg-cli$(RESET)\n"
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) \
+	CGO_ENABLED=0 GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) build $(GOFLAGS) \
 		-ldflags="$(GO_LDFLAGS_CLI)" \
 		-o $(CLI_BIN) ./cmd/cli
 
@@ -156,11 +163,11 @@ test: test-go ## Run all tests
 .PHONY: test-go
 test-go: $(DIST_DIR) ## Run Go tests
 	@printf "$(BOLD)>> Running Go tests$(RESET)\n"
-	$(GO) test ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test ./...
 
 .PHONY: test-cover
 test-cover: $(DIST_DIR) ## Run Go tests with coverage
-	$(GO) test -cover ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -cover ./...
 
 .PHONY: lint
 lint: lint-go lint-webui proto-lint ## Run all linters

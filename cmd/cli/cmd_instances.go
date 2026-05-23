@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 )
@@ -35,8 +34,8 @@ func newInstancesCmd() *cobra.Command {
 				}
 				return nil
 			default:
-				tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-				fmt.Fprintln(tw, colorize("ASN\tNAME\tURL", ansiBold))
+				tw := newTabWriter(os.Stdout)
+				fmt.Fprintln(tw, cBold+"ASN\tNAME\tURL"+cReset)
 				for _, lg := range idx.LookingGlasses {
 					fmt.Fprintf(tw, "%s\t%s\t%s\n", lg.ASN, lg.Name, lg.URL)
 				}

@@ -2,10 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
@@ -19,7 +24,26 @@ func newClient(lg *LookingGlass) lookingglassconnect.LookingGlassServiceClient {
 }
 
 // fetchAllRouters pages through GetRouters and returns every router.
-func fetchAllRouters(ctx context.Context, client lookingglassconnect.LookingGlassServiceClient) ([]*pb.Router, error) {
+func fetchAllRouters(ctx context.Context, client lookingglassconnect.LookingGlassServiceClient, instanceURL string, skipCache bool) ([]*pb.Router, error) {
+	cdir := getCacheDir()
+	hash := sha256.Sum256([]byte(instanceURL))
+	cachePath := filepath.Join(cdir, fmt.Sprintf("routers_%x.json", hash))
+
+	if !opts.Update && !skipCache {
+		if st, err := os.Stat(cachePath); err == nil {
+			if time.Since(st.ModTime()) < 1*time.Hour { // 1 hour TTL for router list
+				data, err := os.ReadFile(cachePath)
+				if err == nil {
+					var routers []*pb.Router
+					if json.Unmarshal(data, &routers) == nil {
+						verbosef("loaded routers from cache (%s)", cachePath)
+						return routers, nil
+					}
+				}
+			}
+		}
+	}
+
 	const pageSize = 1024
 	var (
 		all  []*pb.Router
@@ -40,6 +64,13 @@ func fetchAllRouters(ctx context.Context, client lookingglassconnect.LookingGlas
 		}
 		page = next
 	}
+
+	if data, err := json.Marshal(all); err == nil {
+		if err := os.MkdirAll(cdir, 0755); err == nil {
+			_ = os.WriteFile(cachePath, data, 0644)
+		}
+	}
+
 	return all, nil
 }
 
@@ -49,6 +80,7 @@ func fetchAllRouters(ctx context.Context, client lookingglassconnect.LookingGlas
 func resolveRouter(
 	ctx context.Context,
 	client lookingglassconnect.LookingGlassServiceClient,
+	instanceURL string,
 	arg string,
 	requireExists bool,
 ) (int64, error) {
@@ -61,7 +93,7 @@ func resolveRouter(
 		if !requireExists {
 			return id, nil
 		}
-		routers, err := fetchAllRouters(ctx, client)
+		routers, err := fetchAllRouters(ctx, client, instanceURL, false)
 		if err != nil {
 			return 0, fmt.Errorf("list routers for validation: %w", err)
 		}
@@ -73,7 +105,7 @@ func resolveRouter(
 		return 0, fmt.Errorf("router id %d not found on this instance", id)
 	}
 
-	routers, err := fetchAllRouters(ctx, client)
+	routers, err := fetchAllRouters(ctx, client, instanceURL, false)
 	if err != nil {
 		return 0, fmt.Errorf("list routers for name resolution: %w", err)
 	}

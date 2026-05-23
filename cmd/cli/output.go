@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,7 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
-// ANSI colour escape sequences.
+// ANSI colour escape sequences emitted to the terminal.
 const (
 	ansiReset  = "\x1b[0m"
 	ansiGreen  = "\x1b[32m"
@@ -20,6 +21,18 @@ const (
 	ansiYellow = "\x1b[33m"
 	ansiDim    = "\x1b[2m"
 	ansiBold   = "\x1b[1m"
+)
+
+// HTML-tag sentinels recognised by [colorTabWriter]. They are zero-width
+// to [text/tabwriter] under [tabwriter.FilterHTML] and are substituted
+// with their ANSI equivalents at flush time.
+const (
+	cReset  = "<c:reset>"
+	cGreen  = "<c:green>"
+	cRed    = "<c:red>"
+	cYellow = "<c:yellow>"
+	cDim    = "<c:dim>"
+	cBold   = "<c:bold>"
 )
 
 // isTTY reports whether f is an interactive terminal.
@@ -33,18 +46,75 @@ func isTTY(f *os.File) bool {
 
 // isColorEnabled reports whether pretty output should emit ANSI colour.
 func isColorEnabled() bool {
+	if opts.ForceColor {
+		return true
+	}
 	if opts.NoColor {
 		return false
 	}
 	return isTTY(os.Stdout)
 }
 
-// colorize wraps s in code + reset when colour is enabled.
+// colorize wraps s with ANSI escape code and reset when colour is enabled.
+// It is intended for output that bypasses [colorTabWriter].
 func colorize(s, code string) string {
 	if !isColorEnabled() {
 		return s
 	}
 	return code + s + ansiReset
+}
+
+// colorTabWriter is a [text/tabwriter] that accepts the c* HTML-tag
+// colour sentinels in its input. Column widths are computed treating the
+// sentinels as zero width; ANSI escapes are substituted only after Flush
+// so they never inflate column padding.
+type colorTabWriter struct {
+	buf *bytes.Buffer
+	tw  *tabwriter.Writer
+	out io.Writer
+}
+
+// newTabWriter returns a [colorTabWriter] writing to out.
+func newTabWriter(out io.Writer) *colorTabWriter {
+	buf := new(bytes.Buffer)
+	return &colorTabWriter{
+		buf: buf,
+		tw:  tabwriter.NewWriter(buf, 0, 0, 2, ' ', tabwriter.FilterHTML),
+		out: out,
+	}
+}
+
+// Write forwards p to the underlying [tabwriter.Writer].
+func (w *colorTabWriter) Write(p []byte) (int, error) {
+	return w.tw.Write(p)
+}
+
+// Flush finalises the table, substitutes colour sentinels for their ANSI
+// equivalents (or strips them when colour is disabled), and writes the
+// result to the configured output.
+func (w *colorTabWriter) Flush() error {
+	if err := w.tw.Flush(); err != nil {
+		return err
+	}
+	b := w.buf.Bytes()
+	if isColorEnabled() {
+		b = bytes.ReplaceAll(b, []byte(cReset), []byte(ansiReset))
+		b = bytes.ReplaceAll(b, []byte(cGreen), []byte(ansiGreen))
+		b = bytes.ReplaceAll(b, []byte(cRed), []byte(ansiRed))
+		b = bytes.ReplaceAll(b, []byte(cYellow), []byte(ansiYellow))
+		b = bytes.ReplaceAll(b, []byte(cDim), []byte(ansiDim))
+		b = bytes.ReplaceAll(b, []byte(cBold), []byte(ansiBold))
+	} else {
+		b = bytes.ReplaceAll(b, []byte(cReset), nil)
+		b = bytes.ReplaceAll(b, []byte(cGreen), nil)
+		b = bytes.ReplaceAll(b, []byte(cRed), nil)
+		b = bytes.ReplaceAll(b, []byte(cYellow), nil)
+		b = bytes.ReplaceAll(b, []byte(cDim), nil)
+		b = bytes.ReplaceAll(b, []byte(cBold), nil)
+	}
+	_, err := w.out.Write(b)
+	w.buf.Reset()
+	return err
 }
 
 // opResult is the canonical JSON shape emitted for ping/traceroute/bgp queries.
@@ -163,22 +233,22 @@ func printParsedResult(result string, ts time.Time, parsed any, kind pb.ParserKi
 
 // printPingPretty renders a [pb.PingStats] as a compact stat block.
 func printPingPretty(s *pb.PingStats) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := newTabWriter(os.Stdout)
 	if s.GetTarget() != "" {
 		fmt.Fprintf(w, "target:\t%s\n", s.GetTarget())
 	}
 	if s.GetSource() != "" {
 		fmt.Fprintf(w, "source:\t%s\n", s.GetSource())
 	}
-	lossColor := ansiGreen
+	lossColor := cGreen
 	if s.GetLossPct() >= 50 {
-		lossColor = ansiRed
+		lossColor = cRed
 	} else if s.GetLossPct() > 0 {
-		lossColor = ansiYellow
+		lossColor = cYellow
 	}
+	lossStr := fmt.Sprintf("%s%.0f%%%s", lossColor, s.GetLossPct(), cReset)
 	fmt.Fprintf(w, "packets:\t%d sent, %d received, %s loss\n",
-		s.GetPacketsSent(), s.GetPacketsReceived(),
-		colorize(fmt.Sprintf("%.0f%%", s.GetLossPct()), lossColor))
+		s.GetPacketsSent(), s.GetPacketsReceived(), lossStr)
 	if s.GetRttAvgMs() > 0 || s.GetRttMaxMs() > 0 {
 		fmt.Fprintf(w, "rtt min/avg/max:\t%.2f / %.2f / %.2f ms",
 			s.GetRttMinMs(), s.GetRttAvgMs(), s.GetRttMaxMs())
@@ -201,8 +271,8 @@ func printTraceroutePretty(tp *pb.TracerouteParsed) {
 		}
 		fmt.Fprintln(os.Stdout)
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, colorize("TTL\tHOST\tIP\tRTT", ansiBold))
+	w := newTabWriter(os.Stdout)
+	fmt.Fprintln(w, cBold+"TTL\tHOST\tIP\tRTT"+cReset)
 	for _, hop := range tp.GetHops() {
 		probes := hop.GetProbes()
 		host, ip, rtts := "—", "*", []string{}
@@ -238,26 +308,26 @@ func printBGPSummaryPretty(s *pb.BGPSummaryParsed) {
 		}
 		fmt.Fprintln(os.Stdout)
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, colorize("PEER\tASN\tAF\tSTATE\tUPTIME\tPFX_IN\tPFX_OUT", ansiBold))
+	w := newTabWriter(os.Stdout)
+	fmt.Fprintln(w, cBold+"PEER\tASN\tAF\tSTATE\tUPTIME\tPFX_IN\tPFX_OUT"+cReset)
 	for _, p := range s.GetPeers() {
 		state := p.GetState()
 		var sColor string
 		switch state {
 		case "established":
-			sColor = ansiGreen
+			sColor = cGreen
 		case "idle", "connect":
-			sColor = ansiYellow
+			sColor = cYellow
 		default:
-			sColor = ansiRed
+			sColor = cRed
 		}
 		af := strings.TrimSuffix(p.GetAddressFamily(), "-unicast")
 		if af == "" {
 			af = "—"
 		}
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%d\t%d\n",
+		fmt.Fprintf(w, "%s\t%d\t%s\t%s%s%s\t%s\t%d\t%d\n",
 			p.GetPeerIp(), p.GetPeerAsn(), af,
-			colorize(state, sColor),
+			sColor, state, cReset,
 			fmtDuration(p.GetUptimeSeconds()),
 			p.GetPrefixesReceived(), p.GetPrefixesSent())
 	}
@@ -267,12 +337,12 @@ func printBGPSummaryPretty(s *pb.BGPSummaryParsed) {
 
 // printBGPPathsPretty renders a [pb.BGPPaths] as a paths table.
 func printBGPPathsPretty(paths *pb.BGPPaths) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, colorize("BEST\tPREFIX\tNEXTHOP\tMED\tLOCPREF\tAS_PATH\tPEER\tCOMMUNITIES", ansiBold))
+	w := newTabWriter(os.Stdout)
+	fmt.Fprintln(w, cBold+"BEST\tPREFIX\tNEXTHOP\tMED\tLOCPREF\tAS_PATH\tPEER\tCOMMUNITIES"+cReset)
 	for _, p := range paths.GetPaths() {
 		best := " "
 		if p.GetBest() {
-			best = colorize(">", ansiGreen)
+			best = cGreen + ">" + cReset
 		}
 		asPath := ""
 		for i, a := range p.GetAsPath() {

@@ -22,7 +22,7 @@ func newPingCmd() *cobra.Command {
 				return err
 			}
 			client := newClient(lg)
-			routerID, err := resolveRouter(ctx, client, args[1], false)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
 			if err != nil {
 				return err
 			}
@@ -62,7 +62,7 @@ func newTracerouteCmd() *cobra.Command {
 				return err
 			}
 			client := newClient(lg)
-			routerID, err := resolveRouter(ctx, client, args[1], false)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
 			if err != nil {
 				return err
 			}

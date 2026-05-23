@@ -40,7 +40,7 @@ func newBGPSummaryCmd() *cobra.Command {
 				return err
 			}
 			client := newClient(lg)
-			routerID, err := resolveRouter(ctx, client, args[1], false)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
 			if err != nil {
 				return err
 			}
@@ -79,7 +79,7 @@ func newBGPRouteCmd() *cobra.Command {
 				return err
 			}
 			client := newClient(lg)
-			routerID, err := resolveRouter(ctx, client, args[1], false)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
 			if err != nil {
 				return err
 			}
@@ -129,7 +129,7 @@ Examples:
 				return err
 			}
 			client := newClient(lg)
-			routerID, err := resolveRouter(ctx, client, args[1], false)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
 			if err != nil {
 				return err
 			}
@@ -223,7 +223,7 @@ func newBGPASPathCmd() *cobra.Command {
 				return err
 			}
 			client := newClient(lg)
-			routerID, err := resolveRouter(ctx, client, args[1], false)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
 			if err != nil {
 				return err
 			}

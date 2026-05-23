@@ -18,8 +18,10 @@ type globalOpts struct {
 	Output   string // pretty | json | raw
 	Timeout  time.Duration
 	NoColor  bool
+	ForceColor bool
 	Quiet    bool
 	Verbose  bool
+	Update   bool
 }
 
 var opts = &globalOpts{}
@@ -84,10 +86,14 @@ Router argument accepts:
 	root.PersistentFlags().BoolVar(&opts.NoColor, "no-color",
 		envOr("LG_NO_COLOR", "") != "" || envOr("NO_COLOR", "") != "",
 		"disable ANSI colour in pretty output (env: LG_NO_COLOR or NO_COLOR)")
+	root.PersistentFlags().BoolVar(&opts.ForceColor, "force-color", false,
+		"force ANSI colour in pretty output")
 	root.PersistentFlags().BoolVarP(&opts.Quiet, "quiet", "q", false,
 		"suppress trailing timestamp footer in pretty output")
 	root.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false,
 		"verbose diagnostics to stderr")
+	root.PersistentFlags().BoolVarP(&opts.Update, "update", "u", false,
+		"force update of locally cached data (index and routers)")
 
 	root.AddCommand(
 		newInstancesCmd(),
