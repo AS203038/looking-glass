@@ -27,10 +27,10 @@ func newPingCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := client.Ping(ctx, connect.NewRequest(&pb.PingRequest{
+			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.PingRequest{
 				RouterId: routerID,
 				Target:   args[2],
-			}))
+			}), client.Ping)
 			if err != nil {
 				return err
 			}
@@ -67,10 +67,10 @@ func newTracerouteCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := client.Traceroute(ctx, connect.NewRequest(&pb.TracerouteRequest{
+			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.TracerouteRequest{
 				RouterId: routerID,
 				Target:   args[2],
-			}))
+			}), client.Traceroute)
 			if err != nil {
 				return err
 			}

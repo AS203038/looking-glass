@@ -12,3 +12,6 @@ var ExecFailed = errors.New("execution error")
 
 // ConnectionFailed is returned when the TCP dial or SSH negotiation fails before authentication.
 var ConnectionFailed = errors.New("connection error")
+
+// PoolExhausted is returned when the SSH connection pool is fully utilized and has no available slots.
+var PoolExhausted = errors.New("ssh pool exhausted")

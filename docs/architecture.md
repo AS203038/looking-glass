@@ -349,23 +349,14 @@ Cons:
 The `webui/svelte.config.js` adapter-static writes directly to
 `cmd/server/dist`, so `go build` always picks up the freshest WebUI.
 
-## Why per-request SSH?
+## SSH Connection Pooling
 
-Every RPC opens a fresh TCP+SSH session and tears it down. The
-alternative (a connection pool) was deliberately rejected for v1:
+To mitigate SSH negotiation overhead and reduce the latency of repeated queries against the same device, Looking Glass implements transparent, self-healing, and concurrent-safe **SSH Connection Pooling**.
 
-* **Caching covers the duplicate-request case** (which is the
-  dominant repeat in real traffic).
-* **Routers have small connection limits** (often 5–10 per user)
-  that a pool would hold open indefinitely.
-* **Per-request sessions mean no half-closed states** to recover
-  from when a router reboots — the next request just establishes
-  a fresh connection.
-* **Goroutine lifetimes match request lifetimes** — no background
-  goroutine maintenance, no leak risk.
-
-If your deployment is genuinely SSH-establishment-bound,
-file an issue; it's a known design point, not a wontfix.
+* **Configurable pool-size (`ssh_pool_size`)**: Pooling can be enabled on a per-device basis by setting `ssh_pool_size` to a value greater than `0`. Unset or non-positive values cleanly bypass pooling, defaulting to standard per-request unpooled dials.
+* **Stateless & Fail-Fast**: To prevent thread starvation and queue build-up in clustered setups, the connection pool uses a stateless, thread-safe active counter and a LIFO idle slice. If all connection slots (`ssh_pool_size`) are utilized, the backend immediately fails-fast and returns a `ResourceExhausted` error to the client instead of blocking.
+* **Keep-Alive & Self-Healing**: Idle connections are checked out using LIFO. Before checkout and on recycle, connections are validated using SSH keep-alive pings (`keepalive@openssh.com`). Dead or failed connections are automatically closed and discarded, and the pool slot is released.
+* **Client Auto-Recovery**: To recover gracefully from backend pool exhaustion under concurrent load spikes, all clients (including the embedded SvelteKit Web UI and the `lg-cli` command-line tool) automatically recover from pool exhaustion errors using **exponential backoff retries** with jitter.
 
 ## File-level cross-reference
 

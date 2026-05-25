@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
@@ -233,6 +234,9 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	ret, err := ri.Ping(target)
 	if err != nil {
 		logRPCError(tag, "ping_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)
@@ -278,6 +282,9 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	ret, err := ri.Traceroute(target)
 	if err != nil {
 		logRPCError(tag, "traceroute_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)
@@ -318,6 +325,9 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 	ret, err := ri.BGPSummary()
 	if err != nil {
 		logRPCError(tag, "bgp_summary_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)
@@ -363,6 +373,9 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	ret, err := ri.BGPRoute(target)
 	if err != nil {
 		logRPCError(tag, "bgp_route_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)
@@ -409,6 +422,9 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	ret, err := ri.BGPCommunity(commStr)
 	if err != nil {
 		logRPCError(tag, "bgp_community_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)
@@ -457,6 +473,9 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	ret, err := ri.BGPLargeCommunity(lc)
 	if err != nil {
 		logRPCError(tag, "bgp_largecommunity_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)
@@ -502,6 +521,9 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	ret, err := ri.BGPASPath(aspath)
 	if err != nil {
 		logRPCError(tag, "bgp_aspath_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
 		return nil, errs.ExecFailed
 	}
 	raw := joinSSH(ret)

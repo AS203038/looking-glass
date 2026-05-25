@@ -135,3 +135,36 @@ func resolveRouter(
 			arg, len(matches), strings.Join(names, ", "))
 	}
 }
+
+// callWithRetry executes a ConnectRPC client request, retrying with exponential backoff
+// if the server reports that the SSH connection pool is exhausted.
+func callWithRetry[Req any, Resp any](
+	ctx context.Context,
+	req *connect.Request[Req],
+	call func(context.Context, *connect.Request[Req]) (*connect.Response[Resp], error),
+) (*connect.Response[Resp], error) {
+	backoff := 100 * time.Millisecond
+	maxBackoff := 5 * time.Second
+	for {
+		resp, err := call(ctx, req)
+		if err == nil {
+			return resp, nil
+		}
+
+		if connectErr, ok := err.(*connect.Error); ok && connectErr.Code() == connect.CodeResourceExhausted {
+			verbosef("SSH pool exhausted, retrying in %s...", backoff)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(backoff):
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+				continue
+			}
+		}
+
+		return nil, err
+	}
+}

@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { LookingGlassClient, type Pb } from '$lib/grpc';
+import { ConnectError, Code } from '@connectrpc/connect';
 import { selectedRouters } from './routers';
 import { onRunStarted } from './sheet';
 import { pushHistory } from './history';
@@ -116,6 +117,27 @@ function pickParsed(
 	}
 }
 
+async function callWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+	let backoff = 100; // ms
+	const maxBackoff = 5000; // ms
+	while (true) {
+		try {
+			return await fn();
+		} catch (err) {
+			if (err instanceof ConnectError && err.code === Code.ResourceExhausted) {
+				console.warn(`SSH pool exhausted, retrying in ${backoff}ms...`);
+				await new Promise((resolve) => setTimeout(resolve, backoff));
+				backoff *= 2;
+				if (backoff > maxBackoff) {
+					backoff = maxBackoff;
+				}
+				continue;
+			}
+			throw err;
+		}
+	}
+}
+
 async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Promise<ExecResult> {
 	const key = router.id.toString();
 	const base: ExecResult = {
@@ -147,63 +169,50 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 	};
 
 	try {
-		let res:
-			| Pb.PingResponse
-			| Pb.TracerouteResponse
-			| Pb.BGPSummaryResponse
-			| Pb.BGPRouteResponse
-			| Pb.BGPCommunityResponse
-			| Pb.BGPLargeCommunityResponse
-			| Pb.BGPASPathResponse;
-
-		switch (cmd) {
-			case 'ping':
-				res = await client.ping({ routerId: router.id, target: param }, callOptions);
-				break;
-			case 'traceroute':
-				res = await client.traceroute({ routerId: router.id, target: param }, callOptions);
-				break;
-			case 'bgp_summary':
-				res = await client.bGPSummary({ routerId: router.id }, callOptions);
-				break;
-			case 'bgp_route':
-				res = await client.bGPRoute({ routerId: router.id, target: param }, callOptions);
-				break;
-			case 'bgp_community': {
-				const parts = param.split(':');
-				if (parts.length === 2) {
-					res = await client.bGPCommunity(
-						{
-							routerId: router.id,
-							community: { asn: parseInt(parts[0], 10), value: parseInt(parts[1], 10) }
-						},
-						callOptions
-					);
-				} else if (parts.length === 3) {
-					res = await client.bGPLargeCommunity(
-						{
-							routerId: router.id,
-							community: {
-								globalAdmin: parseInt(parts[0], 10),
-								localData1: parseInt(parts[1], 10),
-								localData2: parseInt(parts[2], 10)
-							}
-						},
-						callOptions
-					);
-				} else {
-					throw new Error(
-						`Invalid community "${param}": expected ASN:VALUE or GLOBAL:LOCAL1:LOCAL2`
-					);
+		const res = await callWithRetry(async () => {
+			switch (cmd) {
+				case 'ping':
+					return await client.ping({ routerId: router.id, target: param }, callOptions);
+				case 'traceroute':
+					return await client.traceroute({ routerId: router.id, target: param }, callOptions);
+				case 'bgp_summary':
+					return await client.bGPSummary({ routerId: router.id }, callOptions);
+				case 'bgp_route':
+					return await client.bGPRoute({ routerId: router.id, target: param }, callOptions);
+				case 'bgp_community': {
+					const parts = param.split(':');
+					if (parts.length === 2) {
+						return await client.bGPCommunity(
+							{
+								routerId: router.id,
+								community: { asn: parseInt(parts[0], 10), value: parseInt(parts[1], 10) }
+							},
+							callOptions
+						);
+					} else if (parts.length === 3) {
+						return await client.bGPLargeCommunity(
+							{
+								routerId: router.id,
+								community: {
+									globalAdmin: parseInt(parts[0], 10),
+									localData1: parseInt(parts[1], 10),
+									localData2: parseInt(parts[2], 10)
+								}
+							},
+							callOptions
+						);
+					} else {
+						throw new Error(
+							`Invalid community "${param}": expected ASN:VALUE or GLOBAL:LOCAL1:LOCAL2`
+						);
+					}
 				}
-				break;
+				case 'bgp_aspath_regex':
+					return await client.bGPASPath({ routerId: router.id, pattern: param }, callOptions);
+				default:
+					throw new Error(`Unknown command: ${cmd}`);
 			}
-			case 'bgp_aspath_regex':
-				res = await client.bGPASPath({ routerId: router.id, pattern: param }, callOptions);
-				break;
-			default:
-				throw new Error(`Unknown command: ${cmd}`);
-		}
+		});
 
 		const tsSeconds = res.timestamp?.seconds ? Number(res.timestamp.seconds) : Date.now() / 1000;
 		const done: ExecResult = {

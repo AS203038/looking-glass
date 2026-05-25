@@ -45,9 +45,9 @@ func newBGPSummaryCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := client.BGPSummary(ctx, connect.NewRequest(&pb.BGPSummaryRequest{
+			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPSummaryRequest{
 				RouterId: routerID,
-			}))
+			}), client.BGPSummary)
 			if err != nil {
 				return err
 			}
@@ -84,10 +84,10 @@ func newBGPRouteCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := client.BGPRoute(ctx, connect.NewRequest(&pb.BGPRouteRequest{
+			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPRouteRequest{
 				RouterId: routerID,
 				Target:   args[2],
-			}))
+			}), client.BGPRoute)
 			if err != nil {
 				return err
 			}
@@ -145,13 +145,13 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("invalid community value %q: %w", parts[1], err)
 				}
-				resp, err := client.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+				resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
 					RouterId: routerID,
 					Community: &pb.BGPCommunity{
 						Asn:   int32(asn),
 						Value: int32(val),
 					},
-				}))
+				}), client.BGPCommunity)
 				if err != nil {
 					return err
 				}
@@ -177,14 +177,14 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("invalid large-community local2 %q: %w", parts[2], err)
 				}
-				resp, err := client.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+				resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
 					RouterId: routerID,
 					Community: &pb.BGPLargeCommunity{
 						GlobalAdmin: uint32(global),
 						LocalData1:  uint32(local1),
 						LocalData2:  uint32(local2),
 					},
-				}))
+				}), client.BGPLargeCommunity)
 				if err != nil {
 					return err
 				}
@@ -228,10 +228,10 @@ func newBGPASPathCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := client.BGPASPath(ctx, connect.NewRequest(&pb.BGPASPathRequest{
+			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPASPathRequest{
 				RouterId: routerID,
 				Pattern:  args[2],
-			}))
+			}), client.BGPASPath)
 			if err != nil {
 				return err
 			}

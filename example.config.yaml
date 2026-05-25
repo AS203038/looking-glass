@@ -9,6 +9,7 @@ devices:                                                                  # List
       source4: "192.168.1.1"                                              #   IPv4 source, such as your rt's loopback (required)
       source6: "2001:db8::1"                                              #   IPv6 source, such as your rt's loopback (required)
       vrf: "vrf1"                                                         #   VRF name, most platforms use 'default' if no VRF is used (required)
+      ssh_pool_size: 5                                                    #   maximum idle SSH connections to pool for this device, 0 disables pooling (optional)
 
 grpc:                                                                     # gRPC Server Settings
     enabled: true                                                         #   Enable or disable GRPC endpoints

@@ -49,6 +49,7 @@ devices:
     source4:  "192.0.2.1"             # required for IPv4 ping/traceroute
     source6:  "2001:db8::1"           # required for IPv6 ping/traceroute
     vrf:      "default"               # required (use "default" / "main" / "Base" if you don't run VRFs)
+    ssh_pool_size: 5                  # optional maximum idle connections to pool for this device (0 disables pooling)
 ```
 
 ### Field semantics
@@ -65,6 +66,7 @@ devices:
 | `source4`   | IPNet  | `127.0.0.1` | IPv4 source address bound on ping/traceroute. Used as `{{.Cfg.Source4.IP}}` in templates.                                                      |
 | `source6`   | IPNet  | `::1`       | IPv6 source address bound on ping/traceroute.                                                                                                  |
 | `vrf`       | string | `""`        | Routing-instance name interpolated as `{{.Cfg.VRF}}`. **Every bundled template threads this through every operation.** Use the platform default (`default` for IOS/EOS/FRR, `main` for RouterOS, `Base` for SR OS, `inet` for JunOS) if you don't run VRFs. |
+| `ssh_pool_size` | int | `0`        | Maximum idle SSH connections kept open in the pool for this device. Setting it `> 0` enables transparent, self-healing connection pooling. |
 
 ### A note on credentials
 
@@ -379,9 +381,7 @@ In case it saves you time grepping:
 
 * SSH **host-key verification** is currently `InsecureIgnoreHostKey`.
   There is no `known_hosts` mode yet.
-* SSH **connections are not pooled**: every RPC opens a new TCP
-  + SSH session and tears it down. Caching mitigates the cost; if
-  this becomes a real problem in your deployment, open an issue.
+* SSH **connections are pooled** if `ssh_pool_size` is configured on the device to a value greater than `0`. When configured, idle SSH connections are cached up to that size, checked out exclusively per request, and automatically validated/reestablished if stale.
 * The **health check interval** is hardcoded to 60 seconds (see
   `pkg/http/grpc/grpc.go:healthcheck`).
 * The **WebUI router-list refresh** is hardcoded to 5 minutes (see
