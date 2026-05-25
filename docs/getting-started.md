@@ -10,7 +10,7 @@ the configured-but-unreachable routers as "unhealthy" in the UI.
 
 | Tool       | Why                                       | Minimum version    |
 | ---------- | ----------------------------------------- | ------------------ |
-| Go         | Server + CLI build                        | 1.22               |
+| Go         | Server + CLI build                        | 1.25.0+            |
 | Node.js    | WebUI build (SvelteKit)                   | 20.x (LTS)         |
 | pnpm       | WebUI package manager (workspace-linked)  | 9.x                |
 | `buf`      | Protobuf codegen (only if you regenerate) | latest             |

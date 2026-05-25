@@ -402,7 +402,7 @@ by **column name** (case-insensitive). Per operation:
   `rtt_ms`, `asn`; plus optional `target` / `source` Filldown'd
   across rows.
 * `bgp.summary` → one record per peer with `peer_ip`, `peer_asn`,
-  `description`, `state`, `state_detail`, `uptime`,
+  `description`, `state`, `state_detail`, `uptime` (mapped to protobuf `uptime_seconds`),
   `prefixes_received`, `prefixes_accepted`, `prefixes_sent`,
   `address_family`; plus optional `local_asn` / `router_id`
   Filldown'd.
@@ -412,7 +412,7 @@ by **column name** (case-insensitive). Per operation:
   `origin`, `med`, `local_pref`, `communities` (List of `ASN:VAL`
   strings), `large_communities` (List), `best` (string;
   recognised truthy values include `true`, `1`, `yes`, `>`, `*`),
-  `peer_ip`, `peer_asn`, `age`.
+  `peer_ip`, `peer_asn`, `age` (mapped to protobuf `age_seconds`).
 
 Columns the template does not emit simply land at their proto
 zero value — nothing in the parser is mandatory.

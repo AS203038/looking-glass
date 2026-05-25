@@ -11,7 +11,7 @@ For an architectural overview, read
 
 | Tool        | Purpose                          | Version            |
 | ----------- | -------------------------------- | ------------------ |
-| Go          | Backend                          | 1.22+              |
+| Go          | Backend                          | 1.25+              |
 | Node.js     | WebUI build / dev server         | 20.x LTS           |
 | pnpm        | WebUI package manager (workspace) | 9.x                |
 | `buf`       | Protobuf codegen                  | latest             |

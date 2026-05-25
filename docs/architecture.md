@@ -21,7 +21,7 @@ for the API contract see [api.md](./api.md).
    │                  Looking Glass Go process                       │
    │                                                                 │
    │   ┌────────────── Middleware chain (outer → inner) ──────────┐  │
-   │   │  Sentry?  →  Logging  →  CORS  →  Redis cache?  →  Mux   │  │
+   │   │  Sentry?  →  Logging  →  CORS  →  Mux                    │  │
    │   └──────────────────────────────┬───────────────────────────┘  │
    │                                  │                              │
    │   ┌──────────────────────────────┴───────────────────────────┐  │
@@ -90,24 +90,19 @@ order each wrapper sees the request:
 
 ```go
 handler = mux                                // base
-handler = cacheHandler(cfg.Redis, handler)   // Redis cache (optional)
 handler = corsHandler.Handler(handler)       // CORS allow-list
-handler = loggingHandler(handler)            // Apache Common Log + ETag
+handler = loggingHandler(handler)            // Structured slog + ETag
 handler = sentryhttp.…Handle(handler)        // Sentry (optional)
 ```
 
 So a request flows **outermost → innermost** as:
 
-1. **Sentry** captures the request for tracing.
+1. **Sentry** captures the request for tracing (optional).
 2. **Logging** records start time + version-based ETag handling.
 3. **CORS** adds the gRPC-Web allow-list.
-4. **Cache** consults Redis (`md5(path||body)`); on HIT, replay
-   verbatim and stop.
-5. **Mux** dispatches to gRPC / WebUI / security.txt / embedded fs.
+4. **Mux** dispatches to gRPC / WebUI / security.txt / embedded fs.
 
-The chain is in `pkg/http/http.go`. The cache middleware (same file)
-uses an inner `httpwriter` to record the status code and body so it
-can persist the response asynchronously after the handler returns.
+The chain is defined in `pkg/http/http.go`. Unlike HTTP request logging and CORS, response caching is **not** managed at the HTTP middleware layer. Instead, it is evaluated at the gRPC service layer inside individual handlers in `pkg/http/grpc/service.go` using helper methods defined in `pkg/http/grpc/cache.go`. This allows for method-specific cache key namespaces (e.g. `ping:<router_id>:<target>`), caching only successful protobuf payloads, and automatic build-stable invalidation.
 
 ### `pkg/http/grpc` — ConnectRPC service
 
@@ -253,32 +248,25 @@ stale snapshot, never a torn struct.
 
 5.  CORS middleware adds Access-Control-Allow-* headers.
 
-6.  Cache middleware computes md5("/lookingglass.v0…/Ping" + body):
-       HIT  → replays cached response, sets X-Cache:HIT, return.
-       MISS → wraps the ResponseWriter with httpwriter and calls
-              the handler.
+6.  Mux routes to LookingGlassServiceHandler.
 
-7.  Mux routes to LookingGlassServiceHandler.
+7.  ConnectRPC decodes the proto, calls Ping(ctx, req).
 
-8.  ConnectRPC decodes the proto, calls Ping(ctx, req).
+8.  Ping():
+    a. Generates the granular cache key `lg:rpc:<version>:ping:1:1.1.1.1`.
+    b. Checks the shared Redis cache (`rpcCacheGet`):
+       - **HIT**: Retrieves the cached `PingResponse`, sets the `X-Cache: HIT` response header, and returns immediately.
+       - **MISS**: Continues execution:
+         i.   rm.GetByID(1) → RouterInstance.
+         ii.  utils.NewIPNetFromProtobuf("1.1.1.1") → IPNet{ipv4}.
+         iii. RouterInstance.Ping(ipnet) renders "ping -n -4 -c5 -I 192.0.2.1 1.1.1.1" and runs it over SSH (`utils.SSHExec`).
+         iv.  Assembles &PingResponse{result, timestamp}.
+         v.   Spawns an asynchronous goroutine to save the marshaled protobuf response to Redis with the configured TTL (`rpcCacheSet`).
 
-9.  Ping():
-    a. rm.GetByID(1) → RouterInstance.
-    b. utils.NewIPNetFromProtobuf("1.1.1.1") → IPNet{ipv4}.
-    c. RouterInstance.Ping(ipnet) →
-       i.  Yaml.Ping renders "ping -n -4 -c5 -I 192.0.2.1 1.1.1.1"
-           against the FRR template.
-       ii. utils.SSHExec(cfg, [cmd]) opens an SSH session, runs
-           the command, captures stdout.
-    d. Returns &PingResponse{result, timestamp}.
+9.  ConnectRPC encodes the response.
 
-10. ConnectRPC encodes the response.
-
-11. Cache middleware spawns a goroutine to write the response to
-    Redis with the configured TTL.
-
-12. Logging middleware writes one Apache-format line including
-    duration and the X-Cache value.
+10. Logging middleware writes a structured slog JSON record on the
+    `httpaccess` component including duration and the X-Cache value.
 
 13. Sentry middleware finishes the transaction (sampled per
     configuration).
@@ -385,8 +373,8 @@ file an issue; it's a known design point, not a wontfix.
 | -------------------------------------------- | ------------------------------------------ |
 | Process entry, embed wiring                  | `cmd/server/main.go`                       |
 | HTTP listener, middleware, TLS, h2c          | `pkg/http/http.go`                         |
-| Redis cache logic                            | `pkg/http/http.go` (`cacheHandler`)        |
-| Apache access log + ETag                     | `pkg/http/http.go` (`loggingHandler`)      |
+| Redis cache helpers                          | `pkg/http/grpc/cache.go` (`rpcCacheGet`)   |
+| Structured slog access log + ETag            | `pkg/http/http.go` (`loggingHandler`)      |
 | Runtime env injector for the WebUI           | `pkg/http/webui/webui.go`                  |
 | security.txt                                 | `pkg/http/http.go` (`SecurityTxtInjector`) |
 | gRPC service handler                         | `pkg/http/grpc/service.go`                 |

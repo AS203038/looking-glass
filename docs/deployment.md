@@ -546,10 +546,10 @@ binary was built with.
 Even without Sentry the server is reasonably observable through
 logs alone:
 
-* **Access log** — Apache Common Log Format on stdout, including
-  the `X-Cache` value (HIT / empty) and the request duration. This
-  is enough to compute cache hit rate, p95 latency, and request
-  volume from logs alone.
+* **Access log** — Structured `slog` JSON format on stdout (under
+  the `httpaccess` component), including the `X-Cache` value (HIT /
+  empty) and the request duration. This is enough to compute cache
+  hit rate, p95 latency, and request volume from logs alone.
 * **SSH log** — every dial / auth / exec failure is logged with a
   router tag (`router=… host=… user=…`) and any captured stderr
   (truncated to 512 bytes).

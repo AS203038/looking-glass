@@ -176,13 +176,23 @@ redis:
 
 | Key       | Type   | Default | Notes                                                                                                                                          |
 | --------- | ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled` | bool   | `false` | When false, the cache middleware is not installed.                                                                                              |
+| `enabled` | bool   | `false` | When false, the shared response cache is disabled.                                                                                              |
 | `uri`     | string | —       | Parsed by `redis.ParseURL`. Standard `redis://` and `rediss://` schemes; `?protocol=3` enables RESP3. Parse failure disables the cache and logs. |
 | `ttl`     | string | `1m`    | Go [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) string. Malformed values fall back to 60 seconds and log a warning.            |
 
-The cache key is `md5(request_path || request_body)`. Hits replay
-the entire stored response (status, headers, body) and set
-`X-Cache: HIT` so the access log shows cache effectiveness:
+RPC payloads are cached inside the ConnectRPC layer (under `pkg/http/grpc/`). 
+The cache keys are method-specific and structured as follows:
+
+* `Ping`: `lg:rpc:<version>:ping:<router_id>:<target>`
+* `Traceroute`: `lg:rpc:<version>:traceroute:<router_id>:<target>`
+* `BGPSummary`: `lg:rpc:<version>:bgpsummary:<router_id>`
+* `BGPRoute`: `lg:rpc:<version>:bgproute:<router_id>:<target>`
+* `BGPCommunity`: `lg:rpc:<version>:bgpcommunity:<router_id>:<community>`
+* `BGPLargeCommunity`: `lg:rpc:<version>:bgplargecommunity:<router_id>:<community>`
+* `BGPASPath`: `lg:rpc:<version>:bgpaspath:<router_id>:<md5(pattern)>`
+
+Hits serve the cached protobuf message and set the `X-Cache: HIT` 
+response header so the structured access log shows cache effectiveness:
 
 ```json
 {"time":"2026-05-16T06:00:00Z","level":"INFO","msg":"http access","component":"httpaccess","remote":"192.0.2.42","method":"POST","uri":"/lookingglass.v0.LookingGlassService/Ping","status":200,"duration":12400000,"cache":"HIT"}

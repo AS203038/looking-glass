@@ -25,8 +25,10 @@ this page is the longer-form companion.
 | `-o, --output FMT`  | `LG_OUTPUT`      | `pretty`                                                                          | One of `pretty | json | raw`.                                                                       |
 | `--timeout DUR`     | `LG_TIMEOUT`     | `60s`                                                                            | Per-invocation timeout. Go duration syntax (`90s`, `2m`, `5m30s`).                                  |
 | `--no-color`        | `LG_NO_COLOR` / `NO_COLOR` | (auto) when set                                                          | Disable ANSI colour in pretty output. Also auto-off when stdout isn't a TTY.                        |
+| `--force-color`     | —                | off                                                                              | Force ANSI colour in pretty output even when redirected.                                            |
 | `-q, --quiet`       | —                | off                                                                              | Suppress the trailing `ts:` footer in pretty output.                                                 |
 | `-v, --verbose`     | —                | off                                                                              | Diagnostic lines to stderr.                                                                          |
+| `-u, --update`      | —                | off                                                                              | Force update of locally cached data (index and routers).                                           |
 | `-h, --help`        | —                | —                                                                                | Show help. Works at every level (`lg-cli`, `lg-cli bgp`, `lg-cli bgp route --help`).               |
 
 `--quiet` and `--verbose` are mutually exclusive.
@@ -51,6 +53,8 @@ URLs are the escape hatch for local / private deployments. The
 public-index lookup has its own 15s sub-budget so a slow or
 unreachable index can never eat into the RPC budget.
 
+If an instance argument does not match any index entry, `lg-cli` computes the Levenshtein distance between the query and known names/ASNs. If a close match (distance $\le 3$) is found, it suggests the closest name (e.g., `"instance "foo" not found in index (did you mean "bar"?)""`).
+
 ### Router argument
 
 Subcommands that target a single router (`ping`, `traceroute`,
@@ -66,6 +70,15 @@ Subcommands that target a single router (`ping`, `traceroute`,
    ```
 
 Use IDs in scripts; use names interactively.
+
+## Local caching
+
+To optimize performance and avoid excessive network requests, `lg-cli` caches data locally in `~/.cache/looking-glass/` (or the operating system's standard user cache directory):
+
+* **Public Index Cache**: Cached at `~/.cache/looking-glass/public_index.yaml` for **30 days**. If a network error occurs while fetching the remote public index, `lg-cli` will gracefully fall back to this stale local cache.
+* **Router Catalogue Cache**: Cached at `~/.cache/looking-glass/routers_<hash>.json` for **1 hour** per Looking Glass instance. This caches the router list returned by `GetRouters` so that resolving router names to IDs does not require a round-trip on every command execution.
+
+To bypass the cache and force an immediate update of both the public index and router list, use the `-u` / `--update` global flag.
 
 ## Commands
 
@@ -353,9 +366,6 @@ mylg ping 1 1.1.1.1
 
 ## Limitations
 
-* **Catalogue caching** — `lg-cli` does not cache the router
-  catalogue locally. Every `routers` / name-resolution call hits
-  the server. Use numeric IDs in tight loops if this matters.
 * **No streaming output** — every command waits for the full RPC
   response before printing. There is no per-line progress for
   long traceroutes; the router buffers locally and the response

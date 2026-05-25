@@ -396,24 +396,30 @@ view unavailable" is not.
 ## Caching semantics
 
 When the optional Redis cache is enabled (`redis.enabled: true`),
-the HTTP middleware caches responses keyed by
-`md5(request_path || raw_request_body)`. This means:
+the individual gRPC handlers in `pkg/http/grpc/service.go` automatically
+cache successful protobuf responses in Redis.
 
-* Two requests with the same path and body get the same cached
-  response, regardless of protocol (gRPC, gRPC-Web, JSON all hash
-  to the same bytes by their wire-format body).
-* Errors **are not cached** — the cache middleware stores whatever
-  the handler wrote, so a 4xx/5xx response would in principle be
-  cached, but ConnectRPC's error responses include the current
-  timestamp making practical replays harmless. Don't rely on this.
-* TTL is configured globally via `redis.ttl`. There is no
-  per-method TTL and no manual invalidation API.
+The cache keys are built using granular, method-specific parameters and
+the current server version:
 
-Cache hits set the `X-Cache: HIT` response header and appear in
-the access log:
+* `Ping`: `lg:rpc:<version>:ping:<router_id>:<target>`
+* `Traceroute`: `lg:rpc:<version>:traceroute:<router_id>:<target>`
+* `BGPSummary`: `lg:rpc:<version>:bgpsummary:<router_id>`
+* `BGPRoute`: `lg:rpc:<version>:bgproute:<router_id>:<target>`
+* `BGPCommunity`: `lg:rpc:<version>:bgpcommunity:<router_id>:<community>`
+* `BGPLargeCommunity`: `lg:rpc:<version>:bgplargecommunity:<router_id>:<community>`
+* `BGPASPath`: `lg:rpc:<version>:bgpaspath:<router_id>:<md5(pattern)>`
 
-```
-192.0.2.1 "POST /lookingglass.v0.LookingGlassService/Ping HTTP/2.0" 200 1234 "" "grpc-web/1.0" 12ms HIT
+This method-specific key structure offers several key benefits:
+
+* **Build-Stable Invalidation**: The current version string (e.g. `v1.2.3` or untracked suffix) is folded directly into every key prefix. Deploying a new binary release instantly invalidates prior cached items cluster-wide, eliminating stale-state issues after an upgrade.
+* **No Error Caching**: Only successful RPC responses are cached. Connection failures, authentication timeouts, or other operational errors are never written to the cache.
+* **TTL Configuration**: Cache TTL is configured globally via `redis.ttl` (e.g. `5m`). There is no manual invalidation API.
+
+Cache hits set the `X-Cache: HIT` response header and appear in the structured access log:
+
+```json
+{"time":"2026-05-16T06:00:00Z","level":"INFO","msg":"http access","component":"httpaccess","remote":"192.0.2.1","method":"POST","uri":"/lookingglass.v0.LookingGlassService/Ping","status":200,"duration":12000000,"cache":"HIT"}
 ```
 
 The catalogue methods (`GetInfo`, `GetRouters`) are also cached;
