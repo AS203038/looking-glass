@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -410,7 +409,11 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
 		return nil, errs.OperationUnknown
 	}
-	commStr := strconv.Itoa(int(community.Asn)) + ":" + strconv.Itoa(int(community.Value))
+	commStr, err := utils.SanitizeBGPCommunity(community.GetAsn(), community.GetValue())
+	if err != nil {
+		logRPCError(tag, "sanitize_community", err)
+		return nil, err
+	}
 	key := bgpCommunityCacheKey(rt, commStr)
 	var cached pb.BGPCommunityResponse
 	if rpcCacheGet(ctx, key, &cached) {
@@ -459,9 +462,10 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
 		return nil, errs.OperationUnknown
 	}
-	lc := strconv.FormatUint(uint64(community.GetGlobalAdmin()), 10) + ":" +
-		strconv.FormatUint(uint64(community.GetLocalData1()), 10) + ":" +
-		strconv.FormatUint(uint64(community.GetLocalData2()), 10)
+	lc := utils.SanitizeBGPLargeCommunity(
+		community.GetGlobalAdmin(),
+		community.GetLocalData1(),
+		community.GetLocalData2())
 	key := bgpLargeCommunityCacheKey(rt, lc)
 	var cached pb.BGPLargeCommunityResponse
 	if rpcCacheGet(ctx, key, &cached) {
