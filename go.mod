@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/grpchealth v1.4.0
 	github.com/getsentry/sentry-go v0.46.2
-	github.com/redis/go-redis/v9 v9.19.0
+	github.com/redis/go-redis/v9 v9.20.0
 	github.com/rs/cors v1.11.1
 	github.com/sirikothe/gotextfsm v1.1.0
 	github.com/spf13/cobra v1.10.2
