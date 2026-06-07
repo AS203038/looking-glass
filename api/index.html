@@ -1,0 +1,2145 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://as203038.github.io/looking-glass/api/">
+      
+      
+        <link rel="prev" href="../development/">
+      
+      
+        <link rel="next" href="../cli/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>API Reference - Looking Glass</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Looking Glass" class="md-header__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Looking Glass
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Looking Glass" class="md-nav__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Looking Glass
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bmp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BMP Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocols
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoint-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoint shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#catalogue-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalogue methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Catalogue methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getinfo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GetInfo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getrouters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GetRouters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operation-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operation methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operation methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#traceroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Traceroute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgpsummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPSummary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgproute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPRoute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgpcommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPCommunity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgplargecommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPLargeCommunity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgpaspath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPASPath
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structured-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Structured output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#policy-router-cpu-is-the-bottleneck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy: router CPU is the bottleneck
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authoritativeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoritativeness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload shapes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status-decoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status decoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caching-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caching semantics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#etag-browser-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ETag (browser cache)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-health-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC health protocol
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-web-specifics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC-Web specifics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#go-connect-go-native-grpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go (Connect-Go, native gRPC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-connect-web-from-a-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript (Connect-Web from a browser)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curl-connect-json-over-post" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        curl (Connect JSON-over-POST)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-read-further" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to read further
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocols
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoint-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoint shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#catalogue-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalogue methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Catalogue methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getinfo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GetInfo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getrouters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GetRouters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operation-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operation methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operation methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#traceroute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Traceroute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgpsummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPSummary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgproute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPRoute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgpcommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPCommunity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgplargecommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPLargeCommunity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgpaspath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BGPASPath
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structured-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Structured output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#policy-router-cpu-is-the-bottleneck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy: router CPU is the bottleneck
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authoritativeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoritativeness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload shapes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status-decoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status decoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caching-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caching semantics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#etag-browser-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ETag (browser cache)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-health-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC health protocol
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-web-specifics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC-Web specifics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#go-connect-go-native-grpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go (Connect-Go, native gRPC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-connect-web-from-a-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript (Connect-Web from a browser)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curl-connect-json-over-post" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        curl (Connect JSON-over-POST)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-read-further" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to read further
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
+<p>Looking Glass exposes a single ConnectRPC service, <code>lookingglass.v0.LookingGlassService</code>, on the same HTTP/2 listener that serves the WebUI. The contract is defined in <a href="../protobuf/lookingglass/v0/lookingglass.proto"><code>protobuf/lookingglass/v0/lookingglass.proto</code></a> — which is the single source of truth and propagates comments to both godoc and TSDoc via <code>buf generate</code>. This page is the operator-friendly summary.</p>
+<h2 id="protocols">Protocols<a class="headerlink" href="#protocols" title="Permanent link">&para;</a></h2>
+<p>ConnectRPC implements three wire protocols on the same handler. Every method below is reachable through all three; pick whichever your client supports.</p>
+<table>
+<thead>
+<tr>
+<th>Protocol</th>
+<th><code>Content-Type</code></th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gRPC</td>
+<td><code>application/grpc</code></td>
+<td>Native gRPC clients (Go, Python, Java, …)</td>
+</tr>
+<tr>
+<td>gRPC-Web</td>
+<td><code>application/grpc-web</code></td>
+<td>Browsers (<code>@connectrpc/connect-web</code>)</td>
+</tr>
+<tr>
+<td>Connect (JSON over POST)</td>
+<td><code>application/json</code></td>
+<td><code>curl</code>, scripts, anything HTTP/1.1</td>
+</tr>
+</tbody>
+</table>
+<p>The server speaks HTTP/2 (h2c or TLS) for the first two and falls back to HTTP/1.1 + JSON for the third. The bundled CLI (<code>lg-cli</code>) uses the gRPC protocol over HTTP/2.</p>
+<h2 id="endpoint-shape">Endpoint shape<a class="headerlink" href="#endpoint-shape" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{base-url}/lookingglass.v0.LookingGlassService/{Method}
+</span></code></pre></div>
+<p>For example, against a local server:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>http://localhost:8080/lookingglass.v0.LookingGlassService/Ping
+</span></code></pre></div>
+<p>Every method is unary (one request, one response) and uses POST. There are no streaming RPCs in v0.</p>
+<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
+<p>There is none. Looking Glass deliberately ships without auth — see <a href="../deployment/#reverse-proxy">deployment.md § Reverse proxy</a> for how to layer it on (basic auth, OIDC, IP allowlist, etc.).</p>
+<h2 id="catalogue-methods">Catalogue methods<a class="headerlink" href="#catalogue-methods" title="Permanent link">&para;</a></h2>
+<p>These are cheap, side-effect-free reads of in-memory state. They do not touch any router and are safe to call frequently.</p>
+<h3 id="getinfo"><code>GetInfo</code><a class="headerlink" href="#getinfo" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>GetInfo(google.protobuf.Empty) → GetInfoResponse
+</span></code></pre></div>
+<p>Returns the server identity:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hostname</code></td>
+<td>string</td>
+<td><code>os.Hostname()</code>, or <code>"unknown"</code> if the OS call fails.</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>string</td>
+<td><code>&lt;release&gt;+&lt;unix-nanos-hex&gt;</code>. See <code>utils.Version()</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Used by the WebUI footer and the <code>lg-cli info</code> subcommand as a connectivity probe.</p>
+<p>JSON example:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>http://localhost:8080/lookingglass.v0.LookingGlassService/GetInfo
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="s2">&quot;lg-1&quot;</span><span class="p">,</span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="s2">&quot;v1.0.0+18a5b6dabf45000&quot;</span><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="getrouters"><code>GetRouters</code><a class="headerlink" href="#getrouters" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>GetRouters(GetRoutersRequest) → GetRoutersResponse
+</span></code></pre></div>
+<p>Returns one page of the router catalogue.</p>
+<p>Request:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>limit</code></td>
+<td>uint32</td>
+<td><code>10</code></td>
+<td>Maximum rows on this page.</td>
+</tr>
+<tr>
+<td><code>page_token</code></td>
+<td>uint32</td>
+<td><code>1</code></td>
+<td>1-based page index. Zero is treated as 1.</td>
+</tr>
+</tbody>
+</table>
+<p>Response:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>routers</code></td>
+<td><code>repeated Router</code></td>
+<td>One row per device, in stable catalogue order.</td>
+</tr>
+<tr>
+<td><code>next_page</code></td>
+<td>uint32</td>
+<td>Token for the next page, or <code>0</code> when there are no more pages.</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>Timestamp</code></td>
+<td>Server time when the response was assembled.</td>
+</tr>
+</tbody>
+</table>
+<p><code>Router</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>int64</td>
+<td>Stable 1-based identifier (the index in <code>devices[]</code>).</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td><code>devices[].name</code> from <code>config.yaml</code>.</td>
+</tr>
+<tr>
+<td><code>location</code></td>
+<td>string</td>
+<td><code>devices[].location</code>.</td>
+</tr>
+<tr>
+<td><code>health</code></td>
+<td><code>RouterHealth</code></td>
+<td>Latest probe outcome.</td>
+</tr>
+</tbody>
+</table>
+<p><code>RouterHealth</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>Timestamp</code></td>
+<td>When the probe completed.</td>
+</tr>
+<tr>
+<td><code>healthy</code></td>
+<td>bool</td>
+<td><code>true</code> when the last probe completed without an SSH error.</td>
+</tr>
+</tbody>
+</table>
+<p>The catalogue is read from in-memory state — it never touches a router. Health snapshots are updated by the background ticker (every 60s); this method does not trigger a probe.</p>
+<h2 id="operation-methods">Operation methods<a class="headerlink" href="#operation-methods" title="Permanent link">&para;</a></h2>
+<p>Each of these:</p>
+<ol>
+<li>Looks up the router by <code>router_id</code>. Returns <code>errs.UnknownRouter</code> ("router unknown") on miss.</li>
+<li>Parses or sanitises the operand. Returns the appropriate sentinel on failure.</li>
+<li>Renders the vendor template (<code>pkg/routers/Yaml.Foo</code>).</li>
+<li>Executes the rendered commands over SSH (<code>utils.SSHExec</code>).</li>
+<li>Returns the joined stdout in <code>result</code> plus a server <code>timestamp</code>.</li>
+<li>Runs the vendor-template-declared parser (if any) and projects its outcome onto the response's <code>parsed</code> / <code>parser_kind</code> / <code>parse_status</code> fields. See <a href="#structured-output">Structured output</a> below.</li>
+</ol>
+<p>The <code>result</code> bytes are <strong>always</strong> populated, even when a parser ran successfully — they remain the authoritative source for copy-paste, search, and any client that does not yet understand the structured <code>parsed</code> payload.</p>
+<h3 id="ping"><code>Ping</code><a class="headerlink" href="#ping" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Ping(PingRequest) → PingResponse
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Request field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>router_id</code></td>
+<td>int64</td>
+<td>1-based router ID from <code>GetRouters</code>.</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>string</td>
+<td>Destination. IPv4, IPv6, CIDR, or hostname. Hostnames are resolved to the first DNS answer.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Response field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>result</code></td>
+<td>bytes</td>
+<td>Concatenated stdout of every command in the template.</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>Timestamp</code></td>
+<td>When the response was assembled.</td>
+</tr>
+<tr>
+<td><code>parsed</code></td>
+<td><code>PingStats</code></td>
+<td>Optional. Populated when a parser is configured for <code>ping</code> and ran successfully. See below.</td>
+</tr>
+<tr>
+<td><code>parser_kind</code></td>
+<td><code>ParserKind</code></td>
+<td>Which parser pipe produced <code>parsed</code> (<code>textfsm</code>, <code>native_json</code>, <code>builtin</code>, or <code>UNSPECIFIED</code>).</td>
+</tr>
+<tr>
+<td><code>parse_status</code></td>
+<td><code>ParseStatus</code></td>
+<td>Outcome of the parser attempt (<code>ok</code>, <code>disabled</code>, <code>template_missing</code>, <code>parse_failed</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="traceroute"><code>Traceroute</code><a class="headerlink" href="#traceroute" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Traceroute(TracerouteRequest) → TracerouteResponse
+</span></code></pre></div>
+<p>Same request shape as <code>Ping</code>. Response carries the same five fields as <code>PingResponse</code> except <code>parsed</code> is a <code>TracerouteParsed</code> (see <a href="#structured-output">Structured output</a>).</p>
+<h3 id="bgpsummary"><code>BGPSummary</code><a class="headerlink" href="#bgpsummary" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>BGPSummary(BGPSummaryRequest) → BGPSummaryResponse
+</span></code></pre></div>
+<p>Returns the router's BGP-neighbour summary table. The request takes only <code>router_id</code>. Note: not every shipped template defines a <code>bgp.summary</code> operation — when missing, the server returns <code>OperationUnknown</code>.</p>
+<h3 id="bgproute"><code>BGPRoute</code><a class="headerlink" href="#bgproute" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>BGPRoute(BGPRouteRequest) → BGPRouteResponse
+</span></code></pre></div>
+<p>Looks up the best (and, where supported, alternate) BGP paths for a prefix or address. Same request shape as <code>Ping</code> / <code>Traceroute</code>.</p>
+<p>The bundled templates typically emit <em>one</em> command here, picking the right family via <code>{{.IP.Family}}</code> — the operand carries the family, so dual-family fan-out would be wasteful.</p>
+<h3 id="bgpcommunity"><code>BGPCommunity</code><a class="headerlink" href="#bgpcommunity" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>BGPCommunity(BGPCommunityRequest) → BGPCommunityResponse
+</span></code></pre></div>
+<p>Lists every route tagged with the supplied RFC 1997 standard community.</p>
+<table>
+<thead>
+<tr>
+<th>Request field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>router_id</code></td>
+<td>int64</td>
+<td>1-based router ID.</td>
+</tr>
+<tr>
+<td><code>community</code></td>
+<td><code>BGPCommunity</code></td>
+<td><code>{asn, value}</code> — both int32.</td>
+</tr>
+</tbody>
+</table>
+<p>The server reassembles <code>community</code> to the canonical <code>"ASN:VALUE"</code> form before rendering the template.</p>
+<p>A <code>nil</code> <code>community</code> field returns <code>OperationUnknown</code>.</p>
+<h3 id="bgplargecommunity"><code>BGPLargeCommunity</code><a class="headerlink" href="#bgplargecommunity" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>BGPLargeCommunity(BGPLargeCommunityRequest) → BGPLargeCommunityResponse
+</span></code></pre></div>
+<p>Same shape, with an RFC 8092 large community:</p>
+<table>
+<thead>
+<tr>
+<th>Request field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>router_id</code></td>
+<td>int64</td>
+<td>1-based router ID.</td>
+</tr>
+<tr>
+<td><code>community</code></td>
+<td><code>BGPLargeCommunity</code></td>
+<td><code>{global_admin, local_data1, local_data2}</code> — uint32.</td>
+</tr>
+</tbody>
+</table>
+<p>The server reassembles to <code>"GLOBAL:LOCAL1:LOCAL2"</code>.</p>
+<h3 id="bgpaspath"><code>BGPASPath</code><a class="headerlink" href="#bgpaspath" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>BGPASPath(BGPASPathRequest) → BGPASPathResponse
+</span></code></pre></div>
+<p>Lists every route whose AS-path matches the supplied regex.</p>
+<table>
+<thead>
+<tr>
+<th>Request field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>router_id</code></td>
+<td>int64</td>
+<td>1-based router ID.</td>
+</tr>
+<tr>
+<td><code>pattern</code></td>
+<td>string</td>
+<td>AS-path regex. Server-side <code>SanitizeASPathRegex</code> allow-lists digits, <code>_</code>, optional leading <code>^</code>, optional trailing <code>$</code>; ≤30 chars.</td>
+</tr>
+</tbody>
+</table>
+<p>The sanitiser also prepends a leading <code>_</code> (unless <code>^</code> is present at the start) and appends a trailing <code>_</code>/<code>$</code> if absent, so <code>203038</code> becomes <code>_203038$</code> and <code>^203038</code> becomes <code>^203038$</code> before hitting the router. Patterns failing the allow-list return <code>ASPathMalformed</code>; empty patterns return <code>ASPathEmpty</code>; &gt;30 chars returns <code>ASPathTooLong</code>.</p>
+<h2 id="error-mapping">Error mapping<a class="headerlink" href="#error-mapping" title="Permanent link">&para;</a></h2>
+<p>Every server-side error path returns one of the sentinels in <code>pkg/errs</code>. They map to ConnectRPC's underlying codes through <code>connect.Error</code> wrapping in the standard way; in JSON they appear as:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;internal&quot;</span><span class="p">,</span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="s2">&quot;router unknown&quot;</span><span class="p">}</span>
+</span></code></pre></div>
+<p>The complete list:</p>
+<table>
+<thead>
+<tr>
+<th>Sentinel</th>
+<th>Source</th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UnknownRouter</code></td>
+<td>RouterMap lookup</td>
+<td><code>router_id</code> not in <code>[1, len(devices)]</code>.</td>
+</tr>
+<tr>
+<td><code>RouterUnavailable</code></td>
+<td>(reserved; not currently returned)</td>
+<td>Future use for explicit "router unhealthy" responses.</td>
+</tr>
+<tr>
+<td><code>OperationUnknown</code></td>
+<td>Template render</td>
+<td>Template doesn't define the operation, or a parse/execute error.</td>
+</tr>
+<tr>
+<td><code>IPInvalid</code></td>
+<td>IP parsing</td>
+<td>Target is empty or not a valid IP/CIDR; DNS lookup returned nothing.</td>
+</tr>
+<tr>
+<td><code>NetInvalid</code></td>
+<td>CIDR parsing</td>
+<td>Target is not a valid CIDR.</td>
+</tr>
+<tr>
+<td><code>FamilyInvalid</code></td>
+<td>(reserved)</td>
+<td>Reserved for explicit family mismatches.</td>
+</tr>
+<tr>
+<td><code>ASPathMalformed</code></td>
+<td><code>SanitizeASPathRegex</code></td>
+<td>Pattern contains characters outside the allow-list.</td>
+</tr>
+<tr>
+<td><code>ASPathEmpty</code></td>
+<td><code>SanitizeASPathRegex</code></td>
+<td>Pattern is empty.</td>
+</tr>
+<tr>
+<td><code>ASPathTooLong</code></td>
+<td><code>SanitizeASPathRegex</code></td>
+<td>Pattern is longer than 30 characters.</td>
+</tr>
+<tr>
+<td><code>ConnectionFailed</code></td>
+<td><code>ssh.Dial</code></td>
+<td>TCP or SSH handshake failed before authentication.</td>
+</tr>
+<tr>
+<td><code>AuthFailed</code></td>
+<td>SSH auth</td>
+<td>SSH credentials rejected, or <code>ssh_key</code> unreadable / unparseable.</td>
+</tr>
+<tr>
+<td><code>ExecFailed</code></td>
+<td>SSH session execution</td>
+<td>Session creation, command exit, or stderr capture failed.</td>
+</tr>
+</tbody>
+</table>
+<p>The intentional choice is <strong>coarse client errors, detailed server logs</strong>. RPC consumers never see hostnames, command text, stderr, or auth-error messages — those go only to the server's log stream, tagged with <code>op=</code> / <code>router=</code> / <code>stage=</code> for greppability.</p>
+<h2 id="structured-output">Structured output<a class="headerlink" href="#structured-output" title="Permanent link">&para;</a></h2>
+<p>Every operation response carries three fields in addition to the raw <code>result</code> bytes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>parsed</code></td>
+<td>typed message</td>
+<td>Optional. Structured form of <code>result</code>; one of <code>PingStats</code>, <code>TracerouteParsed</code>, <code>BGPSummaryParsed</code>, <code>BGPPaths</code>.</td>
+</tr>
+<tr>
+<td><code>parser_kind</code></td>
+<td><code>ParserKind</code></td>
+<td>Names the parser pipe that produced <code>parsed</code>: <code>TEXTFSM</code>, <code>NATIVE_JSON</code>, <code>BUILTIN</code>, or <code>UNSPECIFIED</code>.</td>
+</tr>
+<tr>
+<td><code>parse_status</code></td>
+<td><code>ParseStatus</code></td>
+<td>Outcome of the parser attempt: <code>OK</code>, <code>DISABLED</code>, <code>TEMPLATE_MISSING</code>, <code>PARSE_FAILED</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="policy-router-cpu-is-the-bottleneck">Policy: router CPU is the bottleneck<a class="headerlink" href="#policy-router-cpu-is-the-bottleneck" title="Permanent link">&para;</a></h3>
+<p>Looking Glass treats parsing as something it does on its own machine, not something it asks the router to do for free. The default for every vendor is <strong>plain CLI → TextFSM on the Looking Glass</strong>. Vendor-native JSON pipelines (<code>| display json</code> on JunOS, <code>| json</code> on Arista / Cisco IOS-XE) re-serialise text the router has already rendered and typically cost 1.5–3× the CPU and 2–4× the byte volume — they are deliberately opt-in per template.</p>
+<p>The only routinely-recommended <code>NATIVE_JSON</code> source today is <strong>FRRouting</strong>: FRR holds the RIB as structured data in its userland daemon, so the JSON pipe is essentially a <code>memcpy</code>. Other vendors stay on TextFSM until benchmarks demonstrate the JSON path is cheap for them too.</p>
+<h3 id="authoritativeness">Authoritativeness<a class="headerlink" href="#authoritativeness" title="Permanent link">&para;</a></h3>
+<p><code>parsed</code> is <strong>never authoritative over <code>result</code></strong>:</p>
+<ul>
+<li>Every WebUI/CLI/curl path keeps rendering <code>result</code> as the fallback when <code>parse_status != OK</code>.</li>
+<li>When <code>parse_status == OK</code>, the structured view is the primary UI but <code>result</code> is still the canonical bytes for copy/ paste, search, and downstream tooling.</li>
+<li>Cached responses from older binaries (without <code>parsed</code>) remain fully readable by new clients — <code>parsed</code> is an additive field.</li>
+</ul>
+<h3 id="payload-shapes">Payload shapes<a class="headerlink" href="#payload-shapes" title="Permanent link">&para;</a></h3>
+<p><code>PingStats</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>target</code></td>
+<td>string</td>
+<td>Address actually probed (may differ from request when resolved).</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>string</td>
+<td>Bound source address, when exposed.</td>
+</tr>
+<tr>
+<td><code>packets_sent</code></td>
+<td>uint32</td>
+<td></td>
+</tr>
+<tr>
+<td><code>packets_received</code></td>
+<td>uint32</td>
+<td></td>
+</tr>
+<tr>
+<td><code>loss_pct</code></td>
+<td>float32</td>
+<td>0–100.</td>
+</tr>
+<tr>
+<td><code>rtt_min_ms</code></td>
+<td>float32</td>
+<td>0 when not reported.</td>
+</tr>
+<tr>
+<td><code>rtt_avg_ms</code></td>
+<td>float32</td>
+<td></td>
+</tr>
+<tr>
+<td><code>rtt_max_ms</code></td>
+<td>float32</td>
+<td></td>
+</tr>
+<tr>
+<td><code>rtt_mdev_ms</code></td>
+<td>float32</td>
+<td>Standard deviation; 0 when not reported.</td>
+</tr>
+</tbody>
+</table>
+<p><code>TracerouteParsed</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>target</code></td>
+<td>string</td>
+<td>Destination address as reported by the router.</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>string</td>
+<td>Bound source address, when exposed.</td>
+</tr>
+<tr>
+<td><code>hops</code></td>
+<td><code>repeated TracerouteHop</code></td>
+<td>One row per TTL.</td>
+</tr>
+</tbody>
+</table>
+<p><code>TracerouteHop</code> is <code>{ttl, probes[]}</code>; <code>TracerouteProbe</code> is <code>{ip, hostname, rtt_ms, asn}</code>. A timed-out hop carries one synthetic empty probe (all fields zero).</p>
+<p><code>BGPSummaryParsed</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>local_asn</code></td>
+<td>uint32</td>
+<td>Local AS, when reported.</td>
+</tr>
+<tr>
+<td><code>router_id</code></td>
+<td>string</td>
+<td>BGP router-id, when reported.</td>
+</tr>
+<tr>
+<td><code>peers</code></td>
+<td><code>repeated BGPPeer</code></td>
+<td>One row per BGP neighbour.</td>
+</tr>
+</tbody>
+</table>
+<p><code>BGPPeer</code> carries <code>peer_ip</code>, <code>peer_asn</code>, <code>description</code>, <code>state</code> (normalised to lower-case: <code>established</code>, <code>idle</code>, <code>active</code>, <code>connect</code>, <code>opensent</code>, <code>openconfirm</code>), <code>state_detail</code> (vendor sub-state, free-form), <code>uptime_seconds</code>, <code>prefixes_received</code>, <code>prefixes_accepted</code>, <code>prefixes_sent</code>, <code>address_family</code> (<code>ipv4-unicast</code> / <code>ipv6-unicast</code> / …).</p>
+<p><code>BGPPaths</code> (used for <code>bgp.route</code>, <code>bgp.community</code>, <code>bgp.largecommunity</code>, <code>bgp.aspath</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>paths</code></td>
+<td><code>repeated BGPPath</code></td>
+<td>One row per matched path, vendor-supplied order.</td>
+</tr>
+</tbody>
+</table>
+<p><code>BGPPath</code> carries <code>prefix</code>, <code>nexthop</code>, <code>as_path</code> (<code>repeated uint32</code>), <code>origin</code> (<code>igp</code>/<code>egp</code>/<code>incomplete</code>), <code>med</code>, <code>local_pref</code>, <code>communities</code> (<code>repeated string</code> in <code>ASN:VALUE</code> form), <code>large_communities</code> (<code>repeated string</code> in <code>GLOBAL:L1:L2</code>), <code>best</code> (bool), <code>peer_asn</code>, <code>peer_ip</code>, <code>age_seconds</code>.</p>
+<h3 id="status-decoding">Status decoding<a class="headerlink" href="#status-decoding" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><code>parse_status</code></th>
+<th>What clients should render</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PARSE_STATUS_OK</code></td>
+<td>Structured view from <code>parsed</code>; <code>result</code> available as a toggle / fallback.</td>
+</tr>
+<tr>
+<td><code>PARSE_STATUS_DISABLED</code></td>
+<td>No parser configured for this op. Render <code>result</code> as-is.</td>
+</tr>
+<tr>
+<td><code>PARSE_STATUS_TEMPLATE_MISSING</code></td>
+<td>Packaging defect — parser was requested but its template/schema asset was absent. Surface a quiet warning ("structured view unavailable: template missing"), render <code>result</code>.</td>
+</tr>
+<tr>
+<td><code>PARSE_STATUS_PARSE_FAILED</code></td>
+<td>Parser ran but produced nothing useful (vendor output drift, malformed JSON, …). Quiet warning, render <code>result</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>When <code>parse_status != OK</code> and <code>parser_kind != UNSPECIFIED</code>, clients can use <code>parser_kind</code> to tell operators which pipe <em>tried</em>: "parser=textfsm, status=parse_failed" is operator- actionable (template needs updating) in a way that "structured view unavailable" is not.</p>
+<h2 id="caching-semantics">Caching semantics<a class="headerlink" href="#caching-semantics" title="Permanent link">&para;</a></h2>
+<p>When the optional Redis cache is enabled (<code>redis.enabled: true</code>), the individual gRPC handlers in <code>pkg/http/grpc/service.go</code> automatically cache successful protobuf responses in Redis.</p>
+<p>The cache keys are built using granular, method-specific parameters and the current server version:</p>
+<ul>
+<li><code>Ping</code>: <code>lg:rpc:&lt;version&gt;:ping:&lt;router_id&gt;:&lt;target&gt;</code></li>
+<li><code>Traceroute</code>: <code>lg:rpc:&lt;version&gt;:traceroute:&lt;router_id&gt;:&lt;target&gt;</code></li>
+<li><code>BGPSummary</code>: <code>lg:rpc:&lt;version&gt;:bgpsummary:&lt;router_id&gt;</code></li>
+<li><code>BGPRoute</code>: <code>lg:rpc:&lt;version&gt;:bgproute:&lt;router_id&gt;:&lt;target&gt;</code></li>
+<li><code>BGPCommunity</code>: <code>lg:rpc:&lt;version&gt;:bgpcommunity:&lt;router_id&gt;:&lt;community&gt;</code></li>
+<li><code>BGPLargeCommunity</code>: <code>lg:rpc:&lt;version&gt;:bgplargecommunity:&lt;router_id&gt;:&lt;community&gt;</code></li>
+<li><code>BGPASPath</code>: <code>lg:rpc:&lt;version&gt;:bgpaspath:&lt;router_id&gt;:&lt;md5(pattern)&gt;</code></li>
+</ul>
+<p>This method-specific key structure offers several key benefits:</p>
+<ul>
+<li><strong>Build-Stable Invalidation</strong>: The current version string (e.g. <code>v1.2.3</code> or untracked suffix) is folded directly into every key prefix. Deploying a new binary release instantly invalidates prior cached items cluster-wide, eliminating stale-state issues after an upgrade.</li>
+<li><strong>No Error Caching</strong>: Only successful RPC responses are cached. Connection failures, authentication timeouts, or other operational errors are never written to the cache.</li>
+<li><strong>TTL Configuration</strong>: Cache TTL is configured globally via <code>redis.ttl</code> (e.g. <code>5m</code>). There is no manual invalidation API.</li>
+</ul>
+<p>Cache hits set the <code>X-Cache: HIT</code> response header and appear in the structured access log:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span><span class="nt">&quot;time&quot;</span><span class="p">:</span><span class="s2">&quot;2026-05-16T06:00:00Z&quot;</span><span class="p">,</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="s2">&quot;http access&quot;</span><span class="p">,</span><span class="nt">&quot;component&quot;</span><span class="p">:</span><span class="s2">&quot;httpaccess&quot;</span><span class="p">,</span><span class="nt">&quot;remote&quot;</span><span class="p">:</span><span class="s2">&quot;192.0.2.1&quot;</span><span class="p">,</span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="nt">&quot;uri&quot;</span><span class="p">:</span><span class="s2">&quot;/lookingglass.v0.LookingGlassService/Ping&quot;</span><span class="p">,</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="mi">200</span><span class="p">,</span><span class="nt">&quot;duration&quot;</span><span class="p">:</span><span class="mi">12000000</span><span class="p">,</span><span class="nt">&quot;cache&quot;</span><span class="p">:</span><span class="s2">&quot;HIT&quot;</span><span class="p">}</span>
+</span></code></pre></div>
+<p>The catalogue methods (<code>GetInfo</code>, <code>GetRouters</code>) are also cached; that's usually fine, but if your router catalogue changes mid-deployment you may see stale rows for up to <code>TTL</code>.</p>
+<h2 id="etag-browser-cache">ETag (browser cache)<a class="headerlink" href="#etag-browser-cache" title="Permanent link">&para;</a></h2>
+<p>The <code>loggingHandler</code> middleware sets the response <code>ETag</code> header to the value of <code>utils.Version()</code> whenever a release is configured (i.e. not <code>"untracked"</code>). Browsers that re-validate with <code>If-None-Match: &lt;version&gt;</code> get a 304 without the handler being invoked. This dramatically reduces the cost of repeat page loads for the WebUI static assets.</p>
+<p>The <code>version</code> includes a nanosecond timestamp suffix, so every server restart invalidates the cache — the goal is correctness on upgrade, not maximum cacheability.</p>
+<h2 id="grpc-health-protocol">gRPC health protocol<a class="headerlink" href="#grpc-health-protocol" title="Permanent link">&para;</a></h2>
+<p>The server also mounts <code>grpc.health.v1.Health</code> from <code>connectrpc.com/grpchealth</code>:</p>
+<ul>
+<li><code>Check { service: "" }</code> — overall server health (<code>SERVING</code> after startup).</li>
+<li><code>Check { service: "lookingglass.v0.LookingGlassService" }</code> — same.</li>
+<li><code>Check { service: "lookingglass.v0.LookingGlassService/&lt;name&gt;" }</code> — per-router health. Updated by the background ticker; the status mirrors <code>RouterHealth.healthy</code> from <code>GetRouters</code>.</li>
+</ul>
+<p>Use this for Kubernetes readiness probes — prefer the native <code>grpc:</code> probe (k8s &gt;=1.24, GA 1.27) over <code>httpGet:</code>, since <code>grpc.health.v1.Health/Check</code> is a real gRPC method and is <strong>POST-only</strong>. A bare <code>curl -X GET</code> returns <code>405 Method Not Allowed</code>; the wire formats the handler accepts (native gRPC over HTTP/2, gRPC-Web, Connect / Connect-JSON) are all POST. For a quick curl sanity check:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>curl<span class="w"> </span>-fsS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">     </span>http://localhost:8080/grpc.health.v1.Health/Check
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># {&quot;status&quot;:&quot;SERVING_STATUS_SERVING&quot;}</span>
+</span></code></pre></div>
+<p>The standard <code>grpc_health_probe</code> CLI also works against the same endpoint.</p>
+<h2 id="grpc-web-specifics">gRPC-Web specifics<a class="headerlink" href="#grpc-web-specifics" title="Permanent link">&para;</a></h2>
+<p>For browser clients via <code>@connectrpc/connect-web</code>:</p>
+<ul>
+<li>The server is reachable directly without a gRPC-Web envoy proxy — ConnectRPC speaks gRPC-Web natively.</li>
+<li>All necessary CORS headers are in the allow-list (see <code>pkg/http/http.go</code> <code>corsHandler</code>): <code>Connect-Protocol-Version</code>, <code>Connect-Timeout-Ms</code>, <code>Grpc-Timeout</code>, <code>X-Grpc-Web</code>, <code>X-User-Agent</code>, …</li>
+<li><code>sentry-trace</code> and <code>baggage</code> are also allow-listed, so distributed traces propagate end-to-end when both server and WebUI have Sentry enabled.</li>
+</ul>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="go-connect-go-native-grpc">Go (Connect-Go, native gRPC)<a class="headerlink" href="#go-connect-go-native-grpc" title="Permanent link">&para;</a></h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">    </span><span class="s">&quot;context&quot;</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="s">&quot;net/http&quot;</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">    </span><span class="s">&quot;connectrpc.com/connect&quot;</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">    </span><span class="nx">pb</span><span class="w"> </span><span class="s">&quot;github.com/AS203038/looking-glass/protobuf/lookingglass/v0&quot;</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">    </span><span class="nx">lgcon</span><span class="w"> </span><span class="s">&quot;github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect&quot;</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="p">)</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="kd">func</span><span class="w"> </span><span class="nx">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="w">    </span><span class="nx">cli</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">lgcon</span><span class="p">.</span><span class="nx">NewLookingGlassServiceClient</span><span class="p">(</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="w">        </span><span class="nx">http</span><span class="p">.</span><span class="nx">DefaultClient</span><span class="p">,</span>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="w">        </span><span class="s">&quot;http://lg.example.net&quot;</span><span class="p">,</span>
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="w">    </span><span class="p">)</span>
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="w">    </span><span class="nx">resp</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cli</span><span class="p">.</span><span class="nx">Ping</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="nx">connect</span><span class="p">.</span><span class="nx">NewRequest</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">pb</span><span class="p">.</span><span class="nx">PingRequest</span><span class="p">{</span>
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="w">        </span><span class="nx">RouterId</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="w">        </span><span class="nx">Target</span><span class="p">:</span><span class="w">   </span><span class="s">&quot;1.1.1.1&quot;</span><span class="p">,</span>
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="w">    </span><span class="p">}))</span>
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a><span class="w">        </span><span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a><span class="w">    </span><span class="nb">println</span><span class="p">(</span><span class="nb">string</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Msg</span><span class="p">.</span><span class="nx">GetResult</span><span class="p">()))</span>
+</span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="typescript-connect-web-from-a-browser">TypeScript (Connect-Web from a browser)<a class="headerlink" href="#typescript-connect-web-from-a-browser" title="Permanent link">&para;</a></h3>
+<div class="language-ts highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createClient</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@connectrpc/connect&quot;</span><span class="p">;</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createGrpcWebTransport</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@connectrpc/connect-web&quot;</span><span class="p">;</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">LookingGlassService</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@as203038/lg-protobuf/lookingglass/v0/lookingglass_pb&quot;</span><span class="p">;</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">createClient</span><span class="p">(</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="w">    </span><span class="nx">LookingGlassService</span><span class="p">,</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="w">    </span><span class="nx">createGrpcWebTransport</span><span class="p">({</span><span class="w"> </span><span class="nx">baseUrl</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;https://lg.example.net&quot;</span><span class="w"> </span><span class="p">}),</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="p">);</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="kd">const</span><span class="w"> </span><span class="nx">resp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">ping</span><span class="p">({</span><span class="w"> </span><span class="nx">routerId</span><span class="o">:</span><span class="w"> </span><span class="kt">1n</span><span class="p">,</span><span class="w"> </span><span class="nx">target</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;1.1.1.1&quot;</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="ow">new</span><span class="w"> </span><span class="nx">TextDecoder</span><span class="p">().</span><span class="nx">decode</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">result</span><span class="p">));</span>
+</span></code></pre></div>
+<h3 id="curl-connect-json-over-post">curl (Connect JSON-over-POST)<a class="headerlink" href="#curl-connect-json-over-post" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{&quot;router_id&quot;:1,&quot;target&quot;:&quot;1.1.1.1&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">  </span>https://lg.example.net/lookingglass.v0.LookingGlassService/Ping
+</span></code></pre></div>
+<p>The JSON envelope is automatically produced and consumed by ConnectRPC — <code>result</code> is base64-encoded bytes in the JSON form:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="p">{</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UElORyAxLjEuMS4xICgxLjEuMS4xKSAuLi4=&quot;</span><span class="p">,</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-14T16:21:00Z&quot;</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Decode <code>result</code> with <code>base64 -d</code> to get the original router output.</p>
+<h2 id="versioning-policy">Versioning policy<a class="headerlink" href="#versioning-policy" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The service stays at <code>lookingglass.v0</code> until a breaking change is genuinely required.</li>
+<li>New fields are added with new tag numbers; removals never happen on <code>v0</code>.</li>
+<li>New methods can appear at any time and are advertised in the <code>.proto</code>. Clients should not crash on unknown methods (they simply won't be called).</li>
+<li>Anything reading the response should treat <code>result</code> as opaque bytes — vendor output is <em>not</em> a stable contract.</li>
+</ul>
+<p>When the project moves to <code>v1</code>, the <code>v0</code> service will be retained for at least one release cycle and the migration documented.</p>
+<h2 id="where-to-read-further">Where to read further<a class="headerlink" href="#where-to-read-further" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>protobuf/lookingglass/v0/lookingglass.proto</code> — the spec.</li>
+<li><code>pkg/http/grpc/service.go</code> — the handlers (~330 LoC, very readable).</li>
+<li><code>pkg/errs/*.go</code> — the error sentinels (one-line definitions).</li>
+<li><a href="../architecture/">architecture.md</a> — request lifecycle.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

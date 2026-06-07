@@ -1,0 +1,1484 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://as203038.github.io/looking-glass/architecture/">
+      
+      
+        <link rel="prev" href="../router-hardening/">
+      
+      
+        <link rel="next" href="../development/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Architecture - Looking Glass</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Looking Glass" class="md-header__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Looking Glass
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Looking Glass" class="md-nav__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Looking Glass
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bmp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BMP Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#birds-eye-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bird's-eye view
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cmdserver-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cmd/server — entry point
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cmdcli-lg-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cmd/cli — lg-cli
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkghttp-listener-middleware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/http — listener + middleware
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkghttpgrpc-connectrpc-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/http/grpc — ConnectRPC service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkghttpwebui-runtime-env-injector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/http/webui — runtime env injector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkgrouters-template-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/routers — template registry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkgutils-everything-else" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/utils — everything else
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkgerrs-sentinel-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/errs — sentinel errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webui-sveltekit-5-frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        webui — SvelteKit 5 frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protobuf-buf-managed-service-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        protobuf — buf-managed service contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concurrency-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-lifecycle-ping-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request lifecycle (Ping example)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-panic-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why panic at startup?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-connectrpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why ConnectRPC?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-embed-the-webui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why embed the WebUI?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssh-connection-pooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH Connection Pooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-level-cross-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File-level cross-reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#birds-eye-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bird's-eye view
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cmdserver-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cmd/server — entry point
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cmdcli-lg-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cmd/cli — lg-cli
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkghttp-listener-middleware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/http — listener + middleware
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkghttpgrpc-connectrpc-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/http/grpc — ConnectRPC service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkghttpwebui-runtime-env-injector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/http/webui — runtime env injector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkgrouters-template-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/routers — template registry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkgutils-everything-else" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/utils — everything else
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pkgerrs-sentinel-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkg/errs — sentinel errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webui-sveltekit-5-frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        webui — SvelteKit 5 frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protobuf-buf-managed-service-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        protobuf — buf-managed service contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concurrency-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-lifecycle-ping-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request lifecycle (Ping example)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-panic-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why panic at startup?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-connectrpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why ConnectRPC?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-embed-the-webui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why embed the WebUI?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssh-connection-pooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH Connection Pooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-level-cross-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File-level cross-reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
+<p>This page describes how Looking Glass is built — the pieces, how they talk to each other, and why certain decisions were made. It's aimed at anyone who wants to read the source with a map in hand, contribute non-trivial changes, or operate a deployment knowingly.</p>
+<p>For a config-only view see <a href="../configuration/">configuration.md</a>; for the API contract see <a href="../api/">api.md</a>.</p>
+<h2 id="birds-eye-view">Bird's-eye view<a class="headerlink" href="#birds-eye-view" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>graph TD
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef process fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef ext fill:#eceff1,stroke:#607d8b,stroke-width:2px;
+
+    Client["Browser / lg-cli"]:::ext
+    Ingress["Public ingress / TLS&lt;br&gt;(Caddy, NGINX, ...)"]:::ext
+
+    subgraph GoProcess ["Looking Glass Go Process"]
+        direction TB
+        subgraph Middleware ["Middleware Chain (outer → inner)"]
+            M_Sentry["Sentry?"] --&gt; M_Log["Logging"] --&gt; M_CORS["CORS"] --&gt; M_Mux["Mux"]
+        end
+
+        MuxMounts["&lt;b&gt;http.ServeMux mounts&lt;/b&gt;&lt;br&gt;- /lookingglass.v0.LookingGlassService/* (ConnectRPC)&lt;br&gt;- /grpc.health.v1.Health/* (health proto)&lt;br&gt;- /_app/env.js (runtime env)&lt;br&gt;- /.well-known/security.txt (RFC 9116)&lt;br&gt;- /* (embedded fs)"]
+
+        Handlers["gRPC Service Handlers"]
+        Ticker["Background Ticker (1 min)&lt;br&gt;Health-check every router"]:::process
+
+        RouterMap["&lt;b&gt;RouterMap&lt;/b&gt; (immutable, populated at startup)&lt;br&gt;[*]RouterInstance → Router (template) + Config + HealthCheck"]
+    end
+
+    Routers["Routers (1...N)&lt;br&gt;(FRRouting, Cisco, Arista, Juniper, Nokia, MikroTik)"]:::ext
+
+    Client --&gt;|HTTP/2 or HTTP/1.1| Ingress
+    Ingress --&gt;|"HTTP/2 (h2c or TLS)"| Middleware
+    M_Mux --&gt; MuxMounts
+    MuxMounts --&gt; Handlers
+    MuxMounts -.-&gt; Ticker
+    Handlers --&gt; RouterMap
+    Ticker --&gt; RouterMap
+    RouterMap --&gt;|"SSH (one TCP+SSH per RPC)"| Routers</code></pre>
+<p>The server is a single Go binary. The WebUI is a SvelteKit static build embedded into the binary at compile time via <code>//go:embed</code>. Optional services (Redis, Sentry) are <em>external</em> to the process and toggled by config.</p>
+<h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
+<h3 id="cmdserver-entry-point"><code>cmd/server</code> — entry point<a class="headerlink" href="#cmdserver-entry-point" title="Permanent link">&para;</a></h3>
+<p><code>main.go</code> parses <code>config.yaml</code>, asks <code>pkg/routers</code> to materialise the device list, and hands control to <code>pkg/http.ListenAndServe</code>. The whole file is ~60 lines because the heavy lifting lives in <code>pkg/</code>.</p>
+<p>The <code>//go:embed all:dist</code> directive is what gives the binary its self-contained nature. The SvelteKit build (<code>webui/</code>) writes its static output to <code>cmd/server/dist/</code> via the adapter-static configuration in <code>webui/svelte.config.js</code>, so the embed picks it up on the next <code>go build</code>.</p>
+<h3 id="cmdcli-lg-cli"><code>cmd/cli</code> — <code>lg-cli</code><a class="headerlink" href="#cmdcli-lg-cli" title="Permanent link">&para;</a></h3>
+<p>Cobra-based CLI with one file per subcommand (<code>cmd_info.go</code>, <code>cmd_routers.go</code>, <code>cmd_pingtrace.go</code>, <code>cmd_bgp.go</code>, …). Shared plumbing lives in <code>root.go</code> (global flags, context with timeout + signal handling), <code>client.go</code> (ConnectRPC client construction), <code>index.go</code> (public-index lookup + ASN/name/URL resolution), and <code>output.go</code> (pretty / json / raw output modes).</p>
+<p>See <a href="../cli/">cli.md</a> for the user-facing reference.</p>
+<h3 id="pkghttp-listener-middleware"><code>pkg/http</code> — listener + middleware<a class="headerlink" href="#pkghttp-listener-middleware" title="Permanent link">&para;</a></h3>
+<p>The HTTP/2 listener is constructed in <code>ListenAndServe</code>. The middleware chain is intentionally built bottom-up (innermost first) so the order of <code>handler = wrap(handler)</code> assignments matches the order each wrapper sees the request:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">mux</span><span class="w">                                </span><span class="c1">// base</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">corsHandler</span><span class="p">.</span><span class="nx">Handler</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">       </span><span class="c1">// CORS allow-list</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">loggingHandler</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">            </span><span class="c1">// Structured slog + ETag</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">sentryhttp</span><span class="p">.</span><span class="err">…</span><span class="nx">Handle</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">        </span><span class="c1">// Sentry (optional)</span>
+</span></code></pre></div>
+<p>So a request flows <strong>outermost → innermost</strong> as:</p>
+<ol>
+<li><strong>Sentry</strong> captures the request for tracing (optional).</li>
+<li><strong>Logging</strong> records start time + version-based ETag handling.</li>
+<li><strong>CORS</strong> adds the gRPC-Web allow-list.</li>
+<li><strong>Mux</strong> dispatches to gRPC / WebUI / security.txt / embedded fs.</li>
+</ol>
+<p>The chain is defined in <code>pkg/http/http.go</code>. Unlike HTTP request logging and CORS, response caching is <strong>not</strong> managed at the HTTP middleware layer. Instead, it is evaluated at the gRPC service layer inside individual handlers in <code>pkg/http/grpc/service.go</code> using helper methods defined in <code>pkg/http/grpc/cache.go</code>. This allows for method-specific cache key namespaces (e.g. <code>ping:&lt;router_id&gt;:&lt;target&gt;</code>), caching only successful protobuf payloads, and automatic build-stable invalidation.</p>
+<h3 id="pkghttpgrpc-connectrpc-service"><code>pkg/http/grpc</code> — ConnectRPC service<a class="headerlink" href="#pkghttpgrpc-connectrpc-service" title="Permanent link">&para;</a></h3>
+<p><code>Mux(ctx, mux, rts)</code> mounts the LookingGlassService handler and the gRPC-Health endpoint, then launches the health-check ticker. The service implementation is in <code>service.go</code>; it is a thin adapter:</p>
+<ul>
+<li><strong>Catalogue methods</strong> (<code>GetInfo</code>, <code>GetRouters</code>) read from the in-memory router catalogue. No SSH, no I/O.</li>
+<li><strong>Operation methods</strong> (<code>Ping</code>, <code>Traceroute</code>, <code>BGP*</code>) follow the same five-step recipe:</li>
+<li>Look up the router by ID. <code>errs.UnknownRouter</code> on miss.</li>
+<li>Parse/sanitise the operand (<code>utils.NewIPNetFromProtobuf</code> or <code>utils.SanitizeASPathRegex</code>). Sentinel on failure.</li>
+<li>Render the vendor template (<code>RouterInstance.Foo(operand)</code>).</li>
+<li>Execute commands over SSH (<code>utils.SSHExec</code>). Sentinel on failure (<code>errs.ExecFailed</code>).</li>
+<li>Wrap stdout into the protobuf response + server timestamp.</li>
+</ul>
+<p>Errors visible to clients are intentionally coarse — see <code>pkg/errs</code>. Detailed context (hostname, stderr, etc.) is logged server-side with a tag like <code>op=Ping router_id=1 router=rt1 type=frrouting stage=ssh_exec: …</code>.</p>
+<h3 id="pkghttpwebui-runtime-env-injector"><code>pkg/http/webui</code> — runtime env injector<a class="headerlink" href="#pkghttpwebui-runtime-env-injector" title="Permanent link">&para;</a></h3>
+<p>The WebUI is built without any deployment-specific values baked in. On boot it fetches <code>/_app/env.js</code>, an ES module exporting a single <code>env</code> object. <code>webui.ConfigInjector</code> constructs this module from <code>utils.WebConfig</code> <em>at handler-creation time</em>, so the response body is precomputed and the hot path is a single memcpy.</p>
+<p>This is a single source of truth: every <code>PUBLIC_*</code> key the WebUI reads is defined in <code>EnvJS</code> (<code>webui.go</code>) and consumed in <code>webui/src/lib/env.ts</code>. Adding a new key requires changes to both files.</p>
+<h3 id="pkgrouters-template-registry"><code>pkg/routers</code> — template registry<a class="headerlink" href="#pkgrouters-template-registry" title="Permanent link">&para;</a></h3>
+<p>The <code>Yaml</code> struct implements <code>utils.Router</code>. The whole point of the package is to load YAML templates (bundled and external) into a process-global registry.</p>
+<ul>
+<li><code>init()</code> in <code>yaml.go</code> is where loading happens. The function panics on malformed input — see <a href="#why-panic-at-startup">Why panic at startup?</a>.</li>
+<li><code>register(name, rt)</code> installs a template under a unique name. Duplicates panic; empty names panic.</li>
+<li><code>Get(name)</code> is the runtime lookup, used by <code>CreateRouterMap</code>.</li>
+<li><code>CreateRouterMap(cfg)</code> walks <code>cfg.Devices</code>, binds each to its template, and spawns one health-check goroutine per router.</li>
+</ul>
+<p>The bundled templates live alongside the Go source as <code>*.yml</code> files and are embedded via <code>//go:embed all:*.yml</code>.</p>
+<h3 id="pkgutils-everything-else"><code>pkg/utils</code> — everything else<a class="headerlink" href="#pkgutils-everything-else" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>config.go</code> — YAML parsing + validation (<code>ValidateConfig</code>).</li>
+<li><code>interface.go</code> — <code>Router</code> interface, <code>RouterInstance</code> (binds Router + Config + HealthCheck), <code>RouterMap</code> (slice + lookup).</li>
+<li><code>ipnet.go</code> — IP / CIDR parsing + family detection. The <code>IPFamily</code> constants (<code>ipv4</code> / <code>ipv6</code>) are lower-case because they're interpolated verbatim into vendor commands.</li>
+<li><code>sanitize.go</code> — <code>SanitizeASPathRegex</code>: tight allow-list for AS-path regex (digits and underscores only, ≤30 chars, optional <code>$</code> anchor). Prevents both command injection and ReDoS.</li>
+<li><code>ssh.go</code> — <code>SSHExec(cfg, cmds)</code>: one TCP+SSH per call, runs each command in its own session, captures stdout, logs stderr on failure (truncated to 512 bytes), returns sentinel errors.</li>
+<li><code>tls.go</code> — self-signed cert generation (<code>GenerateSelfSignedPair</code>) for <code>grpc.tls.self_signed: true</code>.</li>
+<li><code>Version()</code> — lazily computed <code>&lt;release&gt;+&lt;unix-nanos-hex&gt;</code> used as the ETag, Sentry release, and <code>GetInfo</code> reply.</li>
+</ul>
+<h3 id="pkgerrs-sentinel-errors"><code>pkg/errs</code> — sentinel errors<a class="headerlink" href="#pkgerrs-sentinel-errors" title="Permanent link">&para;</a></h3>
+<p>Five files of one-liner <code>errors.New(...)</code>. The whole point is that RPC clients never see anything more specific than these sentinels; operators see the gory detail in logs. The split per file is purely organisational (ipnet / sanitize / router / ssh).</p>
+<h3 id="webui-sveltekit-5-frontend"><code>webui</code> — SvelteKit 5 frontend<a class="headerlink" href="#webui-sveltekit-5-frontend" title="Permanent link">&para;</a></h3>
+<p>A pnpm workspace linked to <code>../protobuf</code> via <code>workspace:*</code>. Key files:</p>
+<ul>
+<li><code>svelte.config.js</code> — adapter-static, output to <code>../cmd/server/dist</code>.</li>
+<li><code>src/lib/env.ts</code> — reads <code>PUBLIC_*</code> from <code>$env/dynamic/public</code> with sane defaults; consumed by every other module.</li>
+<li><code>src/lib/grpc.ts</code> — singleton ConnectRPC client.</li>
+<li><code>src/lib/stores/routers.ts</code> — fetches the router catalogue, refreshes every 5 minutes, pauses while the tab is hidden.</li>
+<li><code>src/lib/stores/query.ts</code> — the actual RPC dispatch from the UI.</li>
+<li><code>src/lib/components/CommandDock.svelte</code> — sticky-bottom command surface; the dock that's always reachable.</li>
+<li><code>src/lib/components/ResultsSheet.svelte</code> — DevTools-style bottom sheet for command results.</li>
+<li><code>hooks.client.ts</code> — lazy-imports <code>@sentry/svelte</code> when a DSN is configured.</li>
+</ul>
+<h3 id="protobuf-buf-managed-service-contract"><code>protobuf</code> — buf-managed service contract<a class="headerlink" href="#protobuf-buf-managed-service-contract" title="Permanent link">&para;</a></h3>
+<p>Single proto file (<code>lookingglass/v0/lookingglass.proto</code>) generates Go <em>and</em> TypeScript via <code>buf generate</code>. Comments in the <code>.proto</code> propagate into both languages, so the godoc / TSDoc are the single source of truth for API documentation. See <a href="../api/">api.md</a> for the full contract.</p>
+<h2 id="concurrency-model">Concurrency model<a class="headerlink" href="#concurrency-model" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Goroutine kind</th>
+<th>Lifetime</th>
+<th>Synchronisation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP request handlers</td>
+<td>One per request</td>
+<td>Stateless — each request is independent; no shared mutable state.</td>
+</tr>
+<tr>
+<td>Health-check ticker</td>
+<td>One process-wide</td>
+<td>Reads/writes <code>HealthCheck</code> fields on each <code>RouterInstance</code> (single writer per router).</td>
+</tr>
+<tr>
+<td>Async cache writes</td>
+<td>One per cache miss</td>
+<td>Fire-and-forget Redis SET; errors logged.</td>
+</tr>
+<tr>
+<td>Sentry flush on shutdown</td>
+<td>One</td>
+<td>Internal to <code>sentry-go</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>There is <strong>no shared mutable state</strong> between request handlers. <code>RouterMap</code> is populated once at startup and treated as immutable thereafter; <code>_routers</code> in <code>pkg/routers</code> likewise. This is the property that makes the server horizontally scalable: replicas share nothing except (optionally) the Redis cache.</p>
+<p>The HealthCheck struct is technically read concurrently from RPC handlers and written concurrently from the ticker, but it holds only scalar values (<code>bool</code>, <code>time.Time</code>), so Go's memory model makes the race benign in practice — readers may see a slightly stale snapshot, never a torn struct.</p>
+<h2 id="request-lifecycle-ping-example">Request lifecycle (Ping example)<a class="headerlink" href="#request-lifecycle-ping-example" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1.  Browser submits PingRequest{router_id:1, target:&quot;1.1.1.1&quot;}
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    via ConnectRPC gRPC-Web.
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>2.  Caddy/NGINX terminates TLS; upstream sees h2c.
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>3.  Sentry middleware starts a transaction for the request.
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>4.  Logging middleware notes the start time; if
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    If-None-Match=&lt;version&gt;, replies 304 and stops.
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>5.  CORS middleware adds Access-Control-Allow-* headers.
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>6.  Mux routes to LookingGlassServiceHandler.
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>7.  ConnectRPC decodes the proto, calls Ping(ctx, req).
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>8.  Ping():
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    a. Generates the granular cache key `lg:rpc:&lt;version&gt;:ping:1:1.1.1.1`.
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    b. Checks the shared Redis cache (`rpcCacheGet`):
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>       - **HIT**: Retrieves the cached `PingResponse`, sets the `X-Cache: HIT` response header, and returns immediately.
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>       - **MISS**: Continues execution:
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>         i.   rm.GetByID(1) → RouterInstance.
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>         ii.  utils.NewIPNetFromProtobuf(&quot;1.1.1.1&quot;) → IPNet{ipv4}.
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>         iii. RouterInstance.Ping(ipnet) renders &quot;ping -n -4 -c5 -I 192.0.2.1 1.1.1.1&quot; and runs it over SSH (`utils.SSHExec`).
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>         iv.  Assembles &amp;PingResponse{result, timestamp}.
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>         v.   Spawns an asynchronous goroutine to save the marshaled protobuf response to Redis with the configured TTL (`rpcCacheSet`).
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>9.  ConnectRPC encodes the response.
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>10. Logging middleware writes a structured slog JSON record on the
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>    `httpaccess` component including duration and the X-Cache value.
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>13. Sentry middleware finishes the transaction (sampled per
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>    configuration).
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>14. Response returns to the browser.
+</span></code></pre></div>
+<h2 id="startup-sequence">Startup sequence<a class="headerlink" href="#startup-sequence" title="Permanent link">&para;</a></h2>
+<ol>
+<li><code>pkg/routers.init()</code> runs at import time:</li>
+<li>Reads <code>$ROUTER_DIR</code> (if set), loads <code>*.yml</code> from there.</li>
+<li>Reads embedded <code>*.yml</code>, loads any not already registered.</li>
+<li>Any parse error → <code>log.Panicf</code> (process exits).</li>
+<li><code>cmd/server/main.go.main()</code>:</li>
+<li><code>fs.Sub(webemned, "dist")</code> strips the embed prefix.</li>
+<li>Calls <code>Start(ctx, web)</code>.</li>
+<li><code>Start(ctx, web)</code>:</li>
+<li><code>utils.ParseConfigYaml("config.yaml")</code> → <code>*Config</code> (fatal on error).</li>
+<li><code>routers.CreateRouterMap(cfg)</code> → spawns one health-check goroutine per device.</li>
+<li><code>http.ListenAndServe(ctx, cfg, rm, web)</code> blocks for the lifetime of the listener.</li>
+</ol>
+<p>There is currently <strong>no graceful shutdown</strong>. Cancelling <code>ctx</code> stops the health-check ticker but does not propagate to the HTTP server. This is a known limitation; for now, SIGTERM kills the process and any in-flight requests are lost. The stateless design makes this acceptable in practice.</p>
+<h2 id="why-panic-at-startup">Why panic at startup?<a class="headerlink" href="#why-panic-at-startup" title="Permanent link">&para;</a></h2>
+<p>Several code paths (<code>pkg/routers/yaml.go</code>, the duplicate-register case) panic instead of returning errors. This is deliberate:</p>
+<ul>
+<li>Malformed YAML, missing <code>name</code>, duplicate registrations all indicate <strong>packaging defects</strong>. The operator cannot fix them at runtime; the process should not pretend to start.</li>
+<li>Failing at startup is observable (process exits, the supervisor notices) while failing on every request is not (it surfaces as a 500 nobody investigates until a customer complains).</li>
+<li>The blast radius is bounded: the binary either runs cleanly or doesn't run at all.</li>
+</ul>
+<h2 id="why-connectrpc">Why ConnectRPC?<a class="headerlink" href="#why-connectrpc" title="Permanent link">&para;</a></h2>
+<p>Vanilla gRPC requires HTTP/2 trailers, which browsers do not expose to JavaScript. ConnectRPC implements three wire protocols on the same handler:</p>
+<ul>
+<li><code>application/grpc</code>         — gRPC for native clients</li>
+<li><code>application/grpc-web</code>     — gRPC-Web for browsers</li>
+<li><code>application/json</code>         — Connect's own JSON-over-POST</li>
+</ul>
+<p>The WebUI uses <code>@connectrpc/connect-web</code> (transport-aware), the Go CLI uses the regular gRPC transport, and you can debug with <code>curl</code> using JSON. One handler, three audiences.</p>
+<p>A nice side effect: HTTP/1.1 clients can hit the JSON endpoint, so the <code>curl</code> sanity-check from <a href="../getting-started/">getting-started.md</a> works without any HTTP/2 plumbing on the client.</p>
+<h2 id="why-embed-the-webui">Why embed the WebUI?<a class="headerlink" href="#why-embed-the-webui" title="Permanent link">&para;</a></h2>
+<p>The trade-off is <strong>build complexity for deployment simplicity</strong>. Pros:</p>
+<ul>
+<li>One artefact to ship, version, sign, scan.</li>
+<li>Frontend and backend can never drift — same release, same git commit, same Sentry release tag.</li>
+<li>No web server / static-files CDN / object-store-with-public-acl to operate.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>You can't independently rev the WebUI without rebuilding the Go binary (in practice this is fine; both are small).</li>
+<li>The Go binary is ~20MB rather than ~6MB.</li>
+</ul>
+<p>The <code>webui/svelte.config.js</code> adapter-static writes directly to <code>cmd/server/dist</code>, so <code>go build</code> always picks up the freshest WebUI.</p>
+<h2 id="ssh-connection-pooling">SSH Connection Pooling<a class="headerlink" href="#ssh-connection-pooling" title="Permanent link">&para;</a></h2>
+<p>To mitigate SSH negotiation overhead and reduce the latency of repeated queries against the same device, Looking Glass implements transparent, self-healing, and concurrent-safe <strong>SSH Connection Pooling</strong>.</p>
+<ul>
+<li><strong>Configurable pool-size (<code>ssh_pool_size</code>)</strong>: Pooling can be enabled on a per-device basis by setting <code>ssh_pool_size</code> to a value greater than <code>0</code>. Unset or non-positive values cleanly bypass pooling, defaulting to standard per-request unpooled dials.</li>
+<li><strong>Stateless &amp; Fail-Fast</strong>: To prevent thread starvation and queue build-up in clustered setups, the connection pool uses a stateless, thread-safe active counter and a LIFO idle slice. If all connection slots (<code>ssh_pool_size</code>) are utilized, the backend immediately fails-fast and returns a <code>ResourceExhausted</code> error to the client instead of blocking.</li>
+<li><strong>Keep-Alive &amp; Self-Healing</strong>: Idle connections are checked out using LIFO. Before checkout and on recycle, connections are validated using SSH keep-alive pings (<code>keepalive@openssh.com</code>). Dead or failed connections are automatically closed and discarded, and the pool slot is released.</li>
+<li><strong>Client Auto-Recovery</strong>: To recover gracefully from backend pool exhaustion under concurrent load spikes, all clients (including the embedded SvelteKit Web UI and the <code>lg-cli</code> command-line tool) automatically recover from pool exhaustion errors using <strong>exponential backoff retries</strong> with jitter.</li>
+</ul>
+<h2 id="file-level-cross-reference">File-level cross-reference<a class="headerlink" href="#file-level-cross-reference" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Process entry, embed wiring</td>
+<td><code>cmd/server/main.go</code></td>
+</tr>
+<tr>
+<td>HTTP listener, middleware, TLS, h2c</td>
+<td><code>pkg/http/http.go</code></td>
+</tr>
+<tr>
+<td>Redis cache helpers</td>
+<td><code>pkg/http/grpc/cache.go</code> (<code>rpcCacheGet</code>)</td>
+</tr>
+<tr>
+<td>Structured slog access log + ETag</td>
+<td><code>pkg/http/http.go</code> (<code>loggingHandler</code>)</td>
+</tr>
+<tr>
+<td>Runtime env injector for the WebUI</td>
+<td><code>pkg/http/webui/webui.go</code></td>
+</tr>
+<tr>
+<td>security.txt</td>
+<td><code>pkg/http/http.go</code> (<code>SecurityTxtInjector</code>)</td>
+</tr>
+<tr>
+<td>gRPC service handler</td>
+<td><code>pkg/http/grpc/service.go</code></td>
+</tr>
+<tr>
+<td>gRPC mount + health check ticker</td>
+<td><code>pkg/http/grpc/grpc.go</code></td>
+</tr>
+<tr>
+<td>Template registry, loading rules</td>
+<td><code>pkg/routers/routers.go</code>, <code>yaml.go</code></td>
+</tr>
+<tr>
+<td>Bundled vendor templates</td>
+<td><code>pkg/routers/*.yml</code></td>
+</tr>
+<tr>
+<td>Config schema, parser, validator</td>
+<td><code>pkg/utils/config.go</code></td>
+</tr>
+<tr>
+<td>Router interface, RouterInstance, RouterMap</td>
+<td><code>pkg/utils/interface.go</code></td>
+</tr>
+<tr>
+<td>SSH client</td>
+<td><code>pkg/utils/ssh.go</code></td>
+</tr>
+<tr>
+<td>IP / CIDR / family handling</td>
+<td><code>pkg/utils/ipnet.go</code></td>
+</tr>
+<tr>
+<td>AS-path sanitiser</td>
+<td><code>pkg/utils/sanitize.go</code></td>
+</tr>
+<tr>
+<td>TLS self-sign</td>
+<td><code>pkg/utils/tls.go</code></td>
+</tr>
+<tr>
+<td>Sentinel errors</td>
+<td><code>pkg/errs/*.go</code></td>
+</tr>
+<tr>
+<td>Protobuf contract (single source of truth)</td>
+<td><code>protobuf/lookingglass/v0/lookingglass.proto</code></td>
+</tr>
+<tr>
+<td>WebUI runtime env consumer</td>
+<td><code>webui/src/lib/env.ts</code></td>
+</tr>
+<tr>
+<td>WebUI gRPC client</td>
+<td><code>webui/src/lib/grpc.ts</code></td>
+</tr>
+<tr>
+<td>WebUI router store + 5-min refresh</td>
+<td><code>webui/src/lib/stores/routers.ts</code></td>
+</tr>
+<tr>
+<td>WebUI command dispatch / results store</td>
+<td><code>webui/src/lib/stores/query.ts</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1818 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://as203038.github.io/looking-glass/cli/">
+      
+      
+        <link rel="prev" href="../api/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>CLI Reference - Looking Glass</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#lg-cli-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Looking Glass" class="md-header__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Looking Glass
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Looking Glass" class="md-nav__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Looking Glass
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bmp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BMP Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#synopsis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Synopsis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global flags
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#argument-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Argument resolution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Argument resolution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance-argument" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance argument
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#router-argument" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Router argument
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local caching
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#info-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        info &lt;instance&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#routers-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        routers &lt;instance&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ping-instance-router-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ping &lt;instance&gt; &lt;router&gt; &lt;target&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#traceroute-instance-router-target-alias-trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        traceroute &lt;instance&gt; &lt;router&gt; &lt;target&gt; (alias trace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-summary-instance-router" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp summary &lt;instance&gt; &lt;router&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-route-instance-router-prefix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp route &lt;instance&gt; &lt;router&gt; &lt;prefix&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-community-instance-router-community" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp community &lt;instance&gt; &lt;router&gt; &lt;community&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-aspath-instance-router-regex-alias-as-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp aspath &lt;instance&gt; &lt;router&gt; &lt;regex&gt; (alias as-path)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-peer-routes-instance-router-peer_ip-alias-peer-routes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp peer-routes &lt;instance&gt; &lt;router&gt; &lt;peer_ip&gt; (alias peer-routes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#completion-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        completion &lt;shell&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Output modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pretty-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pretty (default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raw
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signals-and-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals and cancellation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-check-of-a-private-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick check of a private instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scripted-bgp-poll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scripted BGP poll
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#honouring-no_color-in-ci" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Honouring NO_COLOR in CI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-running-bgp-query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-running BGP query
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internals-for-contributors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internals (for contributors)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#synopsis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Synopsis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global flags
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#argument-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Argument resolution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Argument resolution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance-argument" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance argument
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#router-argument" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Router argument
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local caching
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#info-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        info &lt;instance&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#routers-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        routers &lt;instance&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ping-instance-router-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ping &lt;instance&gt; &lt;router&gt; &lt;target&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#traceroute-instance-router-target-alias-trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        traceroute &lt;instance&gt; &lt;router&gt; &lt;target&gt; (alias trace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-summary-instance-router" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp summary &lt;instance&gt; &lt;router&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-route-instance-router-prefix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp route &lt;instance&gt; &lt;router&gt; &lt;prefix&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-community-instance-router-community" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp community &lt;instance&gt; &lt;router&gt; &lt;community&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-aspath-instance-router-regex-alias-as-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp aspath &lt;instance&gt; &lt;router&gt; &lt;regex&gt; (alias as-path)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bgp-peer-routes-instance-router-peer_ip-alias-peer-routes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bgp peer-routes &lt;instance&gt; &lt;router&gt; &lt;peer_ip&gt; (alias peer-routes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#completion-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        completion &lt;shell&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Output modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pretty-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pretty (default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raw
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signals-and-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals and cancellation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-check-of-a-private-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick check of a private instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scripted-bgp-poll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scripted BGP poll
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#honouring-no_color-in-ci" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Honouring NO_COLOR in CI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-running-bgp-query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-running BGP query
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internals-for-contributors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internals (for contributors)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="lg-cli-reference"><code>lg-cli</code> Reference<a class="headerlink" href="#lg-cli-reference" title="Permanent link">&para;</a></h1>
+<p><code>lg-cli</code> is the command-line client for Looking Glass instances. It speaks the same ConnectRPC API as the WebUI, supports the public-index registry for instance lookup, and ships three output modes for both humans and scripts.</p>
+<p>The binary is built from <code>cmd/cli/</code> and released alongside the server. Build locally with <code>make build-cli</code>.</p>
+<h2 id="synopsis">Synopsis<a class="headerlink" href="#synopsis" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>lg-cli [global flags] &lt;command&gt; [args...]
+</span></code></pre></div>
+<p>The single-source help (<code>lg-cli --help</code>) is always authoritative — this page is the longer-form companion.</p>
+<h2 id="global-flags">Global flags<a class="headerlink" href="#global-flags" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--index &lt;url&gt;</code></td>
+<td><code>LG_INDEX_URL</code></td>
+<td><code>https://raw.githubusercontent.com/AS203038/looking-glass/main/public_index.yaml</code></td>
+<td>Source of the public-index registry.</td>
+</tr>
+<tr>
+<td><code>-o, --output FMT</code></td>
+<td><code>LG_OUTPUT</code></td>
+<td><code>pretty</code></td>
+<td>One of <code>pretty | json | raw</code>.</td>
+</tr>
+<tr>
+<td><code>--timeout DUR</code></td>
+<td><code>LG_TIMEOUT</code></td>
+<td><code>60s</code></td>
+<td>Per-invocation timeout. Go duration syntax (<code>90s</code>, <code>2m</code>, <code>5m30s</code>).</td>
+</tr>
+<tr>
+<td><code>--no-color</code></td>
+<td><code>LG_NO_COLOR</code> / <code>NO_COLOR</code></td>
+<td>(auto) when set</td>
+<td>Disable ANSI colour in pretty output. Also auto-off when stdout isn't a TTY.</td>
+</tr>
+<tr>
+<td><code>--force-color</code></td>
+<td>—</td>
+<td>off</td>
+<td>Force ANSI colour in pretty output even when redirected.</td>
+</tr>
+<tr>
+<td><code>-q, --quiet</code></td>
+<td>—</td>
+<td>off</td>
+<td>Suppress the trailing <code>ts:</code> footer in pretty output.</td>
+</tr>
+<tr>
+<td><code>-v, --verbose</code></td>
+<td>—</td>
+<td>off</td>
+<td>Diagnostic lines to stderr.</td>
+</tr>
+<tr>
+<td><code>-u, --update</code></td>
+<td>—</td>
+<td>off</td>
+<td>Force update of locally cached data (index and routers).</td>
+</tr>
+<tr>
+<td><code>-h, --help</code></td>
+<td>—</td>
+<td>—</td>
+<td>Show help. Works at every level (<code>lg-cli</code>, <code>lg-cli bgp</code>, <code>lg-cli bgp route --help</code>).</td>
+</tr>
+</tbody>
+</table>
+<p><code>--quiet</code> and <code>--verbose</code> are mutually exclusive.</p>
+<h2 id="argument-resolution">Argument resolution<a class="headerlink" href="#argument-resolution" title="Permanent link">&para;</a></h2>
+<h3 id="instance-argument">Instance argument<a class="headerlink" href="#instance-argument" title="Permanent link">&para;</a></h3>
+<p>Most subcommands take an instance as their first positional argument. It can be:</p>
+<ol>
+<li><strong>A public-index name</strong> — case-insensitive substring match against <code>index[].name</code> in <code>public_index.yaml</code> (e.g. <code>as203038</code>, <code>qux</code>).</li>
+<li><strong>An ASN</strong> — with or without the <code>AS</code> prefix; matched against <code>index[].asn</code> (e.g. <code>203038</code>, <code>AS203038</code>).</li>
+<li><strong>A full URL</strong> — anything starting with <code>http://</code> or <code>https://</code> is used verbatim and skips the index fetch entirely (e.g. <code>http://localhost:8080</code>, <code>https://lg.example.net</code>).</li>
+</ol>
+<p>URLs are the escape hatch for local / private deployments. The public-index lookup has its own 15s sub-budget so a slow or unreachable index can never eat into the RPC budget.</p>
+<p>If an instance argument does not match any index entry, <code>lg-cli</code> computes the Levenshtein distance between the query and known names/ASNs. If a close match (distance $\le 3$) is found, it suggests the closest name (e.g., <code>"instance "foo" not found in index (did you mean "bar"?)""</code>).</p>
+<h3 id="router-argument">Router argument<a class="headerlink" href="#router-argument" title="Permanent link">&para;</a></h3>
+<p>Subcommands that target a single router (<code>ping</code>, <code>traceroute</code>, <code>bgp …</code>) take a router argument. It can be:</p>
+<ol>
+<li><strong>A numeric ID</strong> — the <code>id</code> from <code>GetRouters</code> (e.g. <code>1</code>, <code>3</code>). This is the fast path; no extra round-trip is needed.</li>
+<li><strong>A case-insensitive substring of the router's name</strong> — exact match first, then substring. Ambiguous substring matches are rejected with a list of candidates:
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Error: router &quot;rt&quot; is ambiguous; matches 2 routers: 1:rt1.sto1.se, 2:rt2.sto1.se
+</span></code></pre></div></li>
+</ol>
+<p>Use IDs in scripts; use names interactively.</p>
+<h2 id="local-caching">Local caching<a class="headerlink" href="#local-caching" title="Permanent link">&para;</a></h2>
+<p>To optimize performance and avoid excessive network requests, <code>lg-cli</code> caches data locally in <code>~/.cache/looking-glass/</code> (or the operating system's standard user cache directory):</p>
+<ul>
+<li><strong>Public Index Cache</strong>: Cached at <code>~/.cache/looking-glass/public_index.yaml</code> for <strong>30 days</strong>. If a network error occurs while fetching the remote public index, <code>lg-cli</code> will gracefully fall back to this stale local cache.</li>
+<li><strong>Router Catalogue Cache</strong>: Cached at <code>~/.cache/looking-glass/routers_&lt;hash&gt;.json</code> for <strong>1 hour</strong> per Looking Glass instance. This caches the router list returned by <code>GetRouters</code> so that resolving router names to IDs does not require a round-trip on every command execution.</li>
+</ul>
+<p>To bypass the cache and force an immediate update of both the public index and router list, use the <code>-u</code> / <code>--update</code> global flag.</p>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<h3 id="instances"><code>instances</code><a class="headerlink" href="#instances" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>lg-cli instances
+</span></code></pre></div>
+<p>Lists the public-index entries. No instance argument required.</p>
+<h3 id="info-instance"><code>info &lt;instance&gt;</code><a class="headerlink" href="#info-instance" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>lg-cli info as203038
+</span></code></pre></div>
+<p>Calls <code>GetInfo</code> and prints the server hostname and version.</p>
+<h3 id="routers-instance"><code>routers &lt;instance&gt;</code><a class="headerlink" href="#routers-instance" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>lg-cli routers as203038
+</span></code></pre></div>
+<p>Pages through <code>GetRouters</code> and prints the catalogue as a table:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ID  HEALTH   NAME             LOCATION
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a> 1  ✓        rt1.sto1.se      Stockholm, Sweden
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a> 2  ✓        rt2.sto1.se      Stockholm, Sweden
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a> 3  ✗        rt1.lon1.uk      London, UK
+</span></code></pre></div>
+<p>The health glyph is <code>✓</code> (healthy), <code>✗</code> (unhealthy), or <code>?</code> (never probed yet).</p>
+<h3 id="ping-instance-router-target"><code>ping &lt;instance&gt; &lt;router&gt; &lt;target&gt;</code><a class="headerlink" href="#ping-instance-router-target" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>lg-cli ping as203038 1 1.1.1.1
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>lg-cli ping as203038 rt1.sto1 8.8.8.8
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>lg-cli ping http://localhost:8080 rt 1.1.1.1
+</span></code></pre></div>
+<p>Calls <code>Ping</code>. <code>&lt;target&gt;</code> may be an IPv4 or IPv6 address; the server-side <code>NewIPNetFromProtobuf</code> will also DNS-resolve a hostname. The server's vendor template picks the right family.</p>
+<h3 id="traceroute-instance-router-target-alias-trace"><code>traceroute &lt;instance&gt; &lt;router&gt; &lt;target&gt;</code> (alias <code>trace</code>)<a class="headerlink" href="#traceroute-instance-router-target-alias-trace" title="Permanent link">&para;</a></h3>
+<p>Same as <code>ping</code>, but for <code>Traceroute</code>.</p>
+<h3 id="bgp-summary-instance-router"><code>bgp summary &lt;instance&gt; &lt;router&gt;</code><a class="headerlink" href="#bgp-summary-instance-router" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>lg-cli bgp summary as203038 1
+</span></code></pre></div>
+<p>Calls <code>BGPSummary</code>. Prints the raw neighbour-summary output.</p>
+<h3 id="bgp-route-instance-router-prefix"><code>bgp route &lt;instance&gt; &lt;router&gt; &lt;prefix&gt;</code><a class="headerlink" href="#bgp-route-instance-router-prefix" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>lg-cli bgp route as203038 1 8.8.8.0/24
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>lg-cli bgp route as203038 1 2001:db8::/32
+</span></code></pre></div>
+<p>Calls <code>BGPRoute</code>. <code>&lt;prefix&gt;</code> may be either family, with or without a mask. The server picks the right family-specific template.</p>
+<h3 id="bgp-community-instance-router-community"><code>bgp community &lt;instance&gt; &lt;router&gt; &lt;community&gt;</code><a class="headerlink" href="#bgp-community-instance-router-community" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>lg-cli bgp community as203038 1 65000:100        # RFC 1997 standard
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>lg-cli bgp community as203038 1 214503:8:3607    # RFC 8092 large
+</span></code></pre></div>
+<p>The format is auto-detected from the number of colon-separated fields:</p>
+<ul>
+<li>Two fields → <code>BGPCommunity</code> (standard).</li>
+<li>Three fields → <code>BGPLargeCommunity</code> (large).</li>
+<li>Anything else → error.</li>
+</ul>
+<h3 id="bgp-aspath-instance-router-regex-alias-as-path"><code>bgp aspath &lt;instance&gt; &lt;router&gt; &lt;regex&gt;</code> (alias <code>as-path</code>)<a class="headerlink" href="#bgp-aspath-instance-router-regex-alias-as-path" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>lg-cli bgp aspath as203038 1 65000
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>lg-cli bgp aspath as203038 1 _65000_
+</span></code></pre></div>
+<p>Calls <code>BGPASPath</code>. The regex is forwarded verbatim; the server's <code>SanitizeASPathRegex</code> enforces the digit/underscore allow-list.</p>
+<h3 id="bgp-peer-routes-instance-router-peer_ip-alias-peer-routes"><code>bgp peer-routes &lt;instance&gt; &lt;router&gt; &lt;peer_ip&gt;</code> (alias <code>peer-routes</code>)<a class="headerlink" href="#bgp-peer-routes-instance-router-peer_ip-alias-peer-routes" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=received
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=accepted --name=peer_member_100
+</span></code></pre></div>
+<p>Calls <code>BGPPeerRoutes</code> to query routing details on a per-peer session basis. Useful for route-server debugging at IXPs.</p>
+<p>Supported flags:
+* <code>-t, --type</code>: Peer route query type: <code>received</code> (default), <code>accepted</code>, <code>rejected</code>, or <code>advertised</code>.
+* <code>-n, --name</code>: Administrative peer session/protocol name (required for name-based route servers like BIRD).</p>
+<h3 id="version"><code>version</code><a class="headerlink" href="#version" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>lg-cli version
+</span></code></pre></div>
+<p>Prints the CLI version (from build-time <code>-X main.Version</code>). Note this is the <em>client</em> version; use <code>lg-cli info &lt;instance&gt;</code> to read the server version.</p>
+<h3 id="completion-shell"><code>completion &lt;shell&gt;</code><a class="headerlink" href="#completion-shell" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>lg-cli completion bash &gt; /etc/bash_completion.d/lg-cli
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>lg-cli completion zsh  &gt; &quot;${fpath[1]}/_lg-cli&quot;
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>lg-cli completion fish &gt; ~/.config/fish/completions/lg-cli.fish
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>lg-cli completion powershell &gt; lg-cli.ps1
+</span></code></pre></div>
+<p>Cobra-generated shell completion for bash, zsh, fish, and powershell.</p>
+<h2 id="output-modes">Output modes<a class="headerlink" href="#output-modes" title="Permanent link">&para;</a></h2>
+<p>The output mode is set via <code>-o</code>/<code>--output</code> or <code>LG_OUTPUT</code>. All three modes are supported by every command that produces a result.</p>
+<h3 id="pretty-default"><code>pretty</code> (default)<a class="headerlink" href="#pretty-default" title="Permanent link">&para;</a></h3>
+<ul>
+<li>ANSI colour on a TTY, plain text otherwise.</li>
+<li>For operation results: when the server returned a structured payload (the router template declared a parser and it produced output), emit a <strong>typed table</strong> rendered with <code>text/tabwriter</code> — a ping stat block, a traceroute hop table, a BGP-paths table, or a peer-table for <code>bgp summary</code>. When no structured payload is available (parser disabled, missing template, or output drift), fall through to the raw router text exactly as before.</li>
+<li>The dim footer goes to <strong>stderr</strong> so redirecting stdout to a file produces a clean result file. The footer also names the parser pipe that produced the structured view, e.g. <code>ts: 2026-05-14T16:21:00Z · parser: textfsm</code>.</li>
+<li><code>--quiet</code> suppresses the footer entirely.</li>
+<li><code>--no-color</code> disables ANSI even on a TTY.</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>lg-cli<span class="w"> </span>ping<span class="w"> </span>as203038<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">1</span>.1.1.1<span class="w"> </span>&gt;<span class="w"> </span>result.txt<span class="w">    </span><span class="c1"># result.txt is just the (structured or raw) output</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>lg-cli<span class="w"> </span>ping<span class="w"> </span>as203038<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">1</span>.1.1.1<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w">     </span><span class="c1"># no footer, no colour, just output</span>
+</span></code></pre></div>
+<h3 id="json"><code>json</code><a class="headerlink" href="#json" title="Permanent link">&para;</a></h3>
+<p>Machine-readable JSON shape — exact fields depend on the command. For operation responses:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PING 1.1.1.1 (1.1.1.1) ...\n...&quot;</span><span class="p">,</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-14T16:21:00Z&quot;</span><span class="p">,</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="nt">&quot;parsed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">    </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.1.1.1&quot;</span><span class="p">,</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">    </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;192.0.2.1&quot;</span><span class="p">,</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">    </span><span class="nt">&quot;packets_sent&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">    </span><span class="nt">&quot;packets_received&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">    </span><span class="nt">&quot;loss_pct&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">    </span><span class="nt">&quot;rtt_min_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.99</span><span class="p">,</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">    </span><span class="nt">&quot;rtt_avg_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.14</span><span class="p">,</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">    </span><span class="nt">&quot;rtt_max_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.46</span><span class="p">,</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="w">    </span><span class="nt">&quot;rtt_mdev_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.16</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">  </span><span class="nt">&quot;parser_kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;builtin&quot;</span><span class="p">,</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="w">  </span><span class="nt">&quot;parse_status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>parsed</code>, <code>parser_kind</code> and <code>parse_status</code> are only emitted when the server populated them (i.e. a parser was configured for the operation; see <a href="../router-templates/#parsers-structured-output">router-templates.md § Parsers</a>). When <code>parse_status != "ok"</code> the <code>parsed</code> field is omitted and clients should fall back to <code>result</code>.</p>
+<p><code>result</code> is decoded from <code>bytes</code> to a string for ergonomics; if you need the raw bytes, use <code>--output raw</code>.</p>
+<p>For <code>routers</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nt">&quot;routers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rt1.sto1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Stockholm&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;healthy&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;checked_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-14T16:20:00Z&quot;</span><span class="p">}</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span><span class="nt">&quot;next_page&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="raw"><code>raw</code><a class="headerlink" href="#raw" title="Permanent link">&para;</a></h3>
+<p>Just the result bytes. No metadata, no timestamps, no JSON. Useful for piping into shell tools:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>lg-cli<span class="w"> </span>-o<span class="w"> </span>raw<span class="w"> </span>bgp<span class="w"> </span>route<span class="w"> </span>as203038<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">8</span>.8.8.0/24<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>AS-Path
+</span></code></pre></div>
+<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Success.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Generic error (RPC failure, unknown subcommand, invalid args, …).</td>
+</tr>
+<tr>
+<td>130</td>
+<td>Interrupted via SIGINT (<code>Ctrl-C</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>Errors are written to stderr with a <code>Error:</code> prefix in pretty mode.</p>
+<h2 id="signals-and-cancellation">Signals and cancellation<a class="headerlink" href="#signals-and-cancellation" title="Permanent link">&para;</a></h2>
+<p><code>lg-cli</code> installs a <code>signal.NotifyContext</code> for <code>SIGINT</code> / <code>SIGTERM</code> and cancels the request context on receipt. This means hitting <code>Ctrl-C</code> during a slow RPC closes the connection immediately rather than waiting for the request timeout. Cobra's help output is unaffected.</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="quick-check-of-a-private-instance">Quick check of a private instance<a class="headerlink" href="#quick-check-of-a-private-instance" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>lg-cli<span class="w"> </span>info<span class="w"> </span>http://10.0.0.5:8080
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>lg-cli<span class="w"> </span>routers<span class="w"> </span>http://10.0.0.5:8080
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>lg-cli<span class="w"> </span>ping<span class="w"> </span>http://10.0.0.5:8080<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">1</span>.1.1.1
+</span></code></pre></div>
+<h3 id="scripted-bgp-poll">Scripted BGP poll<a class="headerlink" href="#scripted-bgp-poll" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="ch">#!/usr/bin/env bash</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="nv">INSTANCE</span><span class="o">=</span><span class="s2">&quot;as203038&quot;</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="nv">ROUTERS</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>lg-cli<span class="w"> </span>-o<span class="w"> </span>json<span class="w"> </span>routers<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$INSTANCE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.routers[].id&#39;</span><span class="k">)</span><span class="s2">&quot;</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="nv">PREFIX</span><span class="o">=</span><span class="s2">&quot;8.8.8.0/24&quot;</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="k">for</span><span class="w"> </span>id<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$ROUTERS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;== router </span><span class="nv">$id</span><span class="s2"> ==&quot;</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="w">  </span>lg-cli<span class="w"> </span>-o<span class="w"> </span>raw<span class="w"> </span>--timeout<span class="w"> </span>30s<span class="w"> </span>--quiet<span class="w"> </span>bgp<span class="w"> </span>route<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$INSTANCE</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$id</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PREFIX</span><span class="s2">&quot;</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="k">done</span>
+</span></code></pre></div>
+<h3 id="honouring-no_color-in-ci">Honouring <code>NO_COLOR</code> in CI<a class="headerlink" href="#honouring-no_color-in-ci" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nv">NO_COLOR</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>lg-cli<span class="w"> </span>routers<span class="w"> </span>as203038
+</span></code></pre></div>
+<p>Or per-invocation:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>lg-cli<span class="w"> </span>--no-color<span class="w"> </span>routers<span class="w"> </span>as203038
+</span></code></pre></div>
+<h3 id="long-running-bgp-query">Long-running BGP query<a class="headerlink" href="#long-running-bgp-query" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>lg-cli<span class="w"> </span>--timeout<span class="w"> </span>5m<span class="w"> </span>bgp<span class="w"> </span>route<span class="w"> </span>as203038<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">0</span>.0.0.0/0
+</span></code></pre></div>
+<p>The default 60s timeout is comfortable for ping/traceroute and small lookups; full-table BGP queries can take minutes on slow routers.</p>
+<h2 id="environment-variables-summary">Environment variables summary<a class="headerlink" href="#environment-variables-summary" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>LG_INDEX_URL      override --index
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>LG_OUTPUT         override --output (pretty|json|raw)
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>LG_TIMEOUT        override --timeout (Go duration)
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>LG_NO_COLOR       any non-empty value disables ANSI
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>NO_COLOR          standard https://no-color.org/ — same effect
+</span></code></pre></div>
+<p>There is no env var for the instance or router argument — those are positional. If you find yourself needing one, alias the command:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nb">alias</span><span class="w"> </span><span class="nv">mylg</span><span class="o">=</span><span class="s1">&#39;lg-cli https://lg.example.net&#39;</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>mylg<span class="w"> </span>ping<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">1</span>.1.1.1
+</span></code></pre></div>
+<h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>No streaming output</strong> — every command waits for the full RPC response before printing. There is no per-line progress for long traceroutes; the router buffers locally and the response is delivered in one go.</li>
+<li><strong>No TLS verification opt-out</strong> — the underlying ConnectRPC client uses Go's default TLS config. Self-signed or expired certificates will fail. If you need to talk to such an endpoint, use the JSON-over-POST protocol with <code>curl -k</code> (see <a href="../api/">api.md</a>).</li>
+</ul>
+<h2 id="internals-for-contributors">Internals (for contributors)<a class="headerlink" href="#internals-for-contributors" title="Permanent link">&para;</a></h2>
+<p>The CLI is structured as one file per concern:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cmd/cli/main.go</code></td>
+<td>Entry point; six lines, runs <code>newRootCmd().Execute()</code>.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/root.go</code></td>
+<td>Global flags, env-var fallbacks, context construction.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/client.go</code></td>
+<td>ConnectRPC client factory (per-instance).</td>
+</tr>
+<tr>
+<td><code>cmd/cli/index.go</code></td>
+<td>Public-index fetch + name/ASN/URL resolution.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/output.go</code></td>
+<td>Pretty / JSON / raw printers; ANSI handling.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/cmd_instances.go</code></td>
+<td><code>instances</code> subcommand.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/cmd_info.go</code></td>
+<td><code>info</code> subcommand.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/cmd_routers.go</code></td>
+<td><code>routers</code> subcommand + router-arg resolution.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/cmd_pingtrace.go</code></td>
+<td><code>ping</code> / <code>traceroute</code> subcommands.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/cmd_bgp.go</code></td>
+<td><code>bgp summary</code> / <code>route</code> / <code>community</code> / <code>aspath</code> / <code>peer-routes</code>.</td>
+</tr>
+<tr>
+<td><code>cmd/cli/cmd_meta.go</code></td>
+<td><code>version</code>, <code>completion</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>When adding a new subcommand, mirror the structure: one file named <code>cmd_&lt;verb&gt;.go</code> exposing <code>new&lt;Verb&gt;Cmd() *cobra.Command</code>, called from <code>newRootCmd()</code> in <code>root.go</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

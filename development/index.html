@@ -1,0 +1,1618 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://as203038.github.io/looking-glass/development/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Development - Looking Glass</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#development" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Looking Glass" class="md-header__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Looking Glass
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Looking Glass" class="md-nav__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Looking Glass
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bmp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BMP Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-shot-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-shot setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-development-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local development loop
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local development loop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-only-most-common" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend only (most common)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-stack-dev" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-stack dev
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#producing-a-final-artefact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Producing a final artefact
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#protobuf-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protobuf workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontend-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-parity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI parity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coding-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coding conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Coding conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-svelte" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript / Svelte
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yaml-router-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YAML (router templates)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commits-prs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commits &amp; PRs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releasing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common workflows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-grpc-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new gRPC method
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-bundled-router-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new bundled router template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changing-the-webui-runtime-env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing the WebUI runtime env
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tweaking-middleware-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tweaking middleware behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reviewing-your-changes-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reviewing your changes locally
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-ask-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to ask questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-shot-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-shot setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-development-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local development loop
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local development loop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-only-most-common" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend only (most common)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-stack-dev" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-stack dev
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#producing-a-final-artefact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Producing a final artefact
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#protobuf-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protobuf workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontend-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-parity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI parity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coding-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coding conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Coding conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-svelte" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript / Svelte
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yaml-router-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YAML (router templates)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commits-prs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commits &amp; PRs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releasing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common workflows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-grpc-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new gRPC method
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-bundled-router-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new bundled router template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changing-the-webui-runtime-env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing the WebUI runtime env
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tweaking-middleware-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tweaking middleware behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reviewing-your-changes-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reviewing your changes locally
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-ask-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to ask questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h1>
+<p>Practical guide for contributing to Looking Glass: setting up a local environment, the build/test loop, project layout conventions, and the release process.</p>
+<p>For an architectural overview, read <a href="../architecture/">architecture.md</a> first.</p>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go</td>
+<td>Backend</td>
+<td>1.25+</td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td>WebUI build / dev server</td>
+<td>20.x LTS</td>
+</tr>
+<tr>
+<td>pnpm</td>
+<td>WebUI package manager (workspace)</td>
+<td>9.x</td>
+</tr>
+<tr>
+<td><code>buf</code></td>
+<td>Protobuf codegen</td>
+<td>latest</td>
+</tr>
+<tr>
+<td>Docker</td>
+<td>(optional) container builds</td>
+<td>any recent version</td>
+</tr>
+<tr>
+<td><code>make</code></td>
+<td>Local tasks</td>
+<td>any</td>
+</tr>
+<tr>
+<td><code>git</code></td>
+<td>Source control</td>
+<td>any</td>
+</tr>
+</tbody>
+</table>
+<p>Install Go and Node from your distro / nvm. For everything else:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># pnpm via corepack (ships with Node ≥ 16)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>corepack<span class="w"> </span><span class="nb">enable</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>corepack<span class="w"> </span>prepare<span class="w"> </span>pnpm@9<span class="w"> </span>--activate
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># buf (optional, only needed when regenerating protobuf)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>make<span class="w"> </span>install-tools<span class="w">     </span><span class="c1"># equivalent to: go install github.com/bufbuild/buf/cmd/buf@latest</span>
+</span></code></pre></div>
+<h2 id="one-shot-setup">One-shot setup<a class="headerlink" href="#one-shot-setup" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AS203038/looking-glass.git
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>looking-glass
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>make<span class="w"> </span>install<span class="w">     </span><span class="c1"># Go modules + pnpm workspace + protobuf npm deps</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>make<span class="w"> </span>build<span class="w">       </span><span class="c1"># webui + server + CLI</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>cp<span class="w"> </span>example.config.yaml<span class="w"> </span>config.yaml
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nv">$EDITOR</span><span class="w"> </span>config.yaml
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>./looking-glass
+</span></code></pre></div>
+<p><code>make help</code> always lists every target with one-line descriptions.</p>
+<h2 id="local-development-loop">Local development loop<a class="headerlink" href="#local-development-loop" title="Permanent link">&para;</a></h2>
+<p>The two surfaces — Go backend and SvelteKit frontend — develop independently. There is no need to rebuild the entire embed pipeline on every edit.</p>
+<h3 id="backend-only-most-common">Backend only (most common)<a class="headerlink" href="#backend-only-most-common" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>dev-server<span class="w">       </span><span class="c1"># runs: go run ./cmd/server</span>
+</span></code></pre></div>
+<p>The first run also creates an empty <code>cmd/server/dist/</code> (so the <code>//go:embed all:dist</code> directive doesn't fail). The WebUI won't be served via the embed in this mode — you either don't need it or you're running the Vite dev server in parallel.</p>
+<p>Edit Go code, hit Ctrl-C, rerun. There is no built-in hot-reload; use <a href="https://github.com/cosmtrek/air"><code>air</code></a> or <a href="https://github.com/cespare/reflex"><code>reflex</code></a> if you want one:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>go<span class="w"> </span>install<span class="w"> </span>github.com/air-verse/air@latest
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>air<span class="w"> </span>-c<span class="w"> </span>.air.toml<span class="w">     </span><span class="c1"># if you write one; the project doesn&#39;t ship a default</span>
+</span></code></pre></div>
+<h3 id="frontend-only">Frontend only<a class="headerlink" href="#frontend-only" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>dev-webui<span class="w">       </span><span class="c1"># cd webui &amp;&amp; pnpm run dev</span>
+</span></code></pre></div>
+<p>Vite serves the UI on <a href="http://localhost:5173/">http://localhost:5173/</a> with HMR. To make it talk to your local backend, add to <code>config.yaml</code>:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">web</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">grpc_url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://localhost:8080&quot;</span>
+</span></code></pre></div>
+<p>…or override at the env level (the WebUI reads <code>$env/dynamic/public</code>):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">PUBLIC_GRPC_URL</span><span class="o">=</span>http://localhost:8080<span class="w"> </span>pnpm<span class="w"> </span>--dir<span class="w"> </span>webui<span class="w"> </span>dev
+</span></code></pre></div>
+<p>CORS is permissive for development (the server's CORS middleware allows <code>*</code> by default), so cross-origin gRPC-Web requests from <code>localhost:5173</code> to <code>localhost:8080</code> work out of the box.</p>
+<h3 id="full-stack-dev">Full-stack dev<a class="headerlink" href="#full-stack-dev" title="Permanent link">&para;</a></h3>
+<p>Run both servers side by side, in different terminals:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Terminal 1</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>dev-server
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Terminal 2</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>make<span class="w"> </span>dev-webui
+</span></code></pre></div>
+<p>Open <a href="http://localhost:5173/">http://localhost:5173/</a> for the dev UI. The embedded UI at <a href="http://localhost:8080/">http://localhost:8080/</a> will be empty/stale until you <code>make build-webui</code> — that's fine, the dev server gives you the latest.</p>
+<h3 id="producing-a-final-artefact">Producing a final artefact<a class="headerlink" href="#producing-a-final-artefact" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>make<span class="w"> </span>build<span class="w">           </span><span class="c1"># webui → cmd/server/dist → go build → ./looking-glass + ./lg-cli</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>./looking-glass
+</span></code></pre></div>
+<p>A clean source tree should always produce a working binary with <code>make build</code>. CI runs the same command path.</p>
+<h2 id="protobuf-workflow">Protobuf workflow<a class="headerlink" href="#protobuf-workflow" title="Permanent link">&para;</a></h2>
+<p>The single source of truth is <a href="../protobuf/lookingglass/v0/lookingglass.proto"><code>protobuf/lookingglass/v0/lookingglass.proto</code></a>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make<span class="w"> </span>proto<span class="w">           </span><span class="c1"># regenerate Go + TS clients</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>make<span class="w"> </span>proto-lint<span class="w">      </span><span class="c1"># buf lint</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>make<span class="w"> </span>proto-format<span class="w">    </span><span class="c1"># buf format -w (in-place)</span>
+</span></code></pre></div>
+<p><code>make proto</code> runs <code>cd protobuf &amp;&amp; buf generate</code> which produces:</p>
+<ul>
+<li><code>protobuf/lookingglass/v0/lookingglass.pb.go</code></li>
+<li><code>protobuf/lookingglass/v0/lookingglassconnect/lookingglass.connect.go</code></li>
+<li><code>protobuf/lookingglass/v0/lookingglass_pb.ts</code> (messages <strong>and</strong> the service descriptor <code>LookingGlassService</code> — protobuf-es v2 collapsed the separate <code>_connect.ts</code> from v1 into the same module)</li>
+</ul>
+<p>The TS output is consumed by the WebUI workspace via the <code>@as203038/lg-protobuf</code> workspace link (<code>workspace:*</code> in <code>webui/package.json</code>).</p>
+<p><strong>Comments propagate</strong>: any prose you write on a <code>service</code>, <code>rpc</code>, <code>message</code>, or field in the <code>.proto</code> file becomes godoc on the generated Go and TSDoc on the generated TS. Treat the <code>.proto</code> as the API documentation.</p>
+<p>When you change the proto:</p>
+<ol>
+<li>Edit the <code>.proto</code>.</li>
+<li><code>make proto</code>.</li>
+<li>Update server (<code>pkg/http/grpc/service.go</code>) and consumers (<code>webui/src/lib/stores/query.ts</code>, <code>cmd/cli/cmd_*.go</code>) as needed.</li>
+<li>Run <code>make check</code> to catch type / lint errors across the whole tree.</li>
+</ol>
+<p>The service stays at <code>v0</code> — we treat it as field-additive indefinitely. Removing or renaming fields is a breaking change that needs a <code>v1</code> package; introduce it explicitly when the time comes.</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span><span class="nb">test</span><span class="w">            </span><span class="c1"># Runs Go standard tests and all fuzzers sequentially</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>make<span class="w"> </span>test-fuzz<span class="w">       </span><span class="c1"># Runs all Go fuzzers sequentially</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>make<span class="w"> </span>test-cover<span class="w">      </span><span class="c1"># Runs Go standard tests with coverage</span>
+</span></code></pre></div>
+<p>By default, each Go fuzzer runs for <code>10s</code> during <code>make test</code> or <code>make test-fuzz</code>. You can customize this duration by setting the <code>FUZZTIME</code> variable (e.g., <code>make test FUZZTIME=2s</code> or <code>make test-fuzz FUZZTIME=5s</code>).</p>
+<p>There aren't many tests today; this is a known shortcoming and contributions are extremely welcome. When adding tests:</p>
+<ul>
+<li>Keep them next to the file they cover (<code>foo.go</code> → <code>foo_test.go</code>).</li>
+<li>Don't network. Use <code>iotest</code> / fakes / interfaces.</li>
+<li>For SSH-dependent paths, factor the SSH-execution into an interface and stub it (the <code>utils.Router</code> interface is already a natural seam).</li>
+<li>Use the standard <code>testing</code> package; no third-party assertion library is required.</li>
+</ul>
+<h3 id="frontend-checks">Frontend checks<a class="headerlink" href="#frontend-checks" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make<span class="w"> </span>check-webui<span class="w">     </span><span class="c1"># svelte-check (TypeScript + Svelte)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>make<span class="w"> </span>lint-webui<span class="w">      </span><span class="c1"># prettier + eslint</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>make<span class="w"> </span>format-webui<span class="w">    </span><span class="c1"># prettier in-place</span>
+</span></code></pre></div>
+<p><code>pnpm check</code> returns <code>0 errors, 0 warnings</code> on a clean tree. The build itself (<code>make build-webui</code>) is the final source of truth: if adapter-static can't render the routes, the tree is broken.</p>
+<h3 id="ci-parity">CI parity<a class="headerlink" href="#ci-parity" title="Permanent link">&para;</a></h3>
+<p>The full pre-push sequence is <code>make check</code>, which runs <code>make lint test</code>. Match what CI runs locally by sticking with <code>make</code> targets.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>make<span class="w"> </span>check<span class="w">           </span><span class="c1"># lint + test</span>
+</span></code></pre></div>
+<h2 id="project-layout">Project layout<a class="headerlink" href="#project-layout" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>cmd/
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>├── server/          # `looking-glass` daemon — main.go is ~60 LoC
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>└── cli/             # `lg-cli` — one file per cobra subcommand
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>pkg/
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>├── errs/            # Sentinel errors (one file per concern)
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>├── http/            # HTTP/2 listener + middleware chain
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>│   ├── grpc/        # ConnectRPC service + health checker
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>│   └── webui/       # /_app/env.js runtime-config injector
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>├── routers/         # Template registry + bundled vendor *.yml
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>└── utils/           # Config, IP/CIDR, SSH, sanitize, TLS, version
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>protobuf/            # buf-managed proto + generated Go/TS clients
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>webui/
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>├── src/
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>│   ├── lib/         # Reusable building blocks
+</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>│   │   ├── stores/  # Svelte stores (routers, query, sheet)
+</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>│   │   ├── components/  # Visual components (CommandDock, ResultsSheet, …)
+</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>│   │   ├── env.ts   # Wraps $env/dynamic/public with defaults
+</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>│   │   └── grpc.ts  # Singleton ConnectRPC client
+</span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>│   ├── routes/      # SvelteKit pages and layouts
+</span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>│   ├── hooks.client.ts  # Sentry lazy-init
+</span><span id="__span-13-24"><a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>│   └── app.html     # HTML shell (pre-paint theme script lives here)
+</span><span id="__span-13-25"><a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>├── static/          # Favicons, manifest, robots.txt
+</span><span id="__span-13-26"><a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>├── svelte.config.js # adapter-static → ../cmd/server/dist
+</span><span id="__span-13-27"><a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>└── package.json     # workspace:* to ../protobuf
+</span><span id="__span-13-28"><a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>
+</span><span id="__span-13-29"><a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a>docs/                # ← this documentation
+</span><span id="__span-13-30"><a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a>example.config.yaml  # Annotated reference config
+</span><span id="__span-13-31"><a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a>public_index.yaml    # Registry of public LG instances
+</span><span id="__span-13-32"><a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a>Makefile             # Local tasks
+</span><span id="__span-13-33"><a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>Dockerfile           # Multi-stage build
+</span><span id="__span-13-34"><a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a>go.mod               # Single Go module: github.com/AS203038/looking-glass
+</span></code></pre></div>
+<h2 id="coding-conventions">Coding conventions<a class="headerlink" href="#coding-conventions" title="Permanent link">&para;</a></h2>
+<h3 id="go">Go<a class="headerlink" href="#go" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>godoc on every exported identifier.</strong> Start the comment with the identifier name. Package-level comments live on the first Go file in the package (or a <code>doc.go</code> if you prefer).</li>
+<li><strong><code>go fmt</code> strictly.</strong> <code>make fmt-go</code> runs <code>gofmt -s -w cmd pkg</code>.</li>
+<li><strong>No third-party logging.</strong> The standard <code>log</code> package is the only logger; no <code>zap</code>, no <code>logrus</code>, no <code>zerolog</code>. Operator log lines should be greppable (one line per event, fixed-shape tags like <code>op=… router=…</code>).</li>
+<li><strong>Sentinel errors over typed errors.</strong> Add new entries to <code>pkg/errs/</code> rather than introducing struct-typed errors that carry sensitive data.</li>
+<li><strong>No panics outside startup.</strong> <code>init()</code> and <code>register()</code> may panic; nothing reachable from a request handler may.</li>
+<li><strong>Stateless handlers.</strong> No package-level mutable globals in request paths. The only legitimate globals are: the router registry (<code>_routers</code>), the Redis client (initialised once at startup), and the Sentry hub (initialised once).</li>
+<li><strong>Concurrency:</strong> explicit goroutines are fine; channels are preferred over mutexes; sync.Mutex is a last resort.</li>
+</ul>
+<h3 id="typescript-svelte">TypeScript / Svelte<a class="headerlink" href="#typescript-svelte" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Svelte 5 runes.</strong> Use <code>$state</code>, <code>$derived</code>, <code>$effect</code> in new components; the legacy reactive-statement style is deprecated.</li>
+<li><strong>Stores own all cross-component state.</strong> Components subscribe; components do not write to other components' stores.</li>
+<li><strong>Singleton ConnectRPC client.</strong> <code>webui/src/lib/grpc.ts</code> exports the only client. Don't construct your own.</li>
+<li><strong>Tailwind utility classes</strong>, not raw CSS. Theme tokens are CSS custom properties; refer to them via <code>bg-(--color-bg)</code> rather than mode-specific colour names. Tailwind v4 <code>@theme</code> blocks in <code>app.css</code> define both Latte (light) and Mocha (dark) palettes.</li>
+<li><strong>Icons:</strong> per-icon tree-shaken imports from <code>@lucide/svelte</code> (<code>import Foo from "@lucide/svelte/icons/foo"</code>). Lucide doesn't ship every brand mark; use <code>Code</code> as a fallback.</li>
+<li><strong>Prettier + ESLint.</strong> <code>make lint-webui</code> is the gate.</li>
+</ul>
+<h3 id="yaml-router-templates">YAML (router templates)<a class="headerlink" href="#yaml-router-templates" title="Permanent link">&para;</a></h3>
+<p>See <a href="../router-templates/#style-guide">router-templates.md § Style guide</a>.</p>
+<h3 id="commits-prs">Commits &amp; PRs<a class="headerlink" href="#commits-prs" title="Permanent link">&para;</a></h3>
+<ul>
+<li>One concern per commit. Keep changes focused.</li>
+<li>Commit messages: imperative mood, ≤72 chars subject, blank line, body wrapped at 72 chars. Reference issues in the body.</li>
+<li>PRs that touch the WebUI must rebuild and commit <code>cmd/server/dist/</code>? <strong>No.</strong> <code>cmd/server/dist/</code> is <code>.gitignore</code>d and built by CI. The only thing the embed needs at PR time is a placeholder; the Makefile creates <code>cmd/server/dist/.gitkeep</code> automatically.</li>
+<li><strong>AI-generated contributions</strong> are accepted on a case-by-case basis but are <em>not</em> the primary workflow. If a change was produced or substantially shaped by an AI assistant, say so in the PR description — the maintainers will review with appropriate scrutiny. Human review and the usual quality bar (<code>make check &amp;&amp; make build</code>, sensible commit history, no hallucinated APIs) still apply.</li>
+</ul>
+<h2 id="versioning">Versioning<a class="headerlink" href="#versioning" title="Permanent link">&para;</a></h2>
+<p><code>utils.Version()</code> returns <code>&lt;release&gt;+&lt;unix-nanos-hex&gt;</code>. The <code>&lt;release&gt;</code> part is set at build time via:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>go<span class="w"> </span>build<span class="w"> </span>-ldflags<span class="w"> </span><span class="s2">&quot;-X github.com/AS203038/looking-glass/pkg/utils.release=v1.2.3&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>-o<span class="w"> </span>looking-glass<span class="w"> </span>./cmd/server
+</span></code></pre></div>
+<p>The Makefile does this automatically using <code>git describe</code> output; override with <code>make build VERSION=v1.2.3</code>. The Dockerfile takes the version as a build arg.</p>
+<p>The CLI's <code>lg-cli version</code> subcommand reads <code>main.Version</code>, set via <code>-X main.Version=v1.2.3</code>. The Makefile handles both.</p>
+<h2 id="releasing">Releasing<a class="headerlink" href="#releasing" title="Permanent link">&para;</a></h2>
+<p>This project uses GitHub Actions for releases. The shape (subject to change — read <code>.github/workflows/release.yaml</code> for the truth):</p>
+<ol>
+<li>Tag a release: <code>git tag -a v1.2.3 -m "1.2.3"</code> and push.</li>
+<li>The <code>release.yaml</code> workflow:</li>
+<li>Builds the protobuf with <code>buf generate</code>.</li>
+<li>Builds the WebUI with <code>pnpm install --frozen-lockfile &amp;&amp; pnpm run build</code>.</li>
+<li>Builds Go binaries for several <code>GOOS/GOARCH</code> combinations with the appropriate <code>-ldflags</code>.</li>
+<li>Uploads them to a GitHub Release alongside <code>example.config.yaml</code>.</li>
+<li>The Docker workflow (or <code>docker-release</code> job) builds and pushes <code>ghcr.io/as203038/looking-glass:v1.2.3</code> and <code>:latest</code>.</li>
+</ol>
+<p>There is no separate npm publish for the protobuf package — it's workspace-linked from the WebUI and bundled into the static build.</p>
+<h2 id="common-workflows">Common workflows<a class="headerlink" href="#common-workflows" title="Permanent link">&para;</a></h2>
+<h3 id="adding-a-new-grpc-method">Adding a new gRPC method<a class="headerlink" href="#adding-a-new-grpc-method" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Edit <code>protobuf/lookingglass/v0/lookingglass.proto</code>: add <code>rpc Foo(...) returns (...)</code> and any new messages.</li>
+<li><code>make proto</code>.</li>
+<li>Implement the method on <code>pkg/http/grpc/service.go</code>. Follow the existing pattern: router lookup → input sanitisation → template render → SSH exec → response assembly → coarse sentinel errors.</li>
+<li>If the operation needs a new template section, extend <code>pkg/routers/yaml.go</code> (<code>Yaml.Template</code>, <code>_tpl_data</code>, <code>_tpl</code> switch case, new method) and update every bundled <code>*.yml</code>.</li>
+<li>Add a CLI subcommand in <code>cmd/cli/cmd_*.go</code>. Use the existing <code>client.Bar</code> calls as a template.</li>
+<li>Add a WebUI button + store dispatch in <code>webui/src/lib/stores/query.ts</code> and <code>CommandDock.svelte</code>.</li>
+<li>Run <code>make check</code>.</li>
+</ol>
+<h3 id="adding-a-new-bundled-router-template">Adding a new bundled router template<a class="headerlink" href="#adding-a-new-bundled-router-template" title="Permanent link">&para;</a></h3>
+<p>See <a href="../router-templates/#authoring-a-new-template">router-templates.md § Authoring a new template</a>. Drop the file in <code>pkg/routers/&lt;vendor&gt;_&lt;model&gt;.yml</code> instead of <code>$ROUTER_DIR</code> so it ends up in the binary.</p>
+<h3 id="changing-the-webui-runtime-env">Changing the WebUI runtime env<a class="headerlink" href="#changing-the-webui-runtime-env" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Add the field to <code>pkg/http/webui/webui.go</code>'s <code>EnvJS</code> struct (with the <code>PUBLIC_*</code> JSON tag).</li>
+<li>Wire it from <code>utils.WebConfig</code> (you'll likely need to add a new YAML key too).</li>
+<li>Add the matching field to <code>webui/src/lib/env.ts</code> (<code>PublicEnv</code> interface + <code>defaults</code> object + any coercion).</li>
+<li>Use it in the WebUI.</li>
+<li>Document the new YAML key in <a href="../configuration/">configuration.md</a>.</li>
+</ol>
+<h3 id="tweaking-middleware-behaviour">Tweaking middleware behaviour<a class="headerlink" href="#tweaking-middleware-behaviour" title="Permanent link">&para;</a></h3>
+<p>Everything lives in <code>pkg/http/http.go</code>. Middleware is composed bottom-up in <code>ListenAndServe</code>; insertion order matters. The existing structure (cache → cors → log → sentry) reflects a deliberate choice — see <a href="../architecture/">architecture.md</a>.</p>
+<p>When adding new middleware:</p>
+<ul>
+<li>Keep it idempotent (anything reasonable for HTTP).</li>
+<li>Don't read/write shared state without explanation.</li>
+<li>Log at the same prefix style as the rest of the codebase.</li>
+</ul>
+<h2 id="reviewing-your-changes-locally">Reviewing your changes locally<a class="headerlink" href="#reviewing-your-changes-locally" title="Permanent link">&para;</a></h2>
+<p>Before opening a PR, the closest-to-CI sequence is:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>make<span class="w"> </span>generate<span class="w">        </span><span class="c1"># if you touched the proto</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>make<span class="w"> </span>check<span class="w">           </span><span class="c1"># lint + test</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>make<span class="w"> </span>build<span class="w">           </span><span class="c1"># full build</span>
+</span></code></pre></div>
+<p>A green <code>make check &amp;&amp; make build</code> is the bar.</p>
+<h2 id="where-to-ask-questions">Where to ask questions<a class="headerlink" href="#where-to-ask-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>GitHub Issues / Discussions: <a href="https://github.com/AS203038/looking-glass">https://github.com/AS203038/looking-glass</a></li>
+<li>The demo instance at <a href="https://lg.as203038.net/">https://lg.as203038.net/</a> is run by the primary maintainer; production-shaped questions can include references to its behaviour.</li>
+</ul>
+<p>If you're stuck on a router template, the maintainer can often be persuaded to provide read-only access to the AS203038 demo routers — file an issue.</p>
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>GPL-3.0-or-later. By contributing, you agree to license your work under the same terms.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

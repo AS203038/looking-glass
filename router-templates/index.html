@@ -1,0 +1,1978 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://as203038.github.io/looking-glass/router-templates/">
+      
+      
+        <link rel="prev" href="../deployment/">
+      
+      
+        <link rel="next" href="../router-hardening/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Router Templates - Looking Glass</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#router-templates" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Looking Glass" class="md-header__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Looking Glass
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Router Templates
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Looking Glass" class="md-nav__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Looking Glass
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bmp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BMP Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mental model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#template-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Template variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-template-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Template Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#useful-go-template-idioms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Useful Go-template idioms
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#family-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Family selection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vrf-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VRF handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operand-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operand types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operand types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ip-cidr-ping-traceroute-bgproute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IP / CIDR (ping, traceroute, bgp.route)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#standard-community-bgpcommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standard community (bgp.community)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#large-community-bgplargecommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large community (bgp.largecommunity)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-path-regex-bgpaspath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AS-path regex (bgp.aspath)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loading-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parsers-structured-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsers (structured output)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parsers (structured output)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parser-kinds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser kinds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asset-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policy-router-cpu-is-the-bottleneck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy: router CPU is the bottleneck
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-a-parser-failure-is-reported" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How a parser failure is reported
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authoring-a-textfsm-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring a TextFSM template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authoring-native-json-schema-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring native-JSON schema support
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authoring-a-new-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring a new template
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authoring a new template">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#walked-through-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Walked-through example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-command-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-command operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#privilege-command-authorization-on-the-device-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privilege &amp; command authorization on the device side
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#style-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Style guide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-a-new-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing a new template
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference-shipped-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference: shipped templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mental model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#template-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Template variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-template-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Template Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#useful-go-template-idioms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Useful Go-template idioms
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#family-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Family selection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vrf-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VRF handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operand-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operand types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operand types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ip-cidr-ping-traceroute-bgproute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IP / CIDR (ping, traceroute, bgp.route)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#standard-community-bgpcommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standard community (bgp.community)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#large-community-bgplargecommunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large community (bgp.largecommunity)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-path-regex-bgpaspath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AS-path regex (bgp.aspath)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loading-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parsers-structured-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsers (structured output)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parsers (structured output)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parser-kinds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser kinds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asset-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policy-router-cpu-is-the-bottleneck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy: router CPU is the bottleneck
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-a-parser-failure-is-reported" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How a parser failure is reported
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authoring-a-textfsm-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring a TextFSM template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authoring-native-json-schema-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring native-JSON schema support
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authoring-a-new-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring a new template
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authoring a new template">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#walked-through-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Walked-through example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-command-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-command operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#privilege-command-authorization-on-the-device-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privilege &amp; command authorization on the device side
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#style-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Style guide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-a-new-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing a new template
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference-shipped-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference: shipped templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="router-templates">Router Templates<a class="headerlink" href="#router-templates" title="Permanent link">&para;</a></h1>
+<p>Vendor support in Looking Glass is <strong>data, not code</strong>: every router type is a single YAML file describing how to render the right CLI command for each operation. Adding a new vendor is therefore a matter of writing a YAML file and dropping it into the loader. No Go changes, no recompilation.</p>
+<p>This document is the authoritative reference for template authors and operators who want to override or extend shipped templates. Pair it with the existing files in <a href="../pkg/routers/"><code>pkg/routers/</code></a> — they are the best examples.</p>
+<h2 id="mental-model">Mental model<a class="headerlink" href="#mental-model" title="Permanent link">&para;</a></h2>
+<p>Each template implements the <code>Router</code> interface (<code>pkg/utils/interface.go</code>) for one vendor:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Router</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nx">Ping</span><span class="w">              </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">IPNet</span><span class="p">)</span><span class="w">            </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">Traceroute</span><span class="w">        </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">IPNet</span><span class="p">)</span><span class="w">            </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nx">BGPRoute</span><span class="w">          </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">IPNet</span><span class="p">)</span><span class="w">            </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nx">BGPCommunity</span><span class="w">      </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="cm">/*comm*/</span><span class="p">)</span><span class="w">   </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nx">BGPLargeCommunity</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="cm">/*lcomm*/</span><span class="p">)</span><span class="w">  </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nx">BGPASPath</span><span class="w">         </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="cm">/*regex*/</span><span class="p">)</span><span class="w">  </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>For YAML templates the implementation is shared: <code>pkg/routers/Yaml</code> loads the YAML, exposes the same six methods, and returns the rendered command list. Execution (SSH, output capture) is handled once in <code>pkg/utils.SSHExec</code> — the template only declares the strings to run.</p>
+<p>A request like "ping 1.1.1.1 from router 3" therefore flows:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>gRPC handler
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>   ↓
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>RouterInstance.Ping(target)             ← pkg/utils/interface.go
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>   ↓
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Yaml.Ping(cfg, target)                  ← pkg/routers/yaml.go
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>   ↓  renders the templates in ping.ipv4 / ping.ipv6 / ping.any
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>[]string{&quot;ping -n -4 -c5 -I 192.0.2.1 1.1.1.1&quot;}
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>   ↓
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>SSHExec(cfg, cmds)                      ← pkg/utils/ssh.go
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>   ↓
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>PingResponse.Result = stdout
+</span></code></pre></div>
+<h2 id="file-layout">File layout<a class="headerlink" href="#file-layout" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_vendor_v1</span><span class="w">            </span><span class="c1"># required, must be unique in the registry</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">ping</span><span class="p">:</span><span class="w">                         </span><span class="c1"># optional but recommended</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">any</span><span class="p">:</span><span class="w">                      </span><span class="c1"># IP-family-agnostic; used if family-specific is empty</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span><span class="w">                     </span><span class="c1"># used for IPv4 operands</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span><span class="w">               </span><span class="c1"># multiple commands run sequentially, output concatenated</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nt">traceroute</span><span class="p">:</span><span class="w">                   </span><span class="c1"># same shape as ping</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nt">any</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="nt">bgp</span><span class="p">:</span><span class="w">                          </span><span class="c1"># BGP operations</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="nt">route</span><span class="p">:</span><span class="w">                    </span><span class="c1"># bgp.route — operand: prefix/address (IPNet)</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="nt">community</span><span class="p">:</span><span class="w">                </span><span class="c1"># bgp.community — operand: ASN:VALUE (string)</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="nt">largecommunity</span><span class="p">:</span><span class="w">           </span><span class="c1"># bgp.largecommunity — operand: G:L1:L2 (string)</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">aspath</span><span class="p">:</span><span class="w">                   </span><span class="c1"># bgp.aspath — operand: sanitised regex (string)</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">peer_routes</span><span class="p">:</span><span class="w">              </span><span class="c1"># bgp.peer_routes — per-peer session routing lookup</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">        </span><span class="nt">received</span><span class="p">:</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">        </span><span class="nt">accepted</span><span class="p">:</span>
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">        </span><span class="nt">rejected</span><span class="p">:</span>
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">        </span><span class="nt">advertised</span><span class="p">:</span>
+</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span></code></pre></div>
+<p>Notes:</p>
+<ul>
+<li>The <code>name:</code> field is what users put in <code>devices[].type:</code> in <code>config.yaml</code>. Make it unique and stable.</li>
+<li>Every operation section is <strong>optional</strong>. A missing section means the server returns <code>errs.OperationUnknown</code> ("operation unknown") for that operation against that router type.</li>
+<li><code>ping.any</code> / <code>traceroute.any</code> are the fallback when the operand's family-specific list is empty. Almost every shipped template uses family-specific lists.</li>
+<li>Each entry in a list is a separate command. They are executed in order; outputs are concatenated with <code>\n</code> before returning to the client.</li>
+</ul>
+<h2 id="template-variables">Template variables<a class="headerlink" href="#template-variables" title="Permanent link">&para;</a></h2>
+<p>Templates use Go's <a href="https://pkg.go.dev/text/template"><code>text/template</code></a> syntax. The data context is the unexported <code>_tpl_data</code> struct in <code>pkg/routers/yaml.go</code>:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">_tpl_data</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nx">Cfg</span><span class="w">            </span><span class="o">*</span><span class="nx">RouterConfig</span><span class="w"> </span><span class="c1">// the operator&#39;s device entry</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nx">IP</span><span class="w">             </span><span class="o">*</span><span class="nx">IPNet</span><span class="w">        </span><span class="c1">// for ping/traceroute/bgp.route</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nx">Community</span><span class="w">      </span><span class="kt">string</span><span class="w">        </span><span class="c1">// for bgp.community</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nx">LargeCommunity</span><span class="w"> </span><span class="kt">string</span><span class="w">        </span><span class="c1">// for bgp.largecommunity</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nx">ASPath</span><span class="w">         </span><span class="kt">string</span><span class="w">        </span><span class="c1">// for bgp.aspath (already sanitised)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nx">PeerIP</span><span class="w">         </span><span class="kt">string</span><span class="w">        </span><span class="c1">// BGP peer IP address (for bgp.peer_routes)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nx">PeerName</span><span class="w">       </span><span class="kt">string</span><span class="w">        </span><span class="c1">// BGP peer session name (for bgp.peer_routes)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="custom-template-functions">Custom Template Functions<a class="headerlink" href="#custom-template-functions" title="Permanent link">&para;</a></h3>
+<p>The Go template engine implements custom functions to assist with vendor-specific formatting quirks:</p>
+<ul>
+<li><code>bird_community</code>: Translates a standard community string like <code>"65000:100"</code> into BIRD's native <code>(65000, 100)</code> tuple format. E.g. <code>{{bird_community .Community}}</code>.</li>
+<li><code>bird_large_community</code>: Translates a standard large community string like <code>"65000:100:200"</code> into BIRD's native <code>(65000, 100, 200)</code> tuple format. E.g. <code>{{bird_large_community .LargeCommunity}}</code>.</li>
+</ul>
+<p>Practical reference:</p>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Type</th>
+<th>Value</th>
+<th>Where it applies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{{.Cfg.Name}}</code></td>
+<td>string</td>
+<td>Device display name from <code>config.yaml</code></td>
+<td>Anywhere</td>
+</tr>
+<tr>
+<td><code>{{.Cfg.Hostname}}</code></td>
+<td>string</td>
+<td>SSH endpoint (<code>host[:port]</code>)</td>
+<td>Anywhere (rare; usually not needed)</td>
+</tr>
+<tr>
+<td><code>{{.Cfg.Username}}</code></td>
+<td>string</td>
+<td>SSH login</td>
+<td>Anywhere (rare)</td>
+</tr>
+<tr>
+<td><code>{{.Cfg.VRF}}</code></td>
+<td>string</td>
+<td>Routing-instance label</td>
+<td><strong>Every operation</strong> — see <a href="#vrf-handling">VRF</a></td>
+</tr>
+<tr>
+<td><code>{{.Cfg.Location}}</code></td>
+<td>string</td>
+<td>Free-form location</td>
+<td>Anywhere (rare)</td>
+</tr>
+<tr>
+<td><code>{{.Cfg.Source4.IP}}</code></td>
+<td>string</td>
+<td>IPv4 source address (defaults <code>127.0.0.1</code> if unset)</td>
+<td>ping/traceroute, ipv4</td>
+</tr>
+<tr>
+<td><code>{{.Cfg.Source6.IP}}</code></td>
+<td>string</td>
+<td>IPv6 source address (defaults <code>::1</code> if unset)</td>
+<td>ping/traceroute, ipv6</td>
+</tr>
+<tr>
+<td><code>{{.IP.IP}}</code></td>
+<td>string</td>
+<td>Operand IP / network address</td>
+<td>ping, traceroute, bgp.route</td>
+</tr>
+<tr>
+<td><code>{{.IP.CIDR}}</code></td>
+<td>string</td>
+<td>Prefix length</td>
+<td>ping, traceroute, bgp.route</td>
+</tr>
+<tr>
+<td><code>{{.IP.Family}}</code></td>
+<td>string</td>
+<td>Literal <code>ipv4</code> / <code>ipv6</code> (lowercase)</td>
+<td>ping, traceroute, bgp.route</td>
+</tr>
+<tr>
+<td><code>{{.Community}}</code></td>
+<td>string</td>
+<td><code>ASN:VALUE</code> (RFC 1997)</td>
+<td>bgp.community</td>
+</tr>
+<tr>
+<td><code>{{.LargeCommunity}}</code></td>
+<td>string</td>
+<td><code>GLOBAL:LOCAL1:LOCAL2</code> (RFC 8092)</td>
+<td>bgp.largecommunity</td>
+</tr>
+<tr>
+<td><code>{{.ASPath}}</code></td>
+<td>string</td>
+<td>Sanitised regex (digits, <code>_</code>, optional <code>$</code>)</td>
+<td>bgp.aspath</td>
+</tr>
+</tbody>
+</table>
+<p><code>{{.IP.Family}}</code> is what makes the bundled templates emit "<code>ipv4</code>" / "<code>ipv6</code>" literally. It's especially useful for single-command <code>bgp.route</code> lookups where you can avoid a Go-template conditional. When the platform needs a <em>different</em> keyword (e.g. Arista EOS uses <code>ip</code> / <code>ipv6</code> rather than <code>ipv4</code> / <code>ipv6</code>), use a conditional:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">bgp</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">route</span><span class="p">:</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&#39;show</span><span class="nv"> </span><span class="s">{{if</span><span class="nv"> </span><span class="s">eq</span><span class="nv"> </span><span class="s">.IP.Family</span><span class="nv"> </span><span class="s">&quot;ipv4&quot;}}ip{{else}}ipv6{{end}}</span><span class="nv"> </span><span class="s">bgp</span><span class="nv"> </span><span class="s">{{.IP.IP}}</span><span class="nv"> </span><span class="s">vrf</span><span class="nv"> </span><span class="s">{{.Cfg.VRF}}&#39;</span>
+</span></code></pre></div>
+<h3 id="useful-go-template-idioms">Useful Go-template idioms<a class="headerlink" href="#useful-go-template-idioms" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>{{if eq .IP.Family &quot;ipv4&quot;}}…{{else}}…{{end}}        # family branching
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>{{ .Cfg.VRF | printf &quot;%q&quot; }}                         # double-quote a value
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>{{- ... -}}                                          # trim leading / trailing whitespace
+</span></code></pre></div>
+<p>The full <code>text/template</code> action grammar is supported. Just remember that the command is rendered to a single string, then handed to the remote shell verbatim; multi-line templates produce literal embedded newlines.</p>
+<h2 id="family-selection">Family selection<a class="headerlink" href="#family-selection" title="Permanent link">&para;</a></h2>
+<p><code>ping.ipv4</code> / <code>ping.ipv6</code> / <code>ping.any</code> (and the same for traceroute) are selected by <code>_tpl()</code> in <code>pkg/routers/yaml.go</code>:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">case</span><span class="w"> </span><span class="s">&quot;ping&quot;</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="nx">tpl</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">rt</span><span class="p">.</span><span class="nx">Template</span><span class="p">.</span><span class="nx">Ping</span><span class="p">.</span><span class="nx">Any</span><span class="w">        </span><span class="c1">// default</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">IP</span><span class="p">.</span><span class="nx">IsIPv4</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">        </span><span class="nx">tpl</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">rt</span><span class="p">.</span><span class="nx">Template</span><span class="p">.</span><span class="nx">Ping</span><span class="p">.</span><span class="nx">IPv4</span><span class="w">   </span><span class="c1">// overrides if non-nil</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">IP</span><span class="p">.</span><span class="nx">IsIPv6</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">        </span><span class="nx">tpl</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">rt</span><span class="p">.</span><span class="nx">Template</span><span class="p">.</span><span class="nx">Ping</span><span class="p">.</span><span class="nx">IPv6</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="p">}</span>
+</span></code></pre></div>
+<p>Behaviour:</p>
+<ul>
+<li>If only <code>any</code> is provided, both families use it.</li>
+<li>If <code>ipv4</code> is provided but <code>ipv6</code> is not, IPv6 requests fall back to nothing (template-author bug — surfaced as <code>operation unknown</code>).</li>
+<li>The cleanest pattern is: define both families explicitly; use <code>any</code> only for vendors where the v4 / v6 syntax is identical.</li>
+</ul>
+<p>For BGP operations there are no per-family lists. <code>bgp.route</code>'s single list is rendered against the operand's family; the other three BGP operations don't carry a family hint at all.</p>
+<h2 id="vrf-handling">VRF handling<a class="headerlink" href="#vrf-handling" title="Permanent link">&para;</a></h2>
+<p>VRF (routing-instance / virtual-router / routing-table) support is <strong>mandatory</strong> in templates: every bundled template threads <code>{{.Cfg.VRF}}</code> through every operation, including ping/traceroute. This lets operators reliably scope lookups to the correct forwarding context without surprises.</p>
+<p>How each platform spells it (read the bundled template files themselves for the per-vendor chapter and verse — every shipped template's header comment documents its VRF strategy):</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>ping/traceroute</th>
+<th>BGP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FRRouting</td>
+<td>Source-IP binding (<code>-I</code>/<code>-s</code>)</td>
+<td><code>vtysh show bgp vrf {{.Cfg.VRF}} …</code></td>
+</tr>
+<tr>
+<td>Cisco IOS/IOS-XE</td>
+<td><code>vrf {{.Cfg.VRF}}</code></td>
+<td><code>show bgp vrf {{.Cfg.VRF}} …</code></td>
+</tr>
+<tr>
+<td>Arista EOS</td>
+<td><code>vrf {{.Cfg.VRF}}</code></td>
+<td><code>show {ip|ipv6} bgp … vrf {{.Cfg.VRF}}</code></td>
+</tr>
+<tr>
+<td>Juniper JunOS</td>
+<td><code>routing-instance {{.Cfg.VRF}}</code></td>
+<td><code>table {{.Cfg.VRF}}.inet{,6}.0</code></td>
+</tr>
+<tr>
+<td>Nokia SR OS</td>
+<td><code>router {{.Cfg.VRF}}</code></td>
+<td><code>show router {{.Cfg.VRF}} bgp …</code></td>
+</tr>
+<tr>
+<td>MikroTik RouterOS</td>
+<td><code>routing-table={{.Cfg.VRF}}</code></td>
+<td>implicit (no <code>vrf</code> column on adverts)</td>
+</tr>
+</tbody>
+</table>
+<p>For platforms with a "default" routing instance, use the platform-native default name in <code>config.yaml</code> (<code>default</code>, <code>inet</code>, <code>main</code>, <code>Base</code>, …) — your template should not have to special-case the empty string.</p>
+<h2 id="operand-types">Operand types<a class="headerlink" href="#operand-types" title="Permanent link">&para;</a></h2>
+<h3 id="ip-cidr-ping-traceroute-bgproute">IP / CIDR (ping, traceroute, bgp.route)<a class="headerlink" href="#ip-cidr-ping-traceroute-bgproute" title="Permanent link">&para;</a></h3>
+<p>The gRPC layer accepts a string from the client and runs it through <code>utils.NewIPNetFromProtobuf</code>:</p>
+<ol>
+<li>If it parses as a literal IP / CIDR, use that.</li>
+<li>Otherwise, run a DNS lookup and use the first returned address.</li>
+<li>Empty input is rejected as <code>errs.IPInvalid</code>.</li>
+</ol>
+<p>Therefore inside a template you can rely on <code>{{.IP.IP}}</code> being a single literal address (or address+prefix-length) — never a hostname.</p>
+<h3 id="standard-community-bgpcommunity">Standard community (bgp.community)<a class="headerlink" href="#standard-community-bgpcommunity" title="Permanent link">&para;</a></h3>
+<p>Always <code>ASN:VALUE</code> (two colon-separated integers). The gRPC layer constructs this string from the <code>BGPCommunity{asn, value}</code> protobuf message; the WebUI/CLI parse the user's "65000:100" form into the same shape.</p>
+<h3 id="large-community-bgplargecommunity">Large community (bgp.largecommunity)<a class="headerlink" href="#large-community-bgplargecommunity" title="Permanent link">&para;</a></h3>
+<p>Always <code>GLOBAL:LOCAL1:LOCAL2</code> (three 32-bit values, decimal, colon-separated). Built the same way as the standard community.</p>
+<p>Vendors with no native large-community CLI knob (Nokia SR OS, notably) typically use a <code>large:G:L1:L2</code> shorthand inside their existing community query — the bundled SR OS template uses exactly that.</p>
+<h3 id="as-path-regex-bgpaspath">AS-path regex (bgp.aspath)<a class="headerlink" href="#as-path-regex-bgpaspath" title="Permanent link">&para;</a></h3>
+<p>Validated and normalised by <code>utils.SanitizeASPathRegex</code> <strong>before</strong> being rendered. The rules:</p>
+<ul>
+<li>Length must be &gt; 0 and ≤ 30 characters.</li>
+<li>Only ASCII digits, <code>_</code>, and an optional trailing <code>$</code> are allowed. Everything else (parentheses, <code>|</code>, <code>*</code>, <code>+</code>, …) is rejected with <code>errs.ASPathMalformed</code>.</li>
+<li>A leading <code>_</code> is automatically prepended if missing.</li>
+<li>A trailing <code>_</code> or <code>$</code> is automatically appended if missing.</li>
+</ul>
+<p>This prevents both command-injection (no characters that close quotes) and ReDoS (no repetition operators). The template just gets <code>{{.ASPath}}</code> and can interpolate it verbatim, including inside double-quoted vendor syntax (JunOS, Nokia).</p>
+<h2 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<p>The template-rendering layer returns one of two states:</p>
+<ul>
+<li><strong>Success</strong> — list of rendered strings, returned to <code>SSHExec</code>.</li>
+<li><strong>Failure</strong> — <code>errs.OperationUnknown</code>, surfaced to the client as "operation unknown". Caused by:</li>
+<li>the requested operation has no list defined,</li>
+<li>a <code>text/template</code> parse error,</li>
+<li>a <code>text/template</code> execute error (e.g. referencing a nil field).</li>
+</ul>
+<p>The underlying <code>text/template</code> error is logged server-side with a detailed tag (router type, op, command index, raw template) — see <code>tplLogTag</code> in <code>yaml.go</code>. RPC clients only ever see the sentinel.</p>
+<p>After rendering, command execution failures (SSH dial, auth, exec non-zero, …) are also surfaced as coarse sentinel errors (<code>errs.ConnectionFailed</code>, <code>errs.AuthFailed</code>, <code>errs.ExecFailed</code>); see <a href="../architecture/">architecture.md</a> for the full error propagation story.</p>
+<h2 id="loading-rules">Loading rules<a class="headerlink" href="#loading-rules" title="Permanent link">&para;</a></h2>
+<p>Templates are loaded from two sources in this order:</p>
+<ol>
+<li><strong><code>$ROUTER_DIR</code></strong> (if set, at process start). Every <code>*.yml</code> / <code>*.yaml</code> file is parsed and registered. A name clash here is a panic; a name clash with an embedded template is fine and silently wins.</li>
+<li><strong>Embedded bundle</strong> — <code>pkg/routers/*.yml</code>, compiled into the binary. Each is registered only if no template under its name has been loaded yet; otherwise a warning is logged and the bundled copy is skipped.</li>
+</ol>
+<p>So if you want to override the bundled <code>cisco_ios</code> template, drop your replacement at <code>$ROUTER_DIR/cisco_ios.yml</code>. If you want to add a new vendor that nobody else has implemented, drop it at <code>$ROUTER_DIR/myvendor.yml</code>.</p>
+<p>Any parse error in either source <strong>panics at startup</strong>. Validate your template (<code>yamllint</code>, <code>kubectl apply --dry-run=client</code> on a ConfigMap, etc.) before deploying it.</p>
+<h2 id="parsers-structured-output">Parsers (structured output)<a class="headerlink" href="#parsers-structured-output" title="Permanent link">&para;</a></h2>
+<p>Beyond <code>name</code>, <code>ping</code>, <code>traceroute</code> and the <code>bgp</code> block, a template can declare an optional <code>parsers:</code> map that turns vendor command output into the typed <code>parsed</code> payload on each gRPC response (see <a href="../api/#structured-output">api.md § Structured output</a> for the wire shape). Templates that omit <code>parsers:</code> keep working exactly as before — the response simply has no structured view.</p>
+<p>The map is keyed by operation name and each entry declares the parser to run plus, optionally, an asset name:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">parsers</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">ping</span><span class="p">:</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">builtin</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">traceroute</span><span class="p">:</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">builtin</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">bgp.summary</span><span class="p">:</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">native_json</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">frr_bgp_summary_v1</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="nt">bgp.route</span><span class="p">:</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">textfsm</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arista_eos_show_bgp_paths</span>
+</span></code></pre></div>
+<p>Valid keys: <code>ping</code>, <code>traceroute</code>, <code>bgp.summary</code>, <code>bgp.route</code>, <code>bgp.community</code>, <code>bgp.largecommunity</code>, <code>bgp.aspath</code>. Unknown keys are ignored; unknown <code>kind:</code> values fall back to <code>raw</code> with a warning in the log.</p>
+<h3 id="parser-kinds">Parser kinds<a class="headerlink" href="#parser-kinds" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><code>kind</code></th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>raw</code></td>
+<td>Default. No parsing; the response only carries the verbatim bytes. Pick this when you don't have a template yet — it's strictly safer than shipping a wrong parser.</td>
+</tr>
+<tr>
+<td><code>textfsm</code></td>
+<td>The recommended default. Run a TextFSM template (compatible with the <code>networktocode/ntc-templates</code> ecosystem) on plain CLI output, server-side. Cheap on the router because it's just running its normal <code>show</code> command.</td>
+</tr>
+<tr>
+<td><code>native_json</code></td>
+<td>Tell the template to ask the router for JSON directly (<code>vtysh -c '... json'</code>, <code>\| display json</code>, <code>\| json</code>). <strong>Opt-in only</strong> — see the policy box below. Currently routinely-recommended only for FRR, where it's essentially free.</td>
+</tr>
+<tr>
+<td><code>builtin</code></td>
+<td>A small, hand-rolled Go parser. Used for trivially-structured outputs whose format has been stable for decades (Linux iputils <code>ping</code> and <code>traceroute</code>). New <code>builtin</code> handlers should be added sparingly — TextFSM is the right tool for nearly everything else.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="asset-fields">Asset fields<a class="headerlink" href="#asset-fields" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>template:</code> — the <strong>TextFSM template name</strong> (without extension). The dispatcher looks for it under <code>$ROUTER_DIR/textfsm/&lt;name&gt;.textfsm</code> first, then under the bundled embedded assets. Lookup tries <code>.textfsm</code> then <code>.tfsm</code>. Used only for <code>kind: textfsm</code>.</li>
+<li><code>schema:</code> — the <strong>native-JSON schema selector</strong> (e.g. <code>frr_bgp_route_v1</code>, <code>frr_bgp_summary_v1</code>). The dispatcher consults the schema name to pick the right Go decoder. Used only for <code>kind: native_json</code>.</li>
+</ul>
+<h3 id="policy-router-cpu-is-the-bottleneck">Policy: router CPU is the bottleneck<a class="headerlink" href="#policy-router-cpu-is-the-bottleneck" title="Permanent link">&para;</a></h3>
+<p>Looking Glass parses on its own machine, not on the router. The default for every vendor is plain CLI → TextFSM. JSON pipelines on JunOS (<code>| display json</code>), Arista (<code>| json</code>) and Cisco IOS-XE (<code>| json</code>) re-serialise text the box has already rendered and typically cost <strong>1.5–3× the CPU and 2–4× the byte volume</strong> on large outputs. Pick <code>native_json</code> only when you have evidence that the router-side cost is low.</p>
+<p>The one routinely-recommended exception is <strong>FRRouting</strong>: FRR holds the RIB as structured data in its userland daemon, so <code>vtysh -c '... json'</code> is essentially a <code>memcpy</code>. The shipped FRR template therefore uses <code>native_json</code> for every BGP op.</p>
+<h3 id="how-a-parser-failure-is-reported">How a parser failure is reported<a class="headerlink" href="#how-a-parser-failure-is-reported" title="Permanent link">&para;</a></h3>
+<ul>
+<li>When the parser succeeds, the response's <code>parse_status</code> is <code>PARSE_STATUS_OK</code> and <code>parsed</code> is populated. Clients render the structured view; <code>result</code> is still available as a fallback.</li>
+<li>When the parser runs but produces nothing useful (vendor output drift, malformed JSON, …), <code>parse_status</code> is <code>PARSE_STATUS_PARSE_FAILED</code>. Server-side logs include the parser name and op for triage. The request <strong>does not fail</strong> — <code>result</code> is still returned and the WebUI/CLI falls back to the raw view.</li>
+<li>When <code>kind: textfsm</code> is declared but <code>template:</code> is missing or points to a non-existent asset, <code>parse_status</code> is <code>PARSE_STATUS_TEMPLATE_MISSING</code>. Same fallback behaviour.</li>
+</ul>
+<p>This makes structured output strictly additive: a broken parser declaration can only cost you the structured view, never the raw output.</p>
+<h3 id="authoring-a-textfsm-template">Authoring a TextFSM template<a class="headerlink" href="#authoring-a-textfsm-template" title="Permanent link">&para;</a></h3>
+<p>Templates live at <code>pkg/routers/parse/textfsm/&lt;name&gt;.textfsm</code> in the bundled set, or <code>$ROUTER_DIR/textfsm/&lt;name&gt;.textfsm</code> for operator overrides. They use the standard TextFSM grammar — networktocode/ntc-templates is a good reference. The Go parser backend is <a href="https://github.com/sirikothe/gotextfsm"><code>sirikothe/gotextfsm</code></a>.</p>
+<p>The Go side knows how to project records into the typed payloads by <strong>column name</strong> (case-insensitive). Per operation:</p>
+<ul>
+<li><code>ping</code> → <code>target</code>, <code>source</code>, <code>packets_sent</code>, <code>packets_received</code>, <code>loss_pct</code>, <code>rtt_min_ms</code>, <code>rtt_avg_ms</code>, <code>rtt_max_ms</code>, <code>rtt_mdev_ms</code>.</li>
+<li><code>traceroute</code> → one record per hop with <code>ttl</code>, <code>ip</code>, <code>hostname</code>, <code>rtt_ms</code>, <code>asn</code>; plus optional <code>target</code> / <code>source</code> Filldown'd across rows.</li>
+<li><code>bgp.summary</code> → one record per peer with <code>peer_ip</code>, <code>peer_asn</code>, <code>description</code>, <code>state</code>, <code>state_detail</code>, <code>uptime</code> (mapped to protobuf <code>uptime_seconds</code>), <code>prefixes_received</code>, <code>prefixes_accepted</code>, <code>prefixes_sent</code>, <code>address_family</code>; plus optional <code>local_asn</code> / <code>router_id</code> Filldown'd.</li>
+<li><code>bgp.route</code> / <code>bgp.community</code> / <code>bgp.largecommunity</code> / <code>bgp.aspath</code> → one record per BGP path with <code>prefix</code>, <code>nexthop</code>, <code>as_path</code> (List of ASNs or single space-joined string), <code>origin</code>, <code>med</code>, <code>local_pref</code>, <code>communities</code> (List of <code>ASN:VAL</code> strings), <code>large_communities</code> (List), <code>best</code> (string; recognised truthy values include <code>true</code>, <code>1</code>, <code>yes</code>, <code>&gt;</code>, <code>*</code>), <code>peer_ip</code>, <code>peer_asn</code>, <code>age</code> (mapped to protobuf <code>age_seconds</code>).</li>
+</ul>
+<p>Columns the template does not emit simply land at their proto zero value — nothing in the parser is mandatory.</p>
+<p>Caveat: gotextfsm treats the first blank line after the <code>Value</code> declarations as the end of the Values block. <strong>Don't put blank lines between the header comments and the first <code>Value</code> line</strong>; the first blank line should come after the last <code>Value</code>.</p>
+<h3 id="authoring-native-json-schema-support">Authoring native-JSON schema support<a class="headerlink" href="#authoring-native-json-schema-support" title="Permanent link">&para;</a></h3>
+<p><code>native_json</code> schema names map to Go decoders in <code>pkg/routers/parse/json.go</code>. To add a new schema you need a small Go change (define the input shape, add a case in <code>JSONParser.Parse</code>, project onto the typed payload). The intent is that operators need to do this very rarely — TextFSM should be the path of least resistance for adding new vendors.</p>
+<h2 id="authoring-a-new-template">Authoring a new template<a class="headerlink" href="#authoring-a-new-template" title="Permanent link">&para;</a></h2>
+<p>Pick a vendor that isn't shipped (let's pretend we're adding OpenBSD <code>bgpd</code>):</p>
+<ol>
+<li><strong>Choose a unique name</strong> — <code>openbsd_bgpd</code>. This is the value operators put in <code>devices[].type:</code>.</li>
+<li><strong>Identify the platform's command surface.</strong> For OpenBSD that's <code>ping</code>, <code>ping6</code>, <code>traceroute</code>, <code>traceroute6</code>, and <code>bgpctl</code>.</li>
+<li><strong>Write the YAML.</strong> Start from a copy of the closest existing template (<code>frrouting.yml</code> is a good base for Unix-style hosts).</li>
+<li><strong>Drop the file at <code>$ROUTER_DIR/openbsd_bgpd.yml</code>.</strong></li>
+<li><strong>Add a device</strong> in <code>config.yaml</code> using <code>type: openbsd_bgpd</code>.</li>
+<li><strong>Run the server.</strong> The startup log should show:
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>NOTICE: Loading routers from /etc/looking-glass/routers
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>NOTICE: Router openbsd_bgpd (/etc/looking-glass/routers/openbsd_bgpd.yml) registered
+</span></code></pre></div></li>
+<li><strong>Exercise each operation</strong> via the WebUI or <code>lg-cli</code> and adjust commands until they match the platform's native CLI output.</li>
+<li><strong>Optional but encouraged</strong>: open a PR to add the template to <code>pkg/routers/</code> so everyone benefits.</li>
+</ol>
+<h3 id="walked-through-example">Walked-through example<a class="headerlink" href="#walked-through-example" title="Permanent link">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># /etc/looking-glass/routers/openbsd_bgpd.yml</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openbsd_bgpd</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="nt">ping</span><span class="p">:</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/sbin/ping -c5 -V {{.Cfg.VRF}} -I {{.Cfg.Source4.IP}} {{.IP.IP}}</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/sbin/ping6 -c5 -V {{.Cfg.VRF}} -I {{.Cfg.Source6.IP}} {{.IP.IP}}</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="nt">traceroute</span><span class="p">:</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/sbin/traceroute -V {{.Cfg.VRF}} -s {{.Cfg.Source4.IP}} {{.IP.IP}}</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/sbin/traceroute6 -V {{.Cfg.VRF}} -s {{.Cfg.Source6.IP}} {{.IP.IP}}</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="nt">bgp</span><span class="p">:</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="w">    </span><span class="nt">route</span><span class="p">:</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bgpctl -n {{.Cfg.VRF}} show rib {{.IP.IP}}</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="w">    </span><span class="nt">community</span><span class="p">:</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bgpctl -n {{.Cfg.VRF}} show rib community {{.Community}}</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="w">    </span><span class="nt">largecommunity</span><span class="p">:</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bgpctl -n {{.Cfg.VRF}} show rib large-community {{.LargeCommunity}}</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="w">    </span><span class="nt">aspath</span><span class="p">:</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bgpctl -n {{.Cfg.VRF}} show rib as {{.ASPath}}</span>
+</span></code></pre></div>
+<p>The example shows the three things every template tends to do:</p>
+<ol>
+<li><strong>Split per family</strong> for ping/traceroute (binary name differs).</li>
+<li><strong>Thread <code>{{.Cfg.VRF}}</code> through every command</strong> (here as <code>bgpd</code>'s <code>-n</code> routing-domain selector).</li>
+<li><strong>Use a single <code>bgp.route</code> command</strong> with the operand's family handled by the vendor's CLI.</li>
+</ol>
+<h2 id="multi-command-operations">Multi-command operations<a class="headerlink" href="#multi-command-operations" title="Permanent link">&para;</a></h2>
+<p>Each entry in a list is a separate command. For example, to query both IPv4 and IPv6 unicast tables on Cisco IOS (because <code>community</code> has no operand-derived family):</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">bgp</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">community</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">show bgp vrf {{.Cfg.VRF}} ipv4 unicast community {{.Community}}</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">show bgp vrf {{.Cfg.VRF}} ipv6 unicast community {{.Community}}</span>
+</span></code></pre></div>
+<p>Both commands run in separate SSH sessions (over the same TCP connection) and the outputs are joined with <code>\n</code> in the order listed. If any command fails, the whole operation fails — there is no partial-success path.</p>
+<h2 id="security-considerations">Security considerations<a class="headerlink" href="#security-considerations" title="Permanent link">&para;</a></h2>
+<p>The template body is operator-controlled, so the threat model is <strong>not</strong> "untrusted user injects shell metacharacters". But it is:</p>
+<ul>
+<li><strong>Operator typos</strong> that produce unexpected commands.</li>
+<li><strong>Operand-derived injection</strong> — what happens if <code>{{.IP.IP}}</code> contained a shell metacharacter?</li>
+</ul>
+<p>The codebase prevents the latter by parsing every operand into a strict type:</p>
+<ul>
+<li>IP / CIDR — parsed by <code>net.ParseIP</code> / <code>net.ParseCIDR</code>. Output is always <code>[0-9a-f.:/]+</code>.</li>
+<li>Community / large-community — built from integer fields, so the rendered string is always <code>\d+:\d+</code> / <code>\d+:\d+:\d+</code>.</li>
+<li>AS-path regex — <code>SanitizeASPathRegex</code> allow-listing.</li>
+</ul>
+<p>So <strong>the only way to get shell metacharacters into a rendered command is via the template itself or the operator's config fields</strong> (e.g. a <code>vrf:</code> containing a literal <code>; rm -rf /</code>). The realistic guidance is therefore:</p>
+<ol>
+<li>Don't put untrusted data in <code>config.yaml</code>. (It contains credentials anyway; protect it accordingly.)</li>
+<li>Use read-only router accounts.</li>
+<li>Test templates against a non-production device before deploying widely.</li>
+</ol>
+<h3 id="privilege-command-authorization-on-the-device-side">Privilege &amp; command authorization on the device side<a class="headerlink" href="#privilege-command-authorization-on-the-device-side" title="Permanent link">&para;</a></h3>
+<p>The LG only ever runs a small, fixed set of commands against each vendor (the contents of the <code>ping</code> / <code>traceroute</code> / <code>bgp.*</code> blocks in the template). Every bundled template documents that set explicitly in its header comment. Operators should configure a <strong>bespoke, least-privilege role/class/profile</strong> on each device that permits exactly those commands and denies everything else — not a generic <code>network-admin</code> / <code>privilege 15</code> account.</p>
+<p>Copy-pasteable per-vendor role definitions (Arista <code>role …</code>, Cisco <code>parser view</code> / privilege levels, JunOS <code>login class</code>, SR OS <code>profile</code>, RouterOS <code>/user group</code>, FRR sshd <code>ForceCommand</code> wrapper) live in <a href="../router-hardening/">router-hardening.md</a>. When you author a new template, update <code>router-hardening.md</code> in the same PR — the two documents are a contract:</p>
+<ul>
+<li><code>router-templates.md</code> defines which CLI commands the LG sends.</li>
+<li><code>router-hardening.md</code> defines which commands the device permits.</li>
+</ul>
+<p>If those two ever drift, either the LG breaks (template adds a command the role denies) or the security boundary leaks (role permits more than the template needs).</p>
+<h2 id="style-guide">Style guide<a class="headerlink" href="#style-guide" title="Permanent link">&para;</a></h2>
+<p>When contributing a template to the bundled set:</p>
+<ul>
+<li><strong>File name</strong> <code>&lt;vendor&gt;_&lt;model&gt;.yml</code> (e.g. <code>cisco_ios.yml</code>, <code>juniper_junos.yml</code>).</li>
+<li><strong><code>name:</code></strong> matches the file's basename (so users have an easy mapping from filesystem to config field).</li>
+<li><strong>Five-section header comment</strong> documenting:</li>
+<li>Target platform and version range.</li>
+<li>Login surface (CLI mode, any prerequisites).</li>
+<li>Notable design choices (per-family splits, VRF spellings, vendor-specific tokenisation quirks).</li>
+<li><strong>Order</strong>: <code>ping → traceroute → bgp.route → bgp.community → bgp.largecommunity → bgp.aspath</code>. Matches the order the gRPC service exposes operations.</li>
+<li><strong>Family handling</strong>: prefer per-family lists for ping/traceroute; rely on <code>{{.IP.Family}}</code> (or a <code>{{if eq .IP.Family …}}</code> conditional) for <code>bgp.route</code>; fan out to both families for the three operand-less BGP operations.</li>
+<li><strong>VRF</strong>: include <code>{{.Cfg.VRF}}</code> in every command. Document the spelling in the header comment.</li>
+</ul>
+<h2 id="testing-a-new-template">Testing a new template<a class="headerlink" href="#testing-a-new-template" title="Permanent link">&para;</a></h2>
+<p>There is no automated test harness for vendor templates yet. The practical workflow is:</p>
+<ol>
+<li><strong>Render in isolation.</strong> A short Go snippet:
+   <div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nx">y</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">routers</span><span class="p">.</span><span class="nx">Yaml</span><span class="p">{</span><span class="nx">Path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;x&quot;</span><span class="p">}</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nx">yaml</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">file</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">y</span><span class="p">.</span><span class="nx">Template</span><span class="p">)</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nx">cmds</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">y</span><span class="p">.</span><span class="nx">Ping</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">utils</span><span class="p">.</span><span class="nx">RouterConfig</span><span class="p">{</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nx">Source4</span><span class="p">:</span><span class="w"> </span><span class="nx">must</span><span class="p">(</span><span class="nx">utils</span><span class="p">.</span><span class="nx">NewIPNET</span><span class="p">(</span><span class="s">&quot;192.0.2.1&quot;</span><span class="p">)),</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nx">VRF</span><span class="p">:</span><span class="w">     </span><span class="s">&quot;default&quot;</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">},</span><span class="w"> </span><span class="nx">must</span><span class="p">(</span><span class="nx">utils</span><span class="p">.</span><span class="nx">NewIPNET</span><span class="p">(</span><span class="s">&quot;1.1.1.1&quot;</span><span class="p">)))</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">cmds</span><span class="p">)</span>
+</span></code></pre></div></li>
+<li><strong>Smoke against the device.</strong> Copy the rendered command to your SSH session and verify the router accepts and produces useful output.</li>
+<li><strong>Add a test device</strong> in <code>config.yaml</code> and run the server with <code>ROUTER_DIR</code> pointing at your work-in-progress template. Use <code>lg-cli ping http://localhost:8080 1 1.1.1.1</code> to exercise it end-to-end.</li>
+</ol>
+<p>We welcome contributions of a proper test harness — see <a href="../development/">development.md</a>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause / fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Process panics on startup with <code>Unmarshal file</code></td>
+<td>Malformed YAML; run <code>yamllint</code>.</td>
+</tr>
+<tr>
+<td><code>Router name cannot be empty</code> panic</td>
+<td>Missing <code>name:</code> field.</td>
+</tr>
+<tr>
+<td><code>Router foo already registered</code> warning</td>
+<td>Two templates share the same <code>name:</code>. External (ROUTER_DIR) wins, embedded is skipped.</td>
+</tr>
+<tr>
+<td>RPC returns <code>operation unknown</code></td>
+<td>Template doesn't define a list for that op, OR a parse/execute error in the template body.</td>
+</tr>
+<tr>
+<td>Output looks empty but command should produce data</td>
+<td>Did you forget to include the family-specific line? Check <code>_tpl</code> family selection rules.</td>
+</tr>
+<tr>
+<td><code>template: x: function "foo" not defined</code></td>
+<td>Used a sprig-style function that <code>text/template</code> doesn't ship; stick to built-ins.</td>
+</tr>
+<tr>
+<td>Quotes broken on JunOS / Nokia</td>
+<td>Wrap regex operands in <code>"…"</code> literally in the template — see <code>juniper_junos.yml</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reference-shipped-templates">Reference: shipped templates<a class="headerlink" href="#reference-shipped-templates" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Template</th>
+<th>File</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frrouting</code></td>
+<td><code>pkg/routers/frrouting.yml</code></td>
+<td>Unix <code>ping</code>/<code>traceroute</code>; <code>vtysh -c</code> for BGP. Best base for Linux hosts.</td>
+</tr>
+<tr>
+<td><code>cisco_ios</code></td>
+<td><code>pkg/routers/cisco_ios.yml</code></td>
+<td>Uses <code>{{.IP.Family}}</code> directly for <code>bgp.route</code>.</td>
+</tr>
+<tr>
+<td><code>arista_eos</code></td>
+<td><code>pkg/routers/arista_eos.yml</code></td>
+<td>EOS wants <code>ip</code>/<code>ipv6</code> before <code>bgp</code>, not <code>ipv4</code>/<code>ipv6</code> — uses a conditional.</td>
+</tr>
+<tr>
+<td><code>juniper_junos</code></td>
+<td><code>pkg/routers/juniper_junos.yml</code></td>
+<td>Per-VRF tables (<code>&lt;VRF&gt;.inet.0</code>); <code>aspath-regex</code> requires double-quotes.</td>
+</tr>
+<tr>
+<td><code>nokia_sros</code></td>
+<td><code>pkg/routers/nokia_sros.yml</code></td>
+<td>Single <code>bgp.route</code> command (SR OS auto-detects family); large-community via <code>large:</code> shorthand.</td>
+</tr>
+<tr>
+<td><code>mikrotik_routeros</code></td>
+<td><code>pkg/routers/mikrotik_routeros.yml</code></td>
+<td>RouterOS 7 only; RouterOS 6 lacks the columns these queries filter on.</td>
+</tr>
+</tbody>
+</table>
+<p>Read them. They are the best examples of the patterns described here, and each one's header comment explains the vendor-specific quirks.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

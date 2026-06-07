@@ -1,0 +1,1796 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://as203038.github.io/looking-glass/configuration/">
+      
+      
+        <link rel="prev" href="../getting-started/">
+      
+      
+        <link rel="next" href="../bmp/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Configuration - Looking Glass</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Looking Glass" class="md-header__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Looking Glass
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Looking Glass" class="md-nav__button md-logo" aria-label="Looking Glass" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Looking Glass
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AS203038/looking-glass" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#top-level-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-level shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#devices-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        devices (required)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="devices (required)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#field-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-note-on-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A note on credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-http2-listener" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        grpc (HTTP/2 listener)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-embedded-webui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        web (embedded WebUI)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-optional-response-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        redis (optional response cache)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bmp-optional-bgp-monitoring-protocol-collector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bmp (optional BGP Monitoring Protocol collector)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        logging (optional)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="logging (optional)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#securitytxt-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        security.txt (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#router-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Router templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-complete-reference-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A complete reference example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-not-configurable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is not configurable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-behaviour-cheat-sheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation behaviour cheat sheet
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bmp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BMP Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../router-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Router Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#top-level-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-level shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#devices-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        devices (required)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="devices (required)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#field-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-note-on-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A note on credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-http2-listener" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        grpc (HTTP/2 listener)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-embedded-webui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        web (embedded WebUI)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-optional-response-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        redis (optional response cache)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bmp-optional-bgp-monitoring-protocol-collector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bmp (optional BGP Monitoring Protocol collector)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        logging (optional)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="logging (optional)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#securitytxt-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        security.txt (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#router-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Router templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-complete-reference-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A complete reference example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-not-configurable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is not configurable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-behaviour-cheat-sheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation behaviour cheat sheet
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h1>
+<p>Looking Glass is configured by a single YAML file: <code>config.yaml</code> in the server's working directory. There is no command-line flag for config path, no environment-variable equivalents for individual keys, and no runtime reload — restart the server to apply changes.</p>
+<p>The only environment variable consulted by the server itself is <strong><code>ROUTER_DIR</code></strong> (see <a href="#router-templates">Router templates</a>).</p>
+<p>The canonical, fully-annotated example lives at <a href="../example.config.yaml"><code>example.config.yaml</code></a>. This page is the spec.</p>
+<h2 id="top-level-shape">Top-level shape<a class="headerlink" href="#top-level-shape" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">devices</span><span class="p">:</span><span class="w">        </span><span class="p p-Indicator">[]</span><span class="w">          </span><span class="c1"># required (may be empty but key must exist)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">grpc</span><span class="p">:</span><span class="w">           </span><span class="p p-Indicator">{}</span><span class="w">          </span><span class="c1"># gRPC/HTTP listener</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">web</span><span class="p">:</span><span class="w">            </span><span class="p p-Indicator">{}</span><span class="w">          </span><span class="c1"># embedded WebUI + runtime env</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nt">redis</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{}</span><span class="w">          </span><span class="c1"># optional response cache</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nt">bmp</span><span class="p">:</span><span class="w">            </span><span class="p p-Indicator">{}</span><span class="w">          </span><span class="c1"># optional BGP Monitoring Protocol listener</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nt">logging</span><span class="p">:</span><span class="w">        </span><span class="p p-Indicator">{}</span><span class="w">          </span><span class="c1"># optional slog-based event-stream settings</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">security.txt</span><span class="p">:</span><span class="w">   </span><span class="p p-Indicator">{}</span><span class="w">          </span><span class="c1"># optional RFC 9116 endpoint</span>
+</span></code></pre></div>
+<p>YAML unknown keys are ignored (yaml.v2 default), so older configs keep working after upgrades. Validation happens once at startup in <code>utils.ValidateConfig</code>:</p>
+<ul>
+<li>Devices without a <code>hostname</code> are silently dropped.</li>
+<li>Devices without <code>source4</code> default to <code>127.0.0.1</code>.</li>
+<li>Devices without <code>source6</code> default to <code>::1</code>.</li>
+</ul>
+<h2 id="devices-required"><code>devices</code> (required)<a class="headerlink" href="#devices-required" title="Permanent link">&para;</a></h2>
+<p>A list of routers. Order matters: a router's stable ID is its 1-based position in this list (<code>devices[0]</code> is ID 1, etc.). The ID is exposed to clients via gRPC, the CLI, and in WebUI URLs.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">devices</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rt1.sto1.example&quot;</span><span class="w">          </span><span class="c1"># required, free text</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;frrouting&quot;</span><span class="w">                 </span><span class="c1"># required, must match a template</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Stockholm,</span><span class="nv"> </span><span class="s">Sweden&quot;</span><span class="w">     </span><span class="c1"># optional, used to group in WebUI</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10.0.0.1:22&quot;</span><span class="w">           </span><span class="c1"># required, host[:port]</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;lg&quot;</span><span class="w">                    </span><span class="c1"># required for SSH login</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w">                </span><span class="c1"># optional (use ssh_key instead)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nt">ssh_key</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;/run/secrets/lg-key&quot;</span><span class="w">   </span><span class="c1"># optional, takes precedence if set</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">source4</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;192.0.2.1&quot;</span><span class="w">             </span><span class="c1"># required for IPv4 ping/traceroute</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nt">source6</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;2001:db8::1&quot;</span><span class="w">           </span><span class="c1"># required for IPv6 ping/traceroute</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">vrf</span><span class="p">:</span><span class="w">      </span><span class="s">&quot;default&quot;</span><span class="w">               </span><span class="c1"># required (use &quot;default&quot; / &quot;main&quot; / &quot;Base&quot; if you don&#39;t run VRFs)</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">ssh_pool_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                  </span><span class="c1"># optional maximum idle connections to pool for this device (0 disables pooling)</span>
+</span></code></pre></div>
+<h3 id="field-semantics">Field semantics<a class="headerlink" href="#field-semantics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>—</td>
+<td>Shown in the picker and CLI. No syntax restrictions.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>—</td>
+<td>Must equal the <code>name:</code> field of a loaded router template. Unknown types log an error and the device is skipped (server still starts).</td>
+</tr>
+<tr>
+<td><code>location</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Free-form site label. Routers sharing a <code>location</code> are grouped in the WebUI picker; missing/empty becomes "Other".</td>
+</tr>
+<tr>
+<td><code>hostname</code></td>
+<td>string</td>
+<td>—</td>
+<td>SSH endpoint. <code>host[:port]</code>. No <code>port</code> defaults to 22 from <code>ssh.Dial</code>. Devices without this are dropped at validation.</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td>string</td>
+<td>—</td>
+<td>SSH login.</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Always added as an SSH auth method. Ignored at handshake time when the router prefers public-key auth.</td>
+</tr>
+<tr>
+<td><code>ssh_key</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Filesystem path to a PEM-encoded private key. Read at every connection. When set, it's appended to the auth methods.</td>
+</tr>
+<tr>
+<td><code>source4</code></td>
+<td>IPNet</td>
+<td><code>127.0.0.1</code></td>
+<td>IPv4 source address bound on ping/traceroute. Used as <code>{{.Cfg.Source4.IP}}</code> in templates.</td>
+</tr>
+<tr>
+<td><code>source6</code></td>
+<td>IPNet</td>
+<td><code>::1</code></td>
+<td>IPv6 source address bound on ping/traceroute.</td>
+</tr>
+<tr>
+<td><code>vrf</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Routing-instance name interpolated as <code>{{.Cfg.VRF}}</code>. <strong>Every bundled template threads this through every operation.</strong> Use the platform default (<code>default</code> for IOS/EOS/FRR, <code>main</code> for RouterOS, <code>Base</code> for SR OS, <code>inet</code> for JunOS) if you don't run VRFs.</td>
+</tr>
+<tr>
+<td><code>ssh_pool_size</code></td>
+<td>int</td>
+<td><code>0</code></td>
+<td>Maximum idle SSH connections kept open in the pool for this device. Setting it <code>&gt; 0</code> enables transparent, self-healing connection pooling.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="a-note-on-credentials">A note on credentials<a class="headerlink" href="#a-note-on-credentials" title="Permanent link">&para;</a></h3>
+<p>Credentials are stored in plain text in the config file. The recommended deployment posture is:</p>
+<ul>
+<li>Restrict the file's permissions (<code>chmod 0600</code> and a dedicated user/group).</li>
+<li>In Kubernetes, project the file in from a <code>Secret</code> (not a <code>ConfigMap</code>).</li>
+<li>Use SSH keys (<code>ssh_key:</code>) over passwords where possible, and put the key in a <code>Secret</code> too.</li>
+<li>Bind a per-router, read-only account on the router. Looking Glass never issues configuration commands, but defence in depth is cheap.</li>
+</ul>
+<h2 id="grpc-http2-listener"><code>grpc</code> (HTTP/2 listener)<a class="headerlink" href="#grpc-http2-listener" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">grpc</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">listen</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;:8080&quot;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">self_signed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">cert</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/path/to/fullchain.pem&quot;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;/path/to/privkey.pem&quot;</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>When false, the gRPC service handlers are not mounted. The WebUI can still serve, but it will be useless.</td>
+</tr>
+<tr>
+<td><code>listen</code></td>
+<td>string</td>
+<td>—</td>
+<td>Bind address. <code>:8080</code> for "all interfaces, port 8080".</td>
+</tr>
+<tr>
+<td><code>tls.enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>When false the listener runs h2c (HTTP/2 cleartext). Required for gRPC clients that won't downgrade.</td>
+</tr>
+<tr>
+<td><code>tls.self_signed</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Generate an in-memory cert at startup via <code>utils.GenerateSelfSignedPair</code>. Useful behind an ingress that re-terminates TLS.</td>
+</tr>
+<tr>
+<td><code>tls.cert</code></td>
+<td>string</td>
+<td>—</td>
+<td>PEM-encoded chain. Ignored when <code>self_signed</code> is true.</td>
+</tr>
+<tr>
+<td><code>tls.key</code></td>
+<td>string</td>
+<td>—</td>
+<td>PEM-encoded private key. Ignored when <code>self_signed</code> is true.</td>
+</tr>
+</tbody>
+</table>
+<p>The listener serves <em>all</em> HTTP surfaces from this one port:</p>
+<ul>
+<li><code>/lookingglass.v0.LookingGlassService/*</code> — ConnectRPC handlers</li>
+<li><code>/grpc.health.v1.Health/*</code> — gRPC health protocol</li>
+<li><code>/_app/env.js</code> — WebUI runtime-config injector</li>
+<li><code>/.well-known/security.txt</code> — only when <code>security.txt.enabled</code></li>
+<li><code>/*</code> — embedded SvelteKit static bundle</li>
+</ul>
+<p>There is no way to disable the WebUI mount independently of the gRPC mount; toggle <code>web.enabled</code> instead.</p>
+<h2 id="web-embedded-webui"><code>web</code> (embedded WebUI)<a class="headerlink" href="#web-embedded-webui" title="Permanent link">&para;</a></h2>
+<p>The WebUI is a SvelteKit static build embedded into the Go binary at compile time. This section controls a small runtime configuration object (<code>/_app/env.js</code>) the WebUI fetches on boot.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">web</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">grpc_url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                        </span><span class="c1"># empty = same origin as the page</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AS203038</span><span class="nv"> </span><span class="s">Looking</span><span class="nv"> </span><span class="s">Glass&quot;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">header</span><span class="p">:</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AS203038&quot;</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nt">logo</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/logo.svg&quot;</span><span class="w">                 </span><span class="c1"># optional URL</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nt">links</span><span class="p">:</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Status&quot;</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://status.example.net&quot;</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="nt">footer</span><span class="p">:</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;©</span><span class="nv"> </span><span class="s">2026</span><span class="nv"> </span><span class="s">Example&quot;</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="nt">logo</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span><span class="nt">links</span><span class="p">:</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Source&quot;</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://github.com/AS203038/looking-glass&quot;</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="nt">sentry</span><span class="p">:</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="nt">dsn</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://...sentry.io/...&quot;</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;production&quot;</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">    </span><span class="nt">sample_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>When false, neither <code>/_app/env.js</code> nor static files are mounted.</td>
+</tr>
+<tr>
+<td><code>grpc_url</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Origin the WebUI dials for gRPC-Web. Empty means "same origin as the served page". Set when the WebUI and gRPC live on different hosts.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><code>&lt;title&gt;</code> of the page.</td>
+</tr>
+<tr>
+<td><code>header.text</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Brand bar text.</td>
+</tr>
+<tr>
+<td><code>header.logo</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>URL to a logo image; renders next to <code>header.text</code>.</td>
+</tr>
+<tr>
+<td><code>header.links</code></td>
+<td>list</td>
+<td><code>[]</code></td>
+<td>Links rendered in the header. Each entry is <code>{ text, url }</code>.</td>
+</tr>
+<tr>
+<td><code>footer.text</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Footer text.</td>
+</tr>
+<tr>
+<td><code>footer.logo</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>URL to a logo image; renders next to <code>footer.text</code>.</td>
+</tr>
+<tr>
+<td><code>footer.links</code></td>
+<td>list</td>
+<td><code>[]</code></td>
+<td>Links rendered in the footer.</td>
+</tr>
+<tr>
+<td><code>sentry.enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Toggles <strong>both</strong> the server-side <code>sentry-go</code> middleware AND the WebUI's lazy <code>@sentry/svelte</code> init.</td>
+</tr>
+<tr>
+<td><code>sentry.dsn</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Sentry project DSN. Forwarded to the browser when <code>sentry.enabled</code> is true.</td>
+</tr>
+<tr>
+<td><code>sentry.environment</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Tag attached to every event. Treated by Sentry as "production" when blank.</td>
+</tr>
+<tr>
+<td><code>sentry.sample_rate</code></td>
+<td>float</td>
+<td><code>0.0</code></td>
+<td>Traces-sample-rate <code>[0,1]</code>. <code>0</code> keeps error reporting but disables performance tracing.</td>
+</tr>
+</tbody>
+</table>
+<p>The link list is serialised into a <code>"name|href,name|href"</code> string in <code>/_app/env.js</code> (see <code>utils.HFBlock.LinksString</code>). This is an implementation detail of the env bridge and not part of any public API.</p>
+<h2 id="redis-optional-response-cache"><code>redis</code> (optional response cache)<a class="headerlink" href="#redis-optional-response-cache" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">redis</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">ttl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5m</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">uri</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;redis://redis-svc.lg.svc.cluster.local:6379/0?protocol=3&quot;</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>When false, the shared response cache is disabled.</td>
+</tr>
+<tr>
+<td><code>uri</code></td>
+<td>string</td>
+<td>—</td>
+<td>Parsed by <code>redis.ParseURL</code>. Standard <code>redis://</code> and <code>rediss://</code> schemes; <code>?protocol=3</code> enables RESP3. Parse failure disables the cache and logs.</td>
+</tr>
+<tr>
+<td><code>ttl</code></td>
+<td>string</td>
+<td><code>1m</code></td>
+<td>Go <a href="https://pkg.go.dev/time#ParseDuration"><code>time.ParseDuration</code></a> string. Malformed values fall back to 60 seconds and log a warning.</td>
+</tr>
+</tbody>
+</table>
+<p>RPC payloads are cached inside the ConnectRPC layer (under <code>pkg/http/grpc/</code>). The cache keys are method-specific and structured as follows:</p>
+<ul>
+<li><code>Ping</code>: <code>lg:rpc:&lt;version&gt;:ping:&lt;router_id&gt;:&lt;target&gt;</code></li>
+<li><code>Traceroute</code>: <code>lg:rpc:&lt;version&gt;:traceroute:&lt;router_id&gt;:&lt;target&gt;</code></li>
+<li><code>BGPSummary</code>: <code>lg:rpc:&lt;version&gt;:bgpsummary:&lt;router_id&gt;</code></li>
+<li><code>BGPRoute</code>: <code>lg:rpc:&lt;version&gt;:bgproute:&lt;router_id&gt;:&lt;target&gt;</code></li>
+<li><code>BGPCommunity</code>: <code>lg:rpc:&lt;version&gt;:bgpcommunity:&lt;router_id&gt;:&lt;community&gt;</code></li>
+<li><code>BGPLargeCommunity</code>: <code>lg:rpc:&lt;version&gt;:bgplargecommunity:&lt;router_id&gt;:&lt;community&gt;</code></li>
+<li><code>BGPASPath</code>: <code>lg:rpc:&lt;version&gt;:bgpaspath:&lt;router_id&gt;:&lt;md5(pattern)&gt;</code></li>
+<li><code>BGPPeerRoutes</code>: <code>lg:rpc:&lt;version&gt;:peerroutes:&lt;router_id&gt;:&lt;peer_ip&gt;:&lt;peer_name&gt;:&lt;query_type&gt;</code></li>
+</ul>
+<p>Hits serve the cached protobuf message and set the <code>X-Cache: HIT</code> response header so the structured access log shows cache effectiveness:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="nt">&quot;time&quot;</span><span class="p">:</span><span class="s2">&quot;2026-05-16T06:00:00Z&quot;</span><span class="p">,</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="s2">&quot;http access&quot;</span><span class="p">,</span><span class="nt">&quot;component&quot;</span><span class="p">:</span><span class="s2">&quot;httpaccess&quot;</span><span class="p">,</span><span class="nt">&quot;remote&quot;</span><span class="p">:</span><span class="s2">&quot;192.0.2.42&quot;</span><span class="p">,</span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="nt">&quot;uri&quot;</span><span class="p">:</span><span class="s2">&quot;/lookingglass.v0.LookingGlassService/Ping&quot;</span><span class="p">,</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="mi">200</span><span class="p">,</span><span class="nt">&quot;duration&quot;</span><span class="p">:</span><span class="mi">12400000</span><span class="p">,</span><span class="nt">&quot;cache&quot;</span><span class="p">:</span><span class="s2">&quot;HIT&quot;</span><span class="p">}</span>
+</span></code></pre></div>
+<p>There is no manual invalidation API. Wait for the TTL or flush the Redis database.</p>
+<h2 id="bmp-optional-bgp-monitoring-protocol-collector"><code>bmp</code> (optional BGP Monitoring Protocol collector)<a class="headerlink" href="#bmp-optional-bgp-monitoring-protocol-collector" title="Permanent link">&para;</a></h2>
+<p>The server integrates a vendor-agnostic BGP Monitoring Protocol (BMP, RFC 7854) collector that ingests real-time routing tables (RIB-In) and peer notifications, caching them in Redis to serve queries in <code>&lt; 1ms</code> with zero router CPU overhead.</p>
+<p>For full architectural details, benefits, drawbacks, and mutual exclusivity considerations with SSH execution, please see the dedicated <a href="../bmp/">BMP Support Guide</a>.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">bmp</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">listen</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;:11019&quot;</span><span class="w">             </span><span class="c1"># standard or custom TCP listen port</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>When true, starts the background TCP listener and enables real-time RIB caching. Requires <code>redis</code> response cache configuration.</td>
+</tr>
+<tr>
+<td><code>listen</code></td>
+<td>string</td>
+<td><code>":11019"</code></td>
+<td>Bind address. BMP-capable routers/route-servers must be configured to dial this endpoint as a BMP Collector.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="logging-optional"><code>logging</code> (optional)<a class="headerlink" href="#logging-optional" title="Permanent link">&para;</a></h2>
+<p>The server emits every diagnostic event through <code>log/slog</code>. Records are filtered by a configurable minimum level (default <code>info</code>), encoded in a configurable format (default <code>json</code>), and written to a configurable sink (default <code>stdout</code>). Each event carries a <code>component=&lt;name&gt;</code> attribute identifying the subsystem so operators can grep / filter / aggregate by subsystem.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">logging</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span><span class="w">               </span><span class="c1"># debug | info | warn | error</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span><span class="w">              </span><span class="c1"># json | text</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stdout</span><span class="w">            </span><span class="c1"># stdout | stderr | &lt;file path&gt;</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">             </span><span class="c1"># add file:line annotations</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">components</span><span class="p">:</span><span class="w">               </span><span class="c1"># per-component level overrides</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">ssh</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">debug</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">parse</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">warn</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>level</code></td>
+<td>string</td>
+<td><code>info</code></td>
+<td>Default minimum level for all components.</td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td>string</td>
+<td><code>json</code></td>
+<td><code>json</code> for machine-parseable output; <code>text</code> for slog's <code>key=value</code> form when tailing a terminal.</td>
+</tr>
+<tr>
+<td><code>output</code></td>
+<td>string</td>
+<td><code>stdout</code></td>
+<td>Sink. <code>stdout</code>, <code>stderr</code>, or a filesystem path. Files are opened with <code>O_APPEND|O_CREATE</code>; rotate them out-of-process.</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>When true, each record carries <code>source</code> (file:line). Useful for debugging at higher cost.</td>
+</tr>
+<tr>
+<td><code>components</code></td>
+<td>map</td>
+<td><code>{}</code></td>
+<td>Per-component level overrides; a component's threshold replaces <code>level</code> for that subsystem. Unknown components are accepted (no-op).</td>
+</tr>
+</tbody>
+</table>
+<p>The HTTP access log, previously emitted in Apache Common Log Format, is now a structured <code>INFO</code> record on the <code>httpaccess</code> component carrying every field the old single-line format carried.</p>
+<h3 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h3>
+<p>Each component emits events at the levels below. Setting <code>level: debug</code> globally (or for one component via <code>components: { name: debug }</code>) turns on the additional per-request / per-tick / per-render visibility marked "DEBUG". The default <code>level: info</code> is appropriate for production.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>DEBUG events</th>
+<th>INFO/WARN/ERROR events</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>server</code></td>
+<td>—</td>
+<td><code>server starting</code> (version, pid, devices) / <code>server shutting down</code>.</td>
+</tr>
+<tr>
+<td><code>http</code></td>
+<td>—</td>
+<td><code>listening</code> / <code>connecting to redis</code> / TLS choice / Sentry init.</td>
+</tr>
+<tr>
+<td><code>httpaccess</code></td>
+<td>—</td>
+<td>One <code>INFO http access</code> record per request.</td>
+</tr>
+<tr>
+<td><code>cache</code></td>
+<td><code>cache hit</code> / <code>cache miss</code> / <code>cache entry malformed</code> / <code>cache store ok</code>.</td>
+<td><code>marshal cache entry failed</code> / <code>store cache entry failed</code> (ERROR).</td>
+</tr>
+<tr>
+<td><code>rpc</code></td>
+<td><code>rpc start</code> (per handler entry).</td>
+<td><code>rpc ok</code> (INFO per success: op, router, duration, parser kind/status); <code>rpc failed</code> (WARN).</td>
+</tr>
+<tr>
+<td><code>health</code></td>
+<td><code>healthcheck tick</code> (per minute) / <code>healthcheck probe ok</code> / <code>healthcheck probe failed</code> (per router).</td>
+<td>State transitions only: <code>router healthy</code> (INFO) / <code>router unhealthy</code> (WARN).</td>
+</tr>
+<tr>
+<td><code>ssh</code></td>
+<td><code>ssh dial start</code> / <code>ssh dial ok</code> / <code>ssh exec start</code> / <code>ssh exec ok</code> / <code>ssh client close</code>.</td>
+<td><code>dial failed</code> / <code>new session failed</code> / <code>command failed</code> (ERROR).</td>
+</tr>
+<tr>
+<td><code>routers</code></td>
+<td><code>router bound</code> per device.</td>
+<td><code>router catalogue built</code> summary (INFO); <code>router type not found</code> (ERROR).</td>
+</tr>
+<tr>
+<td><code>yaml</code></td>
+<td>—</td>
+<td><code>router registered</code> per template; <code>unknown parser kind</code> (WARN); load failures (ERROR + exit).</td>
+</tr>
+<tr>
+<td><code>tpl</code></td>
+<td><code>tpl render</code> per rendered command (with the final rendered string).</td>
+<td><code>operation not defined for router</code> (WARN); <code>parse failed</code> / <code>execute failed</code> (ERROR).</td>
+</tr>
+<tr>
+<td><code>parse</code></td>
+<td><code>parser run</code> / <code>parser ok</code> (per parser invocation: parser, op, raw bytes, records/paths/peers/hops).</td>
+<td><code>template missing</code> / <code>no projection</code> (WARN); load / exec failures (ERROR).</td>
+</tr>
+<tr>
+<td><code>bmp</code></td>
+<td><code>BMP accept failed</code> / TCP parsing / payload read details (DEBUG).</td>
+<td><code>BMP router telemetry feed connected</code> / peer up/down sessions (INFO) / malformed common headers (ERROR).</td>
+</tr>
+<tr>
+<td><code>stdlog</code></td>
+<td>—</td>
+<td>Anything routed via the stdlib <code>log</code> package (e.g. <code>net/http</code> server errors).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="process-exit-codes">Process exit codes<a class="headerlink" href="#process-exit-codes" title="Permanent link">&para;</a></h3>
+<p>The server uses distinct exit codes for distinct startup failures so the cause is recoverable from the shell without scraping log output:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Code</th>
+<th>Source</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>cmd/server/main.go</code></td>
+<td>Embedded WebUI filesystem unavailable.</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>cmd/server/main.go</code></td>
+<td><code>config.yaml</code> parse failed.</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>cmd/server/main.go</code></td>
+<td><code>logging.Init</code> failed (bad level / format / output).</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>pkg/routers/routers.go::register</code></td>
+<td>Router template registered with an empty name.</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>pkg/routers/routers.go::register</code></td>
+<td>Duplicate router-template name.</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>pkg/routers/yaml.go::init</code></td>
+<td><code>ROUTER_DIR</code> directory unreadable.</td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>pkg/routers/yaml.go::init</code></td>
+<td>YAML file in <code>ROUTER_DIR</code> unreadable.</td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>pkg/routers/yaml.go::init</code></td>
+<td>YAML file in <code>ROUTER_DIR</code> unparseable.</td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>pkg/routers/yaml.go::init</code></td>
+<td>Embedded template directory unreadable.</td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>pkg/routers/yaml.go::init</code></td>
+<td>Embedded template file unreadable.</td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>pkg/routers/yaml.go::init</code></td>
+<td>Embedded template file unparseable.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="securitytxt-optional"><code>security.txt</code> (optional)<a class="headerlink" href="#securitytxt-optional" title="Permanent link">&para;</a></h2>
+<p>When enabled, the server publishes an RFC 9116 document at <code>/.well-known/security.txt</code>.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">security.txt</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">contact</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mailto:security@example.net&quot;</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">canonical</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://lg.example.net/.well-known/security.txt&quot;</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">encryption</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://example.net/pgp.asc&quot;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">acknowledgements</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://example.net/security/hall-of-fame&quot;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">preferred-languages</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;en,</span><span class="nv"> </span><span class="s">sv&quot;</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span><span class="nt">policy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://example.net/security-policy&quot;</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span><span class="nt">hiring</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://example.net/jobs&quot;</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">  </span><span class="nt">csaf</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://example.net/.well-known/csaf/provider-metadata.json&quot;</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span><span class="nt">expires</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-12-31T23:59:59Z&quot;</span><span class="w">     </span><span class="c1"># optional; auto-generates +1 year if omitted</span>
+</span></code></pre></div>
+<p>All fields are rendered verbatim, one per line, in the order shown in <code>utils.SecurityTxtConfig.String</code>. Empty fields still emit blank values to keep the document shape deterministic.</p>
+<h2 id="router-templates">Router templates<a class="headerlink" href="#router-templates" title="Permanent link">&para;</a></h2>
+<p>In addition to the bundled <code>pkg/routers/*.yml</code> templates compiled into the binary, the server can load <strong>additional</strong> templates from a directory specified by the <code>ROUTER_DIR</code> environment variable.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">ROUTER_DIR</span><span class="o">=</span>/etc/looking-glass/routers<span class="w"> </span>./looking-glass
+</span></code></pre></div>
+<p>Loading rules (see <code>pkg/routers/yaml.go</code>):</p>
+<ol>
+<li>If <code>ROUTER_DIR</code> is set, every <code>*.yml</code> / <code>*.yaml</code> file in that directory is parsed and registered first. A template here with the same <code>name:</code> as a bundled template <strong>wins</strong> — this is the supported escape hatch for overriding shipped templates.</li>
+<li>Bundled templates are then iterated. Each is registered only if no template under its name has been registered yet; otherwise a warning is logged and the bundled copy is skipped.</li>
+</ol>
+<p>Any parse or read error at this stage logs an <code>ERROR</code> event and exits the process with a distinct non-zero exit code (20–25, <a href="#process-exit-codes">see exit-code table</a>) — a malformed template would otherwise render the device that references it permanently broken at request time, and failing at startup is strictly better than failing on every request. Validate templates before deploying them.</p>
+<p>See <a href="../router-templates/">router-templates.md</a> for authoring guidance.</p>
+<h2 id="a-complete-reference-example">A complete reference example<a class="headerlink" href="#a-complete-reference-example" title="Permanent link">&para;</a></h2>
+<p>Trimmed copy of <code>example.config.yaml</code>:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">devices</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rt1.sto1.example&quot;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;frrouting&quot;</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Stockholm,</span><span class="nv"> </span><span class="s">Sweden&quot;</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10.0.0.1:22&quot;</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;lg&quot;</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="nt">ssh_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/run/secrets/lg-key&quot;</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="nt">source4</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;192.0.2.1&quot;</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="nt">source6</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2001:db8::1&quot;</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span><span class="nt">vrf</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="nt">grpc</span><span class="p">:</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">  </span><span class="nt">listen</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;:8080&quot;</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="nt">redis</span><span class="p">:</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">  </span><span class="nt">ttl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5m</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">  </span><span class="nt">uri</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;redis://redis-svc:6379/0?protocol=3&quot;</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="nt">bmp</span><span class="p">:</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="w">  </span><span class="nt">listen</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;:11019&quot;</span>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a><span class="nt">web</span><span class="p">:</span>
+</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="w">  </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AS65000</span><span class="nv"> </span><span class="s">Looking</span><span class="nv"> </span><span class="s">Glass&quot;</span>
+</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="w">  </span><span class="nt">header</span><span class="p">:</span>
+</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AS65000&quot;</span>
+</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a><span class="w">    </span><span class="nt">links</span><span class="p">:</span>
+</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Home&quot;</span><span class="p p-Indicator">,</span><span class="nt"> url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://example.net&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="w">  </span><span class="nt">footer</span><span class="p">:</span>
+</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;©</span><span class="nv"> </span><span class="s">2026</span><span class="nv"> </span><span class="s">Example</span><span class="nv"> </span><span class="s">AB&quot;</span>
+</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">    </span><span class="nt">links</span><span class="p">:</span>
+</span><span id="__span-10-37"><a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> text</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Source&quot;</span><span class="p p-Indicator">,</span><span class="nt"> url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://github.com/AS203038/looking-glass&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-10-38"><a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a>
+</span><span id="__span-10-39"><a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a><span class="nt">security.txt</span><span class="p">:</span>
+</span><span id="__span-10-40"><a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-10-41"><a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a><span class="w">  </span><span class="nt">contact</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mailto:security@example.net&quot;</span>
+</span><span id="__span-10-42"><a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a><span class="w">  </span><span class="nt">canonical</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://lg.example.net/.well-known/security.txt&quot;</span>
+</span></code></pre></div>
+<h2 id="what-is-not-configurable">What is <em>not</em> configurable<a class="headerlink" href="#what-is-not-configurable" title="Permanent link">&para;</a></h2>
+<p>In case it saves you time grepping:</p>
+<ul>
+<li>SSH <strong>host-key verification</strong> is currently <code>InsecureIgnoreHostKey</code>. There is no <code>known_hosts</code> mode yet.</li>
+<li>SSH <strong>connections are pooled</strong> if <code>ssh_pool_size</code> is configured on the device to a value greater than <code>0</code>. When configured, idle SSH connections are cached up to that size, checked out exclusively per request, and automatically validated/reestablished if stale.</li>
+<li>The <strong>health check interval</strong> is hardcoded to 60 seconds (see <code>pkg/http/grpc/grpc.go:healthcheck</code>).</li>
+<li>The <strong>WebUI router-list refresh</strong> is hardcoded to 5 minutes (see <code>webui/src/lib/stores/routers.ts</code>).</li>
+<li>Build-time <strong><code>-ldflags "-X .../utils.release=…"</code></strong> is the only way to set the version string shown in <code>GetInfo</code> / WebUI footer / ETag / Sentry release. The Makefile and Dockerfile both handle this automatically.</li>
+</ul>
+<h2 id="validation-behaviour-cheat-sheet">Validation behaviour cheat sheet<a class="headerlink" href="#validation-behaviour-cheat-sheet" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config.yaml</code> missing</td>
+<td>Logged at ERROR; process exits with code 3.</td>
+</tr>
+<tr>
+<td>Malformed YAML</td>
+<td>Logged at ERROR; process exits with code 3.</td>
+</tr>
+<tr>
+<td>Invalid <code>logging.*</code> key</td>
+<td>Logged at ERROR; process exits with code 4.</td>
+</tr>
+<tr>
+<td>Device without <code>hostname</code></td>
+<td>Silently dropped from <code>devices</code>.</td>
+</tr>
+<tr>
+<td>Device without <code>source4</code> / <code>source6</code></td>
+<td>Defaults inserted (<code>127.0.0.1</code> / <code>::1</code>).</td>
+</tr>
+<tr>
+<td>Device with unknown <code>type:</code></td>
+<td>Logged and skipped; remaining devices keep their IDs from list order.</td>
+</tr>
+<tr>
+<td>Invalid <code>redis.ttl</code></td>
+<td>Falls back to 60s; logged at WARNING.</td>
+</tr>
+<tr>
+<td>Invalid <code>redis.uri</code></td>
+<td>Cache disabled; logged at ERROR; server keeps starting.</td>
+</tr>
+<tr>
+<td>Bundled template name clash</td>
+<td>Embedded copy skipped; external (ROUTER_DIR) copy wins; warning logged.</td>
+</tr>
+<tr>
+<td>External template parse error</td>
+<td>Logged at ERROR; process exits with code 22.</td>
+</tr>
+<tr>
+<td>Template missing requested op</td>
+<td>RPC returns <code>errs.OperationUnknown</code> ("operation unknown").</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
