@@ -22,13 +22,13 @@ type Op string
 
 // Operation identifiers; mirror the YAML template keys.
 const (
-	OpPing              Op = "ping"
-	OpTraceroute        Op = "traceroute"
-	OpBGPRoute          Op = "bgp.route"
-	OpBGPCommunity      Op = "bgp.community"
-	OpBGPLargeCommunity Op = "bgp.largecommunity"
-	OpBGPASPath         Op = "bgp.aspath"
-	OpBGPSummary        Op = "bgp.summary"
+	OpPing                    Op = "ping"
+	OpTraceroute              Op = "traceroute"
+	OpBGPRoute                Op = "bgp.route"
+	OpBGPCommunity            Op = "bgp.community"
+	OpBGPLargeCommunity       Op = "bgp.largecommunity"
+	OpBGPASPath               Op = "bgp.aspath"
+	OpBGPSummary              Op = "bgp.summary"
 	OpBGPPeerRoutesReceived   Op = "bgp.peer_routes.received"
 	OpBGPPeerRoutesAccepted   Op = "bgp.peer_routes.accepted"
 	OpBGPPeerRoutesRejected   Op = "bgp.peer_routes.rejected"

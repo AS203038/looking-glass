@@ -82,7 +82,7 @@
 					<td class="px-3 py-1.5 whitespace-nowrap opacity-70">
 						{#if r.old}
 							<div class="flex flex-col">
-								{#each r.old.probes as p}
+								{#each r.old.probes as p, i (i)}
 									{#if p.ip}
 										<span>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}</span>
 									{:else}
@@ -95,7 +95,7 @@
 					<td class="px-3 py-1.5 whitespace-nowrap">
 						{#if r.new}
 							<div class="flex flex-col">
-								{#each r.new.probes as p}
+								{#each r.new.probes as p, i (i)}
 									{#if p.ip}
 										<span>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}</span>
 									{:else}
@@ -108,18 +108,18 @@
 					<td class="px-3 py-1.5 text-right whitespace-nowrap">
 						{#if r.status === 'changed'}
 							<div class="flex flex-col items-end line-through opacity-50">
-								{#each r.old?.probes || [] as p}
+								{#each r.old?.probes || [] as p, i (i)}
 									<span>{p.ip ? p.rttMs + ' ms' : '*'}</span>
 								{/each}
 							</div>
 							<div class="flex flex-col items-end text-(--color-success)">
-								{#each r.new?.probes || [] as p}
+								{#each r.new?.probes || [] as p, i (i)}
 									<span>{p.ip ? p.rttMs + ' ms' : '*'}</span>
 								{/each}
 							</div>
 						{:else}
 							<div class="flex flex-col items-end">
-								{#each (r.new || r.old)?.probes || [] as p}
+								{#each (r.new || r.old)?.probes || [] as p, i (i)}
 									<span>{p.ip ? p.rttMs + ' ms' : '*'}</span>
 								{/each}
 							</div>

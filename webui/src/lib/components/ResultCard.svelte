@@ -246,7 +246,7 @@
 					}}
 				>
 					<option value="">Compare…</option>
-					{#each pastRuns as run}
+					{#each pastRuns as run (run.timestamp.getTime())}
 						<option value={run.result.timestamp ? String(run.result.timestamp.getTime()) : ''}
 							>vs {relativeTime(run.timestamp, nowDate)}</option
 						>
@@ -451,7 +451,7 @@
 						class="flex-1 overflow-auto px-4 py-3 font-mono text-xs leading-relaxed whitespace-pre"
 						style="background-color: var(--color-bg-inset); color: var(--color-fg-base);"
 					>
-						{#each visibleDiffLines as part}
+						{#each visibleDiffLines as part, i (i)}
 							<div
 								style="color: {part.added
 									? 'var(--color-success)'

@@ -35,15 +35,17 @@
 		return `${m}m`;
 	}
 
-	const rows = $derived((summary.peers ?? []).filter((p) => {
-		if (!searchQuery) return true;
-		const q = searchQuery.toLowerCase();
-		return (
-			p.peerIp?.toLowerCase().includes(q) ||
-			p.peerAsn?.toString().includes(q) ||
-			p.description?.toLowerCase().includes(q)
-		);
-	}));
+	const rows = $derived(
+		(summary.peers ?? []).filter((p) => {
+			if (!searchQuery) return true;
+			const q = searchQuery.toLowerCase();
+			return (
+				p.peerIp?.toLowerCase().includes(q) ||
+				p.peerAsn?.toString().includes(q) ||
+				p.description?.toLowerCase().includes(q)
+			);
+		})
+	);
 
 	const hasDescriptions = $derived((summary.peers ?? []).some((p) => !!p.description));
 </script>

@@ -19,4 +19,3 @@ var CommunityMalformed = errors.New("BGP community malformed")
 
 // PeerNameMalformed is returned when a BGP peer/protocol name contains disallowed characters.
 var PeerNameMalformed = errors.New("BGP peer name malformed")
-

@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import {
 		sheetState,
 		dockHeight,
 		toggleSheet,
-		peekSheet,
 		setSheetState,
 		hideSheet,
 		maxHeight,

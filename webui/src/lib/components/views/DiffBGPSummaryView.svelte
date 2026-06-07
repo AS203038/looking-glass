@@ -23,17 +23,6 @@
 		}
 	}
 
-	function fmtAge(seconds: bigint | undefined): string {
-		const s = Number(seconds || 0n);
-		if (!s) return '—';
-		const d = Math.floor(s / 86400);
-		const h = Math.floor((s % 86400) / 3600);
-		const m = Math.floor((s % 3600) / 60);
-		if (d > 0) return `${d}d${h}h`;
-		if (h > 0) return `${h}h${m}m`;
-		return `${m}m`;
-	}
-
 	interface DiffPeer {
 		ip: string;
 		old?: Pb.BGPPeer;
@@ -59,8 +48,6 @@
 		}
 		return Array.from(map.values()).sort((a, b) => a.ip.localeCompare(b.ip));
 	});
-
-	const hasDescriptions = $derived(rows.some((p) => !!p.old?.description || !!p.new?.description));
 </script>
 
 <div class="flex-1 overflow-auto bg-(--color-bg-base)">

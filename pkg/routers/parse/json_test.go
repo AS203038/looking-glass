@@ -514,7 +514,7 @@ func TestFRRDurationHelper(t *testing.T) {
 		{"5w", 3024000},
 		{"invalid", 0},
 		{"xyz:abc:def", 0}, // triggers error inside Count == 2 colons block without matching any unit suffix
-		{"", 0}, // triggers s == ""
+		{"", 0},            // triggers s == ""
 	}
 	for _, tc := range cases {
 		got := parseFRRDuration(tc.in)

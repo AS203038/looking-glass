@@ -1,0 +1,166 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint & Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: webui/pnpm-lock.yaml
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install WebUI Dependencies
+        run: make install-webui
+
+      - name: Generate Protobuf Bindings
+        run: make generate
+
+      - name: Check Go Formatting
+        run: |
+          unformatted=$(gofmt -l cmd pkg)
+          if [ -n "$unformatted" ]; then
+            echo "The following Go files are not formatted correctly. Please run 'make fmt':"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Run Go Vet
+        run: make lint-go
+
+      - name: Run Protobuf Lint
+        run: make proto-lint
+
+      - name: Run WebUI Lint & Checks
+        run: |
+          make lint-webui
+          make check-webui
+
+  test:
+    name: Run Tests & Fuzzers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: webui/pnpm-lock.yaml
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install WebUI Dependencies
+        run: make install-webui
+
+      - name: Generate Protobuf Bindings
+        run: make generate
+
+      - name: Run Go Standard Tests
+        run: make test-go
+
+      - name: Run Go Fuzzers
+        run: FUZZTIME=10s make test-fuzz
+
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: webui/pnpm-lock.yaml
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install WebUI Dependencies
+        run: make install-webui
+
+      - name: Generate Protobuf Bindings
+        run: make generate
+
+      - name: Build All Artifacts
+        run: make build
+
+      - name: Verify Compiled Binaries
+        run: |
+          if [ ! -f "looking-glass" ]; then
+            echo "Error: Server binary 'looking-glass' was not compiled."
+            exit 1
+          fi
+          if [ ! -f "lg-cli" ]; then
+            echo "Error: CLI binary 'lg-cli' was not compiled."
+            exit 1
+          fi
+          echo "Binaries verified successfully."

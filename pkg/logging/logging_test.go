@@ -99,7 +99,7 @@ func TestInitAndLevelHandler(t *testing.T) {
 
 	// Log below global default level (INFO) - should be skipped
 	logger.Debug("global debug message")
-	
+
 	// Log at global default level (INFO) - should be captured
 	logger.Info("global info message")
 

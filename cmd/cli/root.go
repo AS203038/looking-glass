@@ -14,14 +14,14 @@ import (
 
 // globalOpts holds flags that apply to every subcommand.
 type globalOpts struct {
-	IndexURL string
-	Output   string // pretty | json | raw
-	Timeout  time.Duration
-	NoColor  bool
+	IndexURL   string
+	Output     string // pretty | json | raw
+	Timeout    time.Duration
+	NoColor    bool
 	ForceColor bool
-	Quiet    bool
-	Verbose  bool
-	Update   bool
+	Quiet      bool
+	Verbose    bool
+	Update     bool
 }
 
 var opts = &globalOpts{}

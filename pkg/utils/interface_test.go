@@ -13,13 +13,25 @@ import (
 type mockRouter struct{}
 
 func (mockRouter) Ping(*RouterConfig, *IPNet) ([]string, error) { return []string{"ping"}, nil }
-func (mockRouter) Traceroute(*RouterConfig, *IPNet) ([]string, error) { return []string{"traceroute"}, nil }
+func (mockRouter) Traceroute(*RouterConfig, *IPNet) ([]string, error) {
+	return []string{"traceroute"}, nil
+}
 func (mockRouter) BGPSummary(*RouterConfig) ([]string, error) { return []string{"bgp.summary"}, nil }
-func (mockRouter) BGPRoute(*RouterConfig, *IPNet) ([]string, error) { return []string{"bgp.route"}, nil }
-func (mockRouter) BGPCommunity(*RouterConfig, string) ([]string, error) { return []string{"bgp.community"}, nil }
-func (mockRouter) BGPLargeCommunity(*RouterConfig, string) ([]string, error) { return []string{"bgp.largecommunity"}, nil }
-func (mockRouter) BGPASPath(*RouterConfig, string) ([]string, error) { return []string{"bgp.aspath"}, nil }
-func (mockRouter) BGPPeerRoutes(*RouterConfig, string, string, string) ([]string, error) { return []string{"bgp.peer_routes"}, nil }
+func (mockRouter) BGPRoute(*RouterConfig, *IPNet) ([]string, error) {
+	return []string{"bgp.route"}, nil
+}
+func (mockRouter) BGPCommunity(*RouterConfig, string) ([]string, error) {
+	return []string{"bgp.community"}, nil
+}
+func (mockRouter) BGPLargeCommunity(*RouterConfig, string) ([]string, error) {
+	return []string{"bgp.largecommunity"}, nil
+}
+func (mockRouter) BGPASPath(*RouterConfig, string) ([]string, error) {
+	return []string{"bgp.aspath"}, nil
+}
+func (mockRouter) BGPPeerRoutes(*RouterConfig, string, string, string) ([]string, error) {
+	return []string{"bgp.peer_routes"}, nil
+}
 
 type mockRouterError struct{}
 

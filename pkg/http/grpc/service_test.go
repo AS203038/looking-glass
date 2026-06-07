@@ -446,7 +446,7 @@ func TestLookingGlassService(t *testing.T) {
 		t.Errorf("BGPCommunity SSH failed: %v", err)
 	}
 	_, err = srv.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
-		RouterId: 3,
+		RouterId:  3,
 		Community: &pb.BGPLargeCommunity{GlobalAdmin: 65000, LocalData1: 100, LocalData2: 100},
 	}))
 	if err != nil {
@@ -534,7 +534,7 @@ func TestLookingGlassService(t *testing.T) {
 	assertExecFailure(err)
 
 	_, err = srv.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
-		RouterId: 2,
+		RouterId:  2,
 		Community: &pb.BGPLargeCommunity{GlobalAdmin: 65000, LocalData1: 100, LocalData2: 100},
 	}))
 	assertExecFailure(err)

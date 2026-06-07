@@ -69,7 +69,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 								// Parse command payload
 								cmdStr := string(req.Payload)
 								req.Reply(true, nil)
-								
+
 								if strings.Contains(cmdStr, "fail") {
 									// Simulate standard error and exit status 1
 									channel.Stderr().Write([]byte("mock exec command failed with error"))

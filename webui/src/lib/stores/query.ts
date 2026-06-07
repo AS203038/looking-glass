@@ -239,12 +239,15 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 							break;
 					}
 
-					return await client.bGPPeerRoutes({
-						routerId: router.id,
-						peerIp,
-						peerName,
-						queryType
-					}, callOptions);
+					return await client.bGPPeerRoutes(
+						{
+							routerId: router.id,
+							peerIp,
+							peerName,
+							queryType
+						},
+						callOptions
+					);
 				}
 				default:
 					throw new Error(`Unknown command: ${cmd}`);

@@ -153,7 +153,7 @@ func levenshtein(s, t string) int {
 	if len(t) == 0 {
 		return len(s)
 	}
-	
+
 	d := make([][]int, len(s)+1)
 	for i := range d {
 		d[i] = make([]int, len(t)+1)

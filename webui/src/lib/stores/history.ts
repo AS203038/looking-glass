@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { CommandValue, ExecResult } from './query';
 import type { Pb } from '$lib/grpc';
 

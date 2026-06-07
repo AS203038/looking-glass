@@ -1,3 +1,18 @@
 version: v2
 modules:
   - path: .
+    lint:
+      use:
+        - STANDARD
+      except:
+        # TODO: Fix these exceptions for the v1 release of the protobuf.
+        # These are currently excluded to preserve backwards compatibility for our v0 API.
+
+        # PACKAGE_VERSION_SUFFIX: "lookingglass.v0" violates standard v1+ version suffix rules.
+        - PACKAGE_VERSION_SUFFIX
+
+        # RPC_REQUEST_STANDARD_NAME: GetInfo(google.protobuf.Empty) violates the [MethodName]Request naming convention.
+        - RPC_REQUEST_STANDARD_NAME
+
+        # ENUM_ZERO_VALUE_SUFFIX: PARSE_STATUS_OK violates the _UNSPECIFIED suffix convention.
+        - ENUM_ZERO_VALUE_SUFFIX

@@ -72,7 +72,10 @@
 			const peerIP = parts[0];
 			const typeStr = parts[1] || 'received';
 			if (!['received', 'accepted', 'rejected', 'advertised'].includes(typeStr.toLowerCase())) {
-				return { kind: 'error' as const, message: 'Type must be received, accepted, rejected, or advertised' };
+				return {
+					kind: 'error' as const,
+					message: 'Type must be received, accepted, rejected, or advertised'
+				};
 			}
 			return {
 				kind: 'info' as const,
@@ -236,7 +239,7 @@
 							list="lg-param-history"
 						/>
 						<datalist id="lg-param-history">
-							{#each paramHistory as p}
+							{#each paramHistory as p (p)}
 								<option value={p}></option>
 							{/each}
 						</datalist>
