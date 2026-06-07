@@ -3,7 +3,7 @@ import { createClient, type Client } from '@connectrpc/connect';
 import { createGrpcWebTransport } from '@connectrpc/connect-web';
 import { getEnv } from './env';
 
-export type * as Pb from '@as203038/lg-protobuf/lookingglass/v0/lookingglass_pb';
+export * as Pb from '@as203038/lg-protobuf/lookingglass/v0/lookingglass_pb';
 
 let client: Client<typeof LookingGlassService> | null = null;
 

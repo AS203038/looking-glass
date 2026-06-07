@@ -1,5 +1,5 @@
 import { writable, get } from 'svelte/store';
-import { LookingGlassClient, type Pb } from '$lib/grpc';
+import { LookingGlassClient, Pb } from '$lib/grpc';
 import { ConnectError, Code } from '@connectrpc/connect';
 import { selectedRouters } from './routers';
 import { onRunStarted } from './sheet';
@@ -15,7 +15,12 @@ export const COMMANDS = [
 		label: 'BGP Community',
 		placeholder: 'ASN:VALUE or GLOBAL:LOCAL1:LOCAL2'
 	},
-	{ value: 'bgp_aspath_regex', label: 'BGP AS-Path Regex', placeholder: '^65000_ .* _65001$' }
+	{ value: 'bgp_aspath_regex', label: 'BGP AS-Path Regex', placeholder: '^65000_ .* _65001$' },
+	{
+		value: 'bgp_peer_routes',
+		label: 'BGP Peer Routes',
+		placeholder: 'peer_ip [received|accepted|rejected|advertised] [peer_name]'
+	}
 ] as const;
 
 export type CommandValue = (typeof COMMANDS)[number]['value'];
@@ -86,6 +91,7 @@ function pickParsed(
 		| Pb.BGPCommunityResponse
 		| Pb.BGPLargeCommunityResponse
 		| Pb.BGPASPathResponse
+		| Pb.BGPPeerRoutesResponse
 ): ParsedPayload | null {
 	const ok = (res as { parseStatus?: number }).parseStatus === 0;
 	if (!ok) return null;
@@ -104,13 +110,15 @@ function pickParsed(
 		}
 		case 'bgp_route':
 		case 'bgp_community':
-		case 'bgp_aspath_regex': {
+		case 'bgp_aspath_regex':
+		case 'bgp_peer_routes': {
 			const d = (
 				res as
 					| Pb.BGPRouteResponse
 					| Pb.BGPCommunityResponse
 					| Pb.BGPLargeCommunityResponse
 					| Pb.BGPASPathResponse
+					| Pb.BGPPeerRoutesResponse
 			).parsed;
 			return d ? { kind: 'bgp_paths', data: d } : null;
 		}
@@ -209,6 +217,35 @@ async function runOne(router: Pb.Router, cmd: CommandValue, param: string): Prom
 				}
 				case 'bgp_aspath_regex':
 					return await client.bGPASPath({ routerId: router.id, pattern: param }, callOptions);
+				case 'bgp_peer_routes': {
+					const parts = param.trim().split(/\s+/);
+					const peerIp = parts[0] || '';
+					const typeStr = parts[1] || 'received';
+					const peerName = parts[2] || '';
+
+					let queryType = Pb.PeerRouteQueryType.RECEIVED;
+					switch (typeStr.toLowerCase()) {
+						case 'received':
+							queryType = Pb.PeerRouteQueryType.RECEIVED;
+							break;
+						case 'accepted':
+							queryType = Pb.PeerRouteQueryType.ACCEPTED;
+							break;
+						case 'rejected':
+							queryType = Pb.PeerRouteQueryType.REJECTED;
+							break;
+						case 'advertised':
+							queryType = Pb.PeerRouteQueryType.ADVERTISED;
+							break;
+					}
+
+					return await client.bGPPeerRoutes({
+						routerId: router.id,
+						peerIp,
+						peerName,
+						queryType
+					}, callOptions);
+				}
 				default:
 					throw new Error(`Unknown command: ${cmd}`);
 			}

@@ -75,6 +75,14 @@ const frrBGPSummarySample = `{
   }
 }`
 
+// TestJSONParserName verifies the JSONParser's name and error methods.
+func TestJSONParserName(t *testing.T) {
+	p := JSONParser{}
+	if p.Name() != "native_json" {
+		t.Errorf("expected native_json, got %q", p.Name())
+	}
+}
+
 // TestJSONParserFRRRoute verifies single-envelope decoding and the
 // AS-path projection.
 func TestJSONParserFRRRoute(t *testing.T) {
@@ -492,5 +500,73 @@ func TestJSONParserFRRSummaryEmptyPeers(t *testing.T) {
 	}
 	if summary.RouterId != "10.0.0.1" {
 		t.Errorf("RouterId = %q, want 10.0.0.1", summary.RouterId)
+	}
+}
+
+func TestFRRDurationHelper(t *testing.T) {
+	cases := []struct {
+		in   string
+		want uint64
+	}{
+		{"00:00:05", 5},
+		{"01:02:03", 3723},
+		{"1d02h", 93600},
+		{"5w", 3024000},
+		{"invalid", 0},
+		{"xyz:abc:def", 0}, // triggers error inside Count == 2 colons block without matching any unit suffix
+		{"", 0}, // triggers s == ""
+	}
+	for _, tc := range cases {
+		got := parseFRRDuration(tc.in)
+		if got != tc.want {
+			t.Errorf("parseFRRDuration(%q) = %d, want %d", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestFscanCountHelper(t *testing.T) {
+	var val uint64
+	n, err := fscanCount("123", &val)
+	if err != nil || n != 1 || val != 123 {
+		t.Errorf("expected 123, got %d (err: %v, n: %d)", val, err, n)
+	}
+
+	// s has more fields than dsts (covers i >= len(dsts))
+	var val2 uint64
+	n, err = fscanCount("123:456", &val2)
+	if err != nil || n != 1 || val2 != 123 {
+		t.Errorf("expected 123, got %d (err: %v, n: %d)", val2, err, n)
+	}
+
+	// s has invalid non-numeric fields (covers strconv.ParseUint error)
+	var val3 uint64
+	_, err = fscanCount("invalid", &val3)
+	if err == nil {
+		t.Errorf("expected error on invalid fscanCount")
+	}
+}
+
+func TestJSONParserEdgeCases(t *testing.T) {
+	// 1. Unsupported operation fallback
+	res := JSONParser{}.Parse(OpPing, []byte(frrBGPRouteSample), Config{Schema: "frr_bgp_route_v1"})
+	if res.Status != pb.ParseStatus_PARSE_STATUS_TEMPLATE_MISSING {
+		t.Errorf("expected TEMPLATE_MISSING for unsupported op, got %v", res.Status)
+	}
+
+	// 2. Malformed JSON input
+	res2 := JSONParser{}.Parse(OpBGPRoute, []byte("invalid json"), Config{})
+	if res2.Status != pb.ParseStatus_PARSE_STATUS_PARSE_FAILED {
+		t.Errorf("expected FAILED for invalid JSON, got %v", res2.Status)
+	}
+
+	res3 := JSONParser{}.Parse(OpBGPSummary, []byte("invalid json"), Config{})
+	if res3.Status != pb.ParseStatus_PARSE_STATUS_PARSE_FAILED {
+		t.Errorf("expected FAILED for invalid summary JSON, got %v", res3.Status)
+	}
+
+	// 3. Cover stringErr.Error()
+	errStr := errParseDuration.Error()
+	if errStr != "parse duration" {
+		t.Errorf("unexpected stringErr, got %q", errStr)
 	}
 }

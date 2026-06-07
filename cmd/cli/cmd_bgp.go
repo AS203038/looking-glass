@@ -14,13 +14,14 @@ import (
 func newBGPCmd() *cobra.Command {
 	bgp := &cobra.Command{
 		Use:   "bgp",
-		Short: "BGP query commands (route, community, aspath, summary)",
+		Short: "BGP query commands (route, community, aspath, summary, peer-routes)",
 	}
 	bgp.AddCommand(
 		newBGPSummaryCmd(),
 		newBGPRouteCmd(),
 		newBGPCommunityCmd(),
 		newBGPASPathCmd(),
+		newBGPPeerRoutesCmd(),
 	)
 	return bgp
 }
@@ -61,6 +62,68 @@ func newBGPSummaryCmd() *cobra.Command {
 				parsed, msg.GetParserKind(), msg.GetParseStatus())
 		},
 	}
+}
+
+// newBGPPeerRoutesCmd builds the `bgp peer-routes` subcommand.
+func newBGPPeerRoutesCmd() *cobra.Command {
+	var qType string
+	var peerName string
+
+	cmd := &cobra.Command{
+		Use:   "peer-routes <instance> <router> <peer_ip>",
+		Short: "Show BGP routes on a per-peer session basis (received, accepted, rejected, advertised)",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := cmdContext()
+			defer cancel()
+
+			lg, err := resolveInstance(ctx, args[0])
+			if err != nil {
+				return err
+			}
+			client := newClient(lg)
+			routerID, err := resolveRouter(ctx, client, lg.URL, args[1], false)
+			if err != nil {
+				return err
+			}
+
+			var qt pb.PeerRouteQueryType
+			switch strings.ToLower(qType) {
+			case "received":
+				qt = pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED
+			case "accepted":
+				qt = pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ACCEPTED
+			case "rejected":
+				qt = pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_REJECTED
+			case "advertised":
+				qt = pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ADVERTISED
+			default:
+				return fmt.Errorf("unsupported query type: %s (must be received, accepted, rejected, or advertised)", qType)
+			}
+
+			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+				RouterId:  routerID,
+				PeerIp:    args[2],
+				PeerName:  peerName,
+				QueryType: qt,
+			}), client.BGPPeerRoutes)
+			if err != nil {
+				return err
+			}
+			msg := resp.Msg
+			var parsed any
+			if msg.GetParsed() != nil {
+				parsed = msg.GetParsed()
+			}
+			return printParsedResult(
+				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
+				parsed, msg.GetParserKind(), msg.GetParseStatus())
+		},
+	}
+
+	cmd.Flags().StringVarP(&qType, "type", "t", "received", "Peer route query type (received, accepted, rejected, advertised)")
+	cmd.Flags().StringVarP(&peerName, "name", "n", "", "Administrative peer session name (used for name-based routers like BIRD)")
+	return cmd
 }
 
 // newBGPRouteCmd builds the `bgp route` subcommand.

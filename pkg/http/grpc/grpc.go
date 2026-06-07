@@ -4,11 +4,13 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"connectrpc.com/grpchealth"
+	"github.com/AS203038/looking-glass/pkg/bmp"
 	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
@@ -16,6 +18,8 @@ import (
 
 // Health is the process-wide [grpchealth.Checker].
 var Health = grpchealth.NewStaticChecker(lookingglassconnect.LookingGlassServiceName)
+
+var healthcheckInterval = time.Minute
 
 // Mux mounts the LookingGlassService and the gRPC health endpoint onto
 // mux, marks the service as Serving, and launches the [healthcheck] loop.
@@ -38,7 +42,7 @@ func healthcheck(ctx context.Context, rts utils.RouterMap) {
 	} else {
 		log.Info("healthcheck uncoordinated; every replica probes every router")
 	}
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(healthcheckInterval)
 	for {
 		select {
 		case <-ctx.Done():
@@ -50,6 +54,29 @@ func healthcheck(ctx context.Context, rts utils.RouterMap) {
 			}
 		}
 	}
+}
+
+// probeLocal performs a single local probe on r. It returns whether the probe succeeded (is healthy) and any associated error.
+func probeLocal(ctx context.Context, r *utils.RouterInstance) (bool, error) {
+	r.HealthCheck.Checked = time.Now()
+	if r.Config.HasSSHCredentials() {
+		probeErr := r.Healthcheck()
+		healthy := probeErr == nil
+		if !healthy && bmp.IsBMPActive(ctx, healthRedis, r.Config.Name) {
+			r.HealthCheck.Healthy = true
+			return true, nil
+		}
+		// r.HealthCheck.Healthy is already set by r.Healthcheck()
+		return healthy, probeErr
+	}
+
+	// No SSH credentials configured. We rely solely on BMP activity.
+	if bmp.IsBMPActive(ctx, healthRedis, r.Config.Name) {
+		r.HealthCheck.Healthy = true
+		return true, nil
+	}
+	r.HealthCheck.Healthy = false
+	return false, errors.New("no SSH credentials configured and BMP is inactive")
 }
 
 // probeRouterOnce runs one health sweep for r. If [healthRedis] is
@@ -70,9 +97,8 @@ func probeRouterOnce(ctx context.Context, log *slog.Logger, r *utils.RouterInsta
 
 	if healthRedis == nil || leased {
 		probeStart := time.Now()
-		probeErr := r.Healthcheck()
+		healthy, probeErr := probeLocal(ctx, r)
 		probeDur := time.Since(probeStart)
-		healthy := probeErr == nil
 		if healthy {
 			log.Debug("healthcheck probe ok",
 				slog.String("router", r.Config.Name),
@@ -102,9 +128,8 @@ func probeRouterOnce(ctx context.Context, log *slog.Logger, r *utils.RouterInsta
 			slog.String("router", r.Config.Name),
 			slog.Any("err", err))
 		probeStart := time.Now()
-		probeErr := r.Healthcheck()
+		healthy, probeErr := probeLocal(ctx, r)
 		probeDur := time.Since(probeStart)
-		healthy := probeErr == nil
 		log.Debug("healthcheck fallback probe complete",
 			slog.String("router", r.Config.Name),
 			slog.Duration("duration", probeDur),

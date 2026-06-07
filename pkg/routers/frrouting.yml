@@ -27,6 +27,19 @@ bgp:
     aspath:
         - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast regexp {{.ASPath}} json'
         - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}} json'
+    peer_routes:
+        received:
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes json'
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes json'
+        accepted:
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} routes json'
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} routes json'
+        rejected:
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes filtered json'
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes filtered json'
+        advertised:
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} advertised-routes json'
+            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} advertised-routes json'
 
 parsers:
     ping:
@@ -46,5 +59,17 @@ parsers:
         kind: native_json
         schema: frr_bgp_route_v1
     bgp.aspath:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.peer_routes.received:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.peer_routes.accepted:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.peer_routes.rejected:
+        kind: native_json
+        schema: frr_bgp_route_v1
+    bgp.peer_routes.advertised:
         kind: native_json
         schema: frr_bgp_route_v1

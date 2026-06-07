@@ -7,14 +7,15 @@ import (
 	"github.com/AS203038/looking-glass/pkg/errs"
 )
 
-// saneASPathRegex matches a non-empty run of ASCII digits and
-// underscores, optionally terminated by a single literal "$".
-var saneASPathRegex = regexp.MustCompile(`^[0-9_]+\$?$`)
+// saneASPathRegex matches an optional leading literal "^" followed by a
+// non-empty run of ASCII digits and underscores, optionally terminated by
+// a single literal "$".
+var saneASPathRegex = regexp.MustCompile(`^\^?[0-9_]+\$?$`)
 
 // SanitizeASPathRegex validates an AS-path regex and returns it with
-// a leading "_" and a trailing "_" or "$" anchor. Returns
-// [errs.ASPathEmpty], [errs.ASPathTooLong], or [errs.ASPathMalformed]
-// on invalid input.
+// a leading "_" (or preserving an existing "^") and a trailing "_" or "$"
+// anchor. Returns [errs.ASPathEmpty], [errs.ASPathTooLong], or
+// [errs.ASPathMalformed] on invalid input.
 func SanitizeASPathRegex(aspath string) (string, error) {
 	if len(aspath) == 0 {
 		return "", errs.ASPathEmpty
@@ -25,7 +26,7 @@ func SanitizeASPathRegex(aspath string) (string, error) {
 	if !saneASPathRegex.MatchString(aspath) {
 		return "", errs.ASPathMalformed
 	}
-	if aspath[0] != '_' {
+	if aspath[0] != '_' && aspath[0] != '^' {
 		aspath = "_" + aspath
 	}
 	if aspath[len(aspath)-1] != '_' && aspath[len(aspath)-1] != '$' {
@@ -55,4 +56,22 @@ func SanitizeBGPLargeCommunity(global, local1, local2 uint32) string {
 	return strconv.FormatUint(uint64(global), 10) + ":" +
 		strconv.FormatUint(uint64(local1), 10) + ":" +
 		strconv.FormatUint(uint64(local2), 10)
+}
+
+// sanePeerNameRegex matches an administrative peer or protocol name (alphanumeric, underscores, hyphens).
+var sanePeerNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+// SanitizeBGPPeerName validates a BGP peer/protocol name and returns it.
+// Returns [errs.PeerNameMalformed] on failure.
+func SanitizeBGPPeerName(name string) (string, error) {
+	if len(name) == 0 {
+		return "", errs.PeerNameMalformed
+	}
+	if len(name) > 64 {
+		return "", errs.PeerNameMalformed
+	}
+	if !sanePeerNameRegex.MatchString(name) {
+		return "", errs.PeerNameMalformed
+	}
+	return name, nil
 }

@@ -6,6 +6,8 @@
 	}
 	let { summary }: Props = $props();
 
+	let searchQuery = $state('');
+
 	function stateColor(state: string): string {
 		switch (state) {
 			case 'established':
@@ -33,22 +35,51 @@
 		return `${m}m`;
 	}
 
-	const rows = $derived(summary.peers ?? []);
+	const rows = $derived((summary.peers ?? []).filter((p) => {
+		if (!searchQuery) return true;
+		const q = searchQuery.toLowerCase();
+		return (
+			p.peerIp?.toLowerCase().includes(q) ||
+			p.peerAsn?.toString().includes(q) ||
+			p.description?.toLowerCase().includes(q)
+		);
+	}));
 
-	const hasDescriptions = $derived(rows.some((p) => !!p.description));
+	const hasDescriptions = $derived((summary.peers ?? []).some((p) => !!p.description));
 </script>
 
 {#if summary.localAsn || summary.routerId}
 	<div
-		class="border-b px-4 py-2 font-mono text-xs"
+		class="border-b px-4 py-2 font-mono text-xs flex flex-wrap items-center justify-between gap-2"
 		style="border-color: var(--color-border); color: var(--color-fg-muted);"
 	>
-		{#if summary.localAsn}<span
-				>local AS <span style="color: var(--color-fg);">{summary.localAsn}</span></span
-			>{/if}
-		{#if summary.routerId}<span class="ml-3"
-				>router-id <span style="color: var(--color-fg);">{summary.routerId}</span></span
-			>{/if}
+		<div class="flex items-center gap-3">
+			{#if summary.localAsn}<span
+					>local AS <span style="color: var(--color-fg);">{summary.localAsn}</span></span
+				>{/if}
+			{#if summary.routerId}<span
+					>router-id <span style="color: var(--color-fg);">{summary.routerId}</span></span
+				>{/if}
+		</div>
+		<div class="flex items-center">
+			<input
+				type="text"
+				placeholder="Search ASN, IP, Desc..."
+				bind:value={searchQuery}
+				class="px-2 py-0.5 text-xs w-48 bg-transparent border rounded font-mono focus:outline-none"
+				style="border-color: var(--color-border); color: var(--color-fg);"
+			/>
+		</div>
+	</div>
+{:else}
+	<div class="px-4 py-1.5 border-b flex justify-end" style="border-color: var(--color-border);">
+		<input
+			type="text"
+			placeholder="Search ASN, IP, Desc..."
+			bind:value={searchQuery}
+			class="px-2 py-0.5 text-xs w-48 bg-transparent border rounded font-mono focus:outline-none"
+			style="border-color: var(--color-border); color: var(--color-fg);"
+		/>
 	</div>
 {/if}
 <div class="flex-1 overflow-auto">
@@ -104,5 +135,9 @@
 	class="border-t px-4 py-2 font-mono text-xs"
 	style="border-color: var(--color-border); color: var(--color-fg-muted);"
 >
-	{rows.length} peer{rows.length === 1 ? '' : 's'}
+	{#if searchQuery}
+		Showing {rows.length} of {(summary.peers ?? []).length} peers (filtered)
+	{:else}
+		{rows.length} peer{rows.length === 1 ? '' : 's'}
+	{/if}
 </div>

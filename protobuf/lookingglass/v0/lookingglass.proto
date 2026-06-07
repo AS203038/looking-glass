@@ -37,6 +37,9 @@ service LookingGlassService {
 
   // BGPASPath lists every route whose AS-path matches the supplied regular expression.
   rpc BGPASPath(BGPASPathRequest) returns (BGPASPathResponse) {}
+
+  // BGPPeerRoutes lists routing details on a per-peer session basis (received, accepted, rejected, or advertised).
+  rpc BGPPeerRoutes(BGPPeerRoutesRequest) returns (BGPPeerRoutesResponse) {}
 }
 
 // ParserKind names the pipe that produced an operation's parsed payload.
@@ -81,6 +84,8 @@ message Router {
   string location = 4;
   // health is the latest reachability snapshot.
   RouterHealth health = 5;
+  // bmp_active is true when the router is currently sending telemetry via BMP.
+  bool bmp_active = 6;
 }
 
 // BGPCommunity is an RFC 1997 standard BGP community in "ASN:VALUE" form.
@@ -438,4 +443,55 @@ message BGPASPathResponse {
 
   // parse_status reports the outcome of the parser attempt.
   ParseStatus parse_status = 5;
+}
+
+// PeerRouteQueryType selects the specific peer RIB to dump.
+enum PeerRouteQueryType {
+  PEER_ROUTE_QUERY_TYPE_UNSPECIFIED = 0;
+  PEER_ROUTE_QUERY_TYPE_RECEIVED = 1;
+  PEER_ROUTE_QUERY_TYPE_ACCEPTED = 2;
+  PEER_ROUTE_QUERY_TYPE_REJECTED = 3;
+  PEER_ROUTE_QUERY_TYPE_ADVERTISED = 4;
+}
+
+// BGPPeerRoutesRequest selects the router, peer identification, and query filter.
+message BGPPeerRoutesRequest {
+  // router_id is the 1-based identifier returned by GetRouters.
+  int64 router_id = 1;
+
+  // peer_ip is the IP address of the peer session. Optional when name is used.
+  string peer_ip = 2;
+
+  // peer_name is the administrative name of the peer session. Optional when IP is used.
+  string peer_name = 3;
+
+  // query_type specifies which peer routing data to retrieve.
+  PeerRouteQueryType query_type = 4;
+
+  // limit is the maximum number of paths to return.
+  uint32 limit = 5;
+
+  // page_token is the pagination cursor from HSCAN.
+  string page_token = 6;
+}
+
+// BGPPeerRoutesResponse carries the raw lookup output and the parsed path details.
+message BGPPeerRoutesResponse {
+  // result is the concatenated stdout of the command(s).
+  bytes result = 1;
+
+  // timestamp is the server execution timestamp.
+  google.protobuf.Timestamp timestamp = 2;
+
+  // parsed is the structured form of `result`.
+  BGPPaths parsed = 3;
+
+  // parser_kind names the parser that ran.
+  ParserKind parser_kind = 4;
+
+  // parse_status reports the parser outcome.
+  ParseStatus parse_status = 5;
+
+  // next_page_token is the next pagination cursor (empty when done).
+  string next_page_token = 6;
 }

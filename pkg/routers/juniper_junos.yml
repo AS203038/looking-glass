@@ -26,6 +26,16 @@ bgp:
     aspath:
         - show route protocol bgp aspath-regex "{{.ASPath}}" table {{.Cfg.VRF}}.inet.0 detail
         - show route protocol bgp aspath-regex "{{.ASPath}}" table {{.Cfg.VRF}}.inet6.0 detail
+    peer_routes:
+        received:
+            - show route receive-protocol bgp {{.PeerIP}}
+        accepted:
+            - show route protocol bgp neighbor {{.PeerIP}} table {{.Cfg.VRF}}.inet.0 detail
+            - show route protocol bgp neighbor {{.PeerIP}} table {{.Cfg.VRF}}.inet6.0 detail
+        rejected:
+            - show route receive-protocol bgp {{.PeerIP}} filtered
+        advertised:
+            - show route advertising-protocol bgp {{.PeerIP}}
 
 parsers:
     ping:
@@ -47,5 +57,17 @@ parsers:
         kind: textfsm
         template: juniper_junos_show_route_bgp
     bgp.aspath:
+        kind: textfsm
+        template: juniper_junos_show_route_bgp
+    bgp.peer_routes.received:
+        kind: textfsm
+        template: juniper_junos_show_route_bgp
+    bgp.peer_routes.accepted:
+        kind: textfsm
+        template: juniper_junos_show_route_bgp
+    bgp.peer_routes.rejected:
+        kind: textfsm
+        template: juniper_junos_show_route_bgp
+    bgp.peer_routes.advertised:
         kind: textfsm
         template: juniper_junos_show_route_bgp

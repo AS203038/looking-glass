@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AS203038/looking-glass/pkg/bmp"
 	"github.com/AS203038/looking-glass/pkg/http/grpc"
 	"github.com/AS203038/looking-glass/pkg/http/webui"
 	"github.com/AS203038/looking-glass/pkg/logging"
@@ -118,6 +119,14 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 				ttl = 60 * time.Second
 			}
 			grpc.SetRPCCache(client, ttl)
+
+			if cfg.Bmp.Enabled {
+				listen := cfg.Bmp.Listen
+				if listen == "" {
+					listen = ":11019"
+				}
+				_ = bmp.StartBMPListener(ctx, listen, client, rts)
+			}
 		}
 	}
 
@@ -192,6 +201,11 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 		ErrorLog: stdlog.Default(),
 	}
 
+	go func() {
+		<-ctx.Done()
+		srv.Shutdown(context.Background())
+	}()
+
 	if cfg.Grpc.TLS.Enabled {
 		log.Info("listening", slog.String("addr", cfg.Grpc.Listen), slog.Bool("tls", true))
 		srv.Handler = handler
@@ -207,16 +221,15 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 					PrivateKey:  key,
 				}},
 			}
-			srv.ListenAndServeTLS("", "")
+			return srv.ListenAndServeTLS("", "")
 		} else {
 			log.Info("using configured certificate",
 				slog.String("cert", cfg.Grpc.TLS.Cert))
-			srv.ListenAndServeTLS(cfg.Grpc.TLS.Cert, cfg.Grpc.TLS.Key)
+			return srv.ListenAndServeTLS(cfg.Grpc.TLS.Cert, cfg.Grpc.TLS.Key)
 		}
 	} else {
 		log.Info("listening", slog.String("addr", cfg.Grpc.Listen), slog.Bool("tls", false))
 		srv.Handler = h2c.NewHandler(handler, &http2.Server{})
-		srv.ListenAndServe()
+		return srv.ListenAndServe()
 	}
-	return nil
 }

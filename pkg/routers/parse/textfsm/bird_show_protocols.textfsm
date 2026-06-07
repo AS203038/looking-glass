@@ -1,0 +1,15 @@
+Value Required peer_ip ([0-9a-fA-F:.]+)
+Value Required peer_asn (\d+)
+Value description (.+?)
+Value state (\w+)
+Value uptime (\S+)
+Value prefixes_received (\d+)
+Value prefixes_accepted (\d+)
+
+Start
+  ^\w+\s+BGP\s+\S+\s+${state}\s+${uptime}
+  ^\s+Description:\s+${description}
+  ^\s+Neighbor address:\s+${peer_ip}
+  ^\s+Neighbor AS:\s+${peer_asn}
+  ^\s+Routes:\s+${prefixes_received} imported,\s+${prefixes_accepted} accepted -> Record
+  ^\s+Routes:\s+${prefixes_received} imported,\s+any\s+accepted -> Record

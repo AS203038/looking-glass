@@ -1,0 +1,16 @@
+Value Required prefix ([0-9a-fA-F:.]+/\d+)
+Value nexthop ([0-9a-fA-F:.]+)
+Value as_path (\d+(?:\s+\d+)*)
+Value communities (\(\d+,\s*\d+\)(?:\s+\(\d+,\s*\d+\))*)
+Value large_communities (\(\d+,\s*\d+,\s*\d+\)(?:\s+\(\d+,\s*\d+,\s*\d+\))*)
+Value local_pref (\d+)
+
+Start
+  ^${prefix}\s+unicast -> Continue
+  ^\s+BGP.next_hop:\s+${nexthop}
+  ^\s+BGP.as_path:\s+${as_path}
+  ^\s+BGP.local_pref:\s+${local_pref}
+  ^\s+BGP.community:\s+${communities}
+  ^\s+BGP.large_community:\s+${large_communities} -> Record
+  # Fallback record trigger when next prefix starts or file ends
+  ^\S+/ -> Record

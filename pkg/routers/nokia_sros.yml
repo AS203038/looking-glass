@@ -23,6 +23,15 @@ bgp:
         - show router {{.Cfg.VRF}} bgp routes community large:{{.LargeCommunity}} detail
     aspath:
         - show router {{.Cfg.VRF}} bgp routes aspath-regex "{{.ASPath}}" detail
+    peer_routes:
+        received:
+            - show router {{.Cfg.VRF}} bgp routes neighbor {{.PeerIP}} received hunt
+        accepted:
+            - show router {{.Cfg.VRF}} bgp routes neighbor {{.PeerIP}} hunt
+        rejected:
+            - show router {{.Cfg.VRF}} bgp routes neighbor {{.PeerIP}} rejected hunt
+        advertised:
+            - show router {{.Cfg.VRF}} bgp routes neighbor {{.PeerIP}} advertised hunt
 
 parsers:
     ping:
@@ -44,5 +53,17 @@ parsers:
         kind: textfsm
         template: nokia_sros_show_bgp_routes
     bgp.aspath:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.peer_routes.received:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.peer_routes.accepted:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.peer_routes.rejected:
+        kind: textfsm
+        template: nokia_sros_show_bgp_routes
+    bgp.peer_routes.advertised:
         kind: textfsm
         template: nokia_sros_show_bgp_routes

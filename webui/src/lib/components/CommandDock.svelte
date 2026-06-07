@@ -64,6 +64,21 @@
 						: 'Detected: BGP Standard Community (RFC 1997)'
 			};
 		}
+		if (cmd === 'bgp_peer_routes') {
+			const parts = param.trim().split(/\s+/);
+			if (parts.length < 1 || !parts[0]) {
+				return { kind: 'error' as const, message: 'Please specify the peer IP address' };
+			}
+			const peerIP = parts[0];
+			const typeStr = parts[1] || 'received';
+			if (!['received', 'accepted', 'rejected', 'advertised'].includes(typeStr.toLowerCase())) {
+				return { kind: 'error' as const, message: 'Type must be received, accepted, rejected, or advertised' };
+			}
+			return {
+				kind: 'info' as const,
+				message: `Querying: ${typeStr.toUpperCase()} routes for peer ${peerIP}`
+			};
+		}
 		return null;
 	});
 

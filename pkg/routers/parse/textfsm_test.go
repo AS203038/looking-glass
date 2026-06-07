@@ -6,6 +6,14 @@ import (
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 )
 
+// TestTextFSMParserName verifies the TextFSMParser's name method.
+func TestTextFSMParserName(t *testing.T) {
+	p := TextFSMParser{}
+	if p.Name() != "textfsm" {
+		t.Errorf("expected textfsm, got %q", p.Name())
+	}
+}
+
 // TestTextFSMTemplatesLoad asserts that every bundled `.textfsm`
 // template parses successfully via [resolveTemplate].
 func TestTextFSMTemplatesLoad(t *testing.T) {

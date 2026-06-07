@@ -19,6 +19,8 @@ type Router interface {
 	BGPLargeCommunity(*RouterConfig, string) ([]string, error)
 	// BGPASPath returns the command sequence for an AS-path regex lookup.
 	BGPASPath(*RouterConfig, string) ([]string, error)
+	// BGPPeerRoutes returns the command sequence for peer session route lookups.
+	BGPPeerRoutes(*RouterConfig, string, string, string) ([]string, error)
 }
 
 // RouterInstance binds a [Router] implementation to its per-device
@@ -110,6 +112,15 @@ func (rt *RouterInstance) BGPLargeCommunity(param string) ([]string, error) {
 // BGPASPath renders and executes the AS-path regex lookup command sequence.
 func (rt *RouterInstance) BGPASPath(param string) ([]string, error) {
 	cmd, err := rt.Router.BGPASPath(rt.Config, param)
+	if err != nil {
+		return nil, err
+	}
+	return SSHExec(rt.Config, cmd)
+}
+
+// BGPPeerRoutes renders and executes the peer session route lookup command sequence.
+func (rt *RouterInstance) BGPPeerRoutes(peerIP, peerName, queryType string) ([]string, error) {
+	cmd, err := rt.Router.BGPPeerRoutes(rt.Config, peerIP, peerName, queryType)
 	if err != nil {
 		return nil, err
 	}

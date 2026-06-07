@@ -46,8 +46,18 @@ type Config struct {
 	SecurityTxt SecurityTxtConfig `yaml:"security.txt"`
 	// Redis configures the optional response cache.
 	Redis RedisConfig `yaml:"redis"`
+	// BMP configures the stateless BGP Monitoring Protocol collector.
+	Bmp BMPConfig `yaml:"bmp"`
 	// Logging controls the slog-based event stream.
 	Logging logging.Config `yaml:"logging"`
+}
+
+// BMPConfig configures the stateless BGP Monitoring Protocol listener.
+type BMPConfig struct {
+	// Enabled toggles the BMP listener.
+	Enabled bool `yaml:"enabled"`
+	// Listen is the bind address in "host:port" form (e.g. ":11019").
+	Listen string `yaml:"listen"`
 }
 
 // RouterConfig describes a single managed device.
@@ -74,6 +84,11 @@ type RouterConfig struct {
 	Type string `yaml:"type"`
 	// SSHPoolSize is the maximum number of idle SSH connections kept in the pool for this device.
 	SSHPoolSize int `yaml:"ssh_pool_size"`
+}
+
+// HasSSHCredentials reports whether the router config has username configured.
+func (rc *RouterConfig) HasSSHCredentials() bool {
+	return rc.Username != ""
 }
 
 // GrpcConfig controls the gRPC listener.
@@ -224,15 +239,18 @@ func (s *SecurityTxtConfig) String() string {
 // ValidateConfig normalises a freshly-parsed [Config] in place: drops devices
 // without a Hostname and supplies loopback defaults for missing Source4/Source6.
 func ValidateConfig(c *Config) {
-	for k, v := range c.Devices {
+	var valid []RouterConfig
+	for _, v := range c.Devices {
 		if v.Hostname == "" {
-			c.Devices = append(c.Devices[:k], c.Devices[k+1:]...)
+			continue
 		}
 		if v.Source4 == nil {
-			c.Devices[k].Source4, _ = NewIPNET("127.0.0..1")
+			v.Source4, _ = NewIPNET("127.0.0.1")
 		}
 		if v.Source6 == nil {
-			c.Devices[k].Source6, _ = NewIPNET("::1")
+			v.Source6, _ = NewIPNET("::1")
 		}
+		valid = append(valid, v)
 	}
+	c.Devices = valid
 }

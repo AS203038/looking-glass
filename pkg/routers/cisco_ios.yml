@@ -27,6 +27,19 @@ bgp:
     aspath:
         - show bgp vrf {{.Cfg.VRF}} ipv4 unicast regexp {{.ASPath}}
         - show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}}
+    peer_routes:
+        received:
+            - show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes
+            - show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes
+        accepted:
+            - show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} routes
+            - show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} routes
+        rejected:
+            - show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes filtered
+            - show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes filtered
+        advertised:
+            - show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} advertised-routes
+            - show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} advertised-routes
 
 parsers:
     ping:
@@ -48,5 +61,17 @@ parsers:
         kind: textfsm
         template: cisco_ios_show_bgp_paths
     bgp.aspath:
+        kind: textfsm
+        template: cisco_ios_show_bgp_paths
+    bgp.peer_routes.received:
+        kind: textfsm
+        template: cisco_ios_show_bgp_paths
+    bgp.peer_routes.accepted:
+        kind: textfsm
+        template: cisco_ios_show_bgp_paths
+    bgp.peer_routes.rejected:
+        kind: textfsm
+        template: cisco_ios_show_bgp_paths
+    bgp.peer_routes.advertised:
         kind: textfsm
         template: cisco_ios_show_bgp_paths

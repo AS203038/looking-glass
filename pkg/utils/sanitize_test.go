@@ -23,6 +23,10 @@ func TestSanitizeASPathRegexValid(t *testing.T) {
 		{"_203038$", "_203038$"},
 		{"_2_3_8_", "_2_3_8_"},
 		{"1", "_1$"},
+		{"^203038", "^203038$"},
+		{"^203038_", "^203038_"},
+		{"^203038$", "^203038$"},
+		{"^1", "^1$"},
 	}
 	for _, tc := range cases {
 		got, err := SanitizeASPathRegex(tc.in)
@@ -83,6 +87,11 @@ func TestSanitizeASPathRegexRejectsExploits(t *testing.T) {
 		`1 `,
 		"\t1",
 		"1\n",
+		`203038^`,
+		`203^038`,
+		`^203^038`,
+		`^`,
+		`^^1`,
 	}
 	for _, in := range exploits {
 		got, err := SanitizeASPathRegex(in)
@@ -166,6 +175,28 @@ func TestSanitizeBGPLargeCommunity(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("SanitizeBGPLargeCommunity(%d, %d, %d) = %q; want %q",
 				tc.global, tc.local1, tc.local2, got, tc.want)
+		}
+	}
+}
+
+// TestSanitizeBGPPeerName verifies validation of BGP Peer Names.
+func TestSanitizeBGPPeerName(t *testing.T) {
+	valid := []string{"peer_1", "pb-member-100", "BIRD_RS_1", "123"}
+	for _, in := range valid {
+		got, err := SanitizeBGPPeerName(in)
+		if err != nil {
+			t.Errorf("SanitizeBGPPeerName(%q) returned error: %v", in, err)
+		}
+		if got != in {
+			t.Errorf("SanitizeBGPPeerName(%q) = %q; want %q", in, got, in)
+		}
+	}
+
+	invalid := []string{"", "peer name with spaces", "peer;reload", "too-long-peer-name-12345678901234567890123456789012345678901234567890123456789012345"}
+	for _, in := range invalid {
+		_, err := SanitizeBGPPeerName(in)
+		if err == nil {
+			t.Errorf("expected error for invalid peer name %q", in)
 		}
 	}
 }

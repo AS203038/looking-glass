@@ -17,3 +17,6 @@ var ASPathTooLong = errors.New("AS Path too long")
 // has an ASN or value outside the 16-bit unsigned range.
 var CommunityMalformed = errors.New("BGP community malformed")
 
+// PeerNameMalformed is returned when a BGP peer/protocol name contains disallowed characters.
+var PeerNameMalformed = errors.New("BGP peer name malformed")
+

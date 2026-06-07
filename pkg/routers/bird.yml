@@ -1,0 +1,67 @@
+name: bird
+
+ping:
+    ipv4:
+        - ping -n -4 -c5 -I {{.Cfg.Source4.IP}} {{.IP.IP}}
+    ipv6:
+        - ping -n -6 -c5 -I {{.Cfg.Source6.IP}} {{.IP.IP}}
+
+traceroute:
+    ipv4:
+        - traceroute -4 -w 1 -q1 -I -s {{.Cfg.Source4.IP}} {{.IP.IP}}
+    ipv6:
+        - traceroute -6 -w 1 -q1 -I -s {{.Cfg.Source6.IP}} {{.IP.IP}}
+
+bgp:
+    summary:
+        - birdc show protocols all
+    route:
+        - birdc "show route for {{.IP.IP}} all"
+    community:
+        - birdc "show route where {{bird_community .Community}} ~ bgp_community all"
+    largecommunity:
+        - birdc "show route where {{bird_large_community .LargeCommunity}} ~ bgp_large_community all"
+    aspath:
+        - birdc "show route where bgp_path ~ [= * {{.ASPath}} * =] all"
+    peer_routes:
+        received:
+            - birdc "show route protocol {{.PeerName}} all"
+        accepted:
+            - birdc "show route protocol {{.PeerName}}"
+        rejected:
+            - birdc "show route filtered protocol {{.PeerName}}"
+        advertised:
+            - birdc "show route export {{.PeerName}}"
+
+parsers:
+    ping:
+        kind: builtin
+    traceroute:
+        kind: builtin
+    bgp.summary:
+        kind: textfsm
+        template: bird_show_protocols
+    bgp.route:
+        kind: textfsm
+        template: bird_show_route
+    bgp.community:
+        kind: textfsm
+        template: bird_show_route
+    bgp.largecommunity:
+        kind: textfsm
+        template: bird_show_route
+    bgp.aspath:
+        kind: textfsm
+        template: bird_show_route
+    bgp.peer_routes.received:
+        kind: textfsm
+        template: bird_show_route
+    bgp.peer_routes.accepted:
+        kind: textfsm
+        template: bird_show_route
+    bgp.peer_routes.rejected:
+        kind: textfsm
+        template: bird_show_route
+    bgp.peer_routes.advertised:
+        kind: textfsm
+        template: bird_show_route

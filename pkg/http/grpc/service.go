@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/AS203038/looking-glass/pkg/bmp"
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/routers/parse"
@@ -181,7 +184,7 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 		ret = append(ret, &pb.Router{
 			Name:     v.Config.Name,
 			Location: v.Config.Location,
-			Id:       int64(k + 1),
+			Id:       int64(start) + int64(k) + 1,
 			Health: &pb.RouterHealth{
 				Healthy: v.HealthCheck.Healthy,
 				Timestamp: &timestamppb.Timestamp{
@@ -189,6 +192,7 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 					Nanos:   int32(v.HealthCheck.Checked.Nanosecond()),
 				},
 			},
+			BmpActive: bmp.IsBMPActive(ctx, rpcCacheClient, v.Config.Name),
 		})
 	}
 	var nextPage uint32
@@ -321,6 +325,39 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
 		return out, nil
 	}
+
+	// Try BMP first
+	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
+		peers, err := bmp.GetBMPPeers(ctx, rpcCacheClient, ri.Config.Name)
+		if err != nil {
+			logRPCError(tag, "bgp_summary_bmp_get", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+		}
+		var pbPeers []*pb.BGPPeer
+		for _, p := range peers {
+			pbPeers = append(pbPeers, &pb.BGPPeer{
+				PeerIp:           p.IP,
+				PeerAsn:          p.ASN,
+				State:            p.State,
+				UptimeSeconds:    p.UptimeSeconds,
+				PrefixesReceived: p.PrefixesReceived,
+				PrefixesAccepted: p.PrefixesAccepted,
+			})
+		}
+		resp := &pb.BGPSummaryResponse{
+			Result:    []byte("Served from stateless BMP Redis store\n"),
+			Timestamp: nowPB(),
+			Parsed: &pb.BGPSummaryParsed{
+				Peers: pbPeers,
+			},
+			ParserKind:  pb.ParserKind_PARSER_KIND_BUILTIN,
+			ParseStatus: pb.ParseStatus_PARSE_STATUS_OK,
+		}
+		rpcCacheSet(ctx, key, resp)
+		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
+		return connect.NewResponse(resp), nil
+	}
+
 	ret, err := ri.BGPSummary()
 	if err != nil {
 		logRPCError(tag, "bgp_summary_exec", err)
@@ -369,6 +406,38 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
 		return out, nil
 	}
+
+	// Try BMP first
+	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
+		routes, err := bmp.FindBMPRoutesByPrefix(ctx, rpcCacheClient, ri.Config.Name, target.String())
+		if err != nil {
+			logRPCError(tag, "bgp_route_bmp_get", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+		}
+		var pbPaths []*pb.BGPPath
+		for _, r := range routes {
+			pbPaths = append(pbPaths, &pb.BGPPath{
+				Prefix:           r.Prefix,
+				AsPath:           r.ASPath,
+				Nexthop:          r.NextHop,
+				Communities:      r.Communities,
+				LargeCommunities: r.LargeCommunities,
+			})
+		}
+		resp := &pb.BGPRouteResponse{
+			Result:    []byte("Served from stateless BMP Redis store\n"),
+			Timestamp: nowPB(),
+			Parsed: &pb.BGPPaths{
+				Paths: pbPaths,
+			},
+			ParserKind:  pb.ParserKind_PARSER_KIND_BUILTIN,
+			ParseStatus: pb.ParseStatus_PARSE_STATUS_OK,
+		}
+		rpcCacheSet(ctx, key, resp)
+		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
+		return connect.NewResponse(resp), nil
+	}
+
 	ret, err := ri.BGPRoute(target)
 	if err != nil {
 		logRPCError(tag, "bgp_route_exec", err)
@@ -380,6 +449,158 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	raw := joinSSH(ret)
 	pr := runParser(ri, parse.OpBGPRoute, raw)
 	resp := &pb.BGPRouteResponse{
+		Result:      raw,
+		Timestamp:   nowPB(),
+		ParserKind:  pr.Kind,
+		ParseStatus: pr.Status,
+	}
+	if bp, ok := pr.Payload.(*pb.BGPPaths); ok {
+		resp.Parsed = bp
+	}
+	rpcCacheSet(ctx, key, resp)
+	logRPCOK(tag, start, raw, pr)
+	return connect.NewResponse(resp), nil
+}
+
+// BGPPeerRoutes executes peer-specific routing lookups.
+func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Request[pb.BGPPeerRoutesRequest]) (*connect.Response[pb.BGPPeerRoutesResponse], error) {
+	rt := req.Msg.GetRouterId()
+	ri, ok := s.rts.GetByID(rt)
+	if !ok {
+		logRPCError(rpcLogTag("BGPPeerRoutes", rt, nil), "router_lookup", errs.UnknownRouter)
+		return nil, errs.UnknownRouter
+	}
+	tag := rpcLogTag("BGPPeerRoutes", rt, ri)
+	start := time.Now()
+	logRPCStart(tag)
+
+	peerIP := req.Msg.GetPeerIp()
+	peerName := req.Msg.GetPeerName()
+
+	// Sanitize inputs
+	var err error
+	if peerName != "" {
+		peerName, err = utils.SanitizeBGPPeerName(peerName)
+		if err != nil {
+			logRPCError(tag, "sanitize_peer_name", err)
+			return nil, err
+		}
+	}
+	if peerIP != "" {
+		if net.ParseIP(peerIP) == nil {
+			logRPCError(tag, "sanitize_peer_ip", errs.IPInvalid)
+			return nil, errs.IPInvalid
+		}
+	}
+
+	qTypeStr := ""
+	switch req.Msg.GetQueryType() {
+	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED:
+		qTypeStr = "received"
+	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ACCEPTED:
+		qTypeStr = "accepted"
+	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_REJECTED:
+		qTypeStr = "rejected"
+	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ADVERTISED:
+		qTypeStr = "advertised"
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported query type"))
+	}
+
+	limit := int64(req.Msg.GetLimit())
+	if limit <= 0 {
+		limit = 50
+	}
+	var cursor uint64
+	if req.Msg.GetPageToken() != "" {
+		c, err := strconv.ParseUint(req.Msg.GetPageToken(), 10, 64)
+		if err == nil {
+			cursor = c
+		}
+	}
+
+	key := rpcCacheKeyPrefix() + "peerroutes:" + strconv.FormatInt(rt, 10) + ":" + peerIP + ":" + peerName + ":" + qTypeStr + ":" + strconv.FormatUint(cursor, 10) + ":" + strconv.FormatInt(limit, 10)
+	var cached pb.BGPPeerRoutesResponse
+	if rpcCacheGet(ctx, key, &cached) {
+		out := connect.NewResponse(&cached)
+		out.Header().Set("X-Cache", "HIT")
+		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
+		return out, nil
+	}
+
+	// Try BMP first
+	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
+		resolvedIP := peerIP
+		if resolvedIP == "" && peerName != "" {
+			peers, err := bmp.GetBMPPeers(ctx, rpcCacheClient, ri.Config.Name)
+			if err == nil {
+				for _, p := range peers {
+					if p.IP == peerName || p.BGPID == peerName {
+						resolvedIP = p.IP
+						break
+					}
+				}
+			}
+		}
+
+		if resolvedIP == "" {
+			logRPCError(tag, "peer_routes_bmp_no_ip", errors.New("unresolved peer IP under BMP mode"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("peer IP must be provided or resolvable under BMP mode"))
+		}
+
+		routes, err := bmp.GetBMPPeerRoutes(ctx, rpcCacheClient, ri.Config.Name, resolvedIP, qTypeStr)
+		if err != nil {
+			logRPCError(tag, "peer_routes_bmp_get", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+		}
+
+		var pbPaths []*pb.BGPPath
+		for _, r := range routes {
+			pbPaths = append(pbPaths, &pb.BGPPath{
+				Prefix:           r.Prefix,
+				AsPath:           r.ASPath,
+				Nexthop:          r.NextHop,
+				Communities:      r.Communities,
+				LargeCommunities: r.LargeCommunities,
+			})
+		}
+		resp := &pb.BGPPeerRoutesResponse{
+			Result:    []byte("Served from stateless BMP Redis store\n"),
+			Timestamp: nowPB(),
+			Parsed: &pb.BGPPaths{
+				Paths: pbPaths,
+			},
+			ParserKind:    pb.ParserKind_PARSER_KIND_BUILTIN,
+			ParseStatus:   pb.ParseStatus_PARSE_STATUS_OK,
+			NextPageToken: "",
+		}
+		rpcCacheSet(ctx, key, resp)
+		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
+		return connect.NewResponse(resp), nil
+	}
+
+	// Fallback to SSH Template execution
+	ret, err := ri.BGPPeerRoutes(peerIP, peerName, qTypeStr)
+	if err != nil {
+		logRPCError(tag, "peer_routes_exec", err)
+		if errors.Is(err, errs.PoolExhausted) {
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		}
+		return nil, errs.ExecFailed
+	}
+	raw := joinSSH(ret)
+	opName := parse.OpBGPPeerRoutesReceived
+	switch qTypeStr {
+	case "accepted":
+		opName = parse.OpBGPPeerRoutesAccepted
+	case "rejected":
+		opName = parse.OpBGPPeerRoutesRejected
+	case "advertised":
+		opName = parse.OpBGPPeerRoutesAdvertised
+	}
+
+	pr := runParser(ri, opName, raw)
+	resp := &pb.BGPPeerRoutesResponse{
 		Result:      raw,
 		Timestamp:   nowPB(),
 		ParserKind:  pr.Kind,
@@ -422,6 +643,38 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
 		return out, nil
 	}
+
+	// Try BMP first
+	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
+		routes, err := bmp.FindBMPRoutesByCommunity(ctx, rpcCacheClient, ri.Config.Name, commStr)
+		if err != nil {
+			logRPCError(tag, "bgp_community_bmp_get", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+		}
+		var pbPaths []*pb.BGPPath
+		for _, r := range routes {
+			pbPaths = append(pbPaths, &pb.BGPPath{
+				Prefix:           r.Prefix,
+				AsPath:           r.ASPath,
+				Nexthop:          r.NextHop,
+				Communities:      r.Communities,
+				LargeCommunities: r.LargeCommunities,
+			})
+		}
+		resp := &pb.BGPCommunityResponse{
+			Result:    []byte("Served from stateless BMP Redis store\n"),
+			Timestamp: nowPB(),
+			Parsed: &pb.BGPPaths{
+				Paths: pbPaths,
+			},
+			ParserKind:  pb.ParserKind_PARSER_KIND_BUILTIN,
+			ParseStatus: pb.ParseStatus_PARSE_STATUS_OK,
+		}
+		rpcCacheSet(ctx, key, resp)
+		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
+		return connect.NewResponse(resp), nil
+	}
+
 	ret, err := ri.BGPCommunity(commStr)
 	if err != nil {
 		logRPCError(tag, "bgp_community_exec", err)
@@ -474,6 +727,38 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
 		return out, nil
 	}
+
+	// Try BMP first
+	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
+		routes, err := bmp.FindBMPRoutesByLargeCommunity(ctx, rpcCacheClient, ri.Config.Name, lc)
+		if err != nil {
+			logRPCError(tag, "bgp_largecommunity_bmp_get", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+		}
+		var pbPaths []*pb.BGPPath
+		for _, r := range routes {
+			pbPaths = append(pbPaths, &pb.BGPPath{
+				Prefix:           r.Prefix,
+				AsPath:           r.ASPath,
+				Nexthop:          r.NextHop,
+				Communities:      r.Communities,
+				LargeCommunities: r.LargeCommunities,
+			})
+		}
+		resp := &pb.BGPLargeCommunityResponse{
+			Result:    []byte("Served from stateless BMP Redis store\n"),
+			Timestamp: nowPB(),
+			Parsed: &pb.BGPPaths{
+				Paths: pbPaths,
+			},
+			ParserKind:  pb.ParserKind_PARSER_KIND_BUILTIN,
+			ParseStatus: pb.ParseStatus_PARSE_STATUS_OK,
+		}
+		rpcCacheSet(ctx, key, resp)
+		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
+		return connect.NewResponse(resp), nil
+	}
+
 	ret, err := ri.BGPLargeCommunity(lc)
 	if err != nil {
 		logRPCError(tag, "bgp_largecommunity_exec", err)
@@ -522,6 +807,38 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
 		return out, nil
 	}
+
+	// Try BMP first
+	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
+		routes, err := bmp.FindBMPRoutesByASPath(ctx, rpcCacheClient, ri.Config.Name, aspath)
+		if err != nil {
+			logRPCError(tag, "bgp_aspath_bmp_get", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+		}
+		var pbPaths []*pb.BGPPath
+		for _, r := range routes {
+			pbPaths = append(pbPaths, &pb.BGPPath{
+				Prefix:           r.Prefix,
+				AsPath:           r.ASPath,
+				Nexthop:          r.NextHop,
+				Communities:      r.Communities,
+				LargeCommunities: r.LargeCommunities,
+			})
+		}
+		resp := &pb.BGPASPathResponse{
+			Result:    []byte("Served from stateless BMP Redis store\n"),
+			Timestamp: nowPB(),
+			Parsed: &pb.BGPPaths{
+				Paths: pbPaths,
+			},
+			ParserKind:  pb.ParserKind_PARSER_KIND_BUILTIN,
+			ParseStatus: pb.ParseStatus_PARSE_STATUS_OK,
+		}
+		rpcCacheSet(ctx, key, resp)
+		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
+		return connect.NewResponse(resp), nil
+	}
+
 	ret, err := ri.BGPASPath(aspath)
 	if err != nil {
 		logRPCError(tag, "bgp_aspath_exec", err)

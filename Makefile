@@ -22,6 +22,7 @@ GO_LDFLAGS_SERVER := -X github.com/AS203038/looking-glass/pkg/utils.release=$(VE
 GO_LDFLAGS_CLI    := -X main.Version=$(VERSION)
 GOFLAGS           ?=
 GOTOOLCHAIN       := auto
+FUZZTIME          ?= 10s
 
 IMAGE_NAME     ?= looking-glass
 IMAGE_TAG      ?= $(VERSION)
@@ -158,12 +159,23 @@ build: build-webui build-server build-cli ## Build webui + server + cli (product
 all: install generate build ## Install deps, generate code, and build everything
 
 .PHONY: test
-test: test-go ## Run all tests
+test: test-go test-fuzz ## Run all tests (including fuzz tests)
 
 .PHONY: test-go
-test-go: $(DIST_DIR) ## Run Go tests
-	@printf "$(BOLD)>> Running Go tests$(RESET)\n"
+test-go: $(DIST_DIR) ## Run Go standard tests
+	@printf "$(BOLD)>> Running Go standard tests$(RESET)\n"
 	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test ./...
+
+.PHONY: test-fuzz
+test-fuzz: $(DIST_DIR) ## Run all Go fuzz tests sequentially
+	@printf "$(BOLD)>> Running Go fuzzers (fuzztime=$(FUZZTIME))$(RESET)\n"
+	@for pkg in $$(GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) list ./...); do \
+		fuzzers=$$(GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -list='^Fuzz' "$$pkg" 2>/dev/null | grep '^Fuzz' || true); \
+		for fuzz in $$fuzzers; do \
+			printf "$(CYAN)Fuzzing $$fuzz in $$pkg...$(RESET)\n"; \
+			GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -fuzz="^$$fuzz$$" -fuzztime=$(FUZZTIME) "$$pkg" || exit 1; \
+		done; \
+	done
 
 .PHONY: test-cover
 test-cover: $(DIST_DIR) ## Run Go tests with coverage

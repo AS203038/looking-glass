@@ -65,18 +65,35 @@ var (
 // parseLinuxPing extracts a [pb.PingStats] from raw iputils ping
 // output, or nil when no statistics block was found.
 func parseLinuxPing(raw []byte) *pb.PingStats {
+	if len(raw) > 16384 {
+		return nil
+	}
 	text := string(raw)
+	if strings.Count(text, "\n") > 128 {
+		return nil
+	}
+	for _, line := range strings.Split(text, "\n") {
+		if len(line) > 512 {
+			return nil
+		}
+	}
+	if !strings.Contains(text, "packets transmitted") {
+		return nil
+	}
 	stats := &pb.PingStats{}
 
-	if m := pingHeaderRE.FindStringSubmatch(text); len(m) == 3 {
-		stats.Target = m[1]
-		if m[2] != "" {
-			stats.Source = m[2]
-		}
-	} else if m := pingHeader6.FindStringSubmatch(text); len(m) == 4 {
-		stats.Target = m[2]
-		if m[3] != "" {
-			stats.Source = m[3]
+	hasHeader := strings.Contains(text, "PING")
+	if hasHeader {
+		if m := pingHeaderRE.FindStringSubmatch(text); len(m) == 3 {
+			stats.Target = m[1]
+			if m[2] != "" {
+				stats.Source = m[2]
+			}
+		} else if m := pingHeader6.FindStringSubmatch(text); len(m) == 4 {
+			stats.Target = m[2]
+			if m[3] != "" {
+				stats.Source = m[3]
+			}
 		}
 	}
 
@@ -99,18 +116,21 @@ func parseLinuxPing(raw []byte) *pb.PingStats {
 			float32(stats.PacketsSent) * 100
 	}
 
-	if m := pingRTTRE.FindStringSubmatch(text); m != nil {
-		if v, err := strconv.ParseFloat(m[1], 32); err == nil {
-			stats.RttMinMs = float32(v)
-		}
-		if v, err := strconv.ParseFloat(m[2], 32); err == nil {
-			stats.RttAvgMs = float32(v)
-		}
-		if v, err := strconv.ParseFloat(m[3], 32); err == nil {
-			stats.RttMaxMs = float32(v)
-		}
-		if v, err := strconv.ParseFloat(m[4], 32); err == nil {
-			stats.RttMdevMs = float32(v)
+	hasRTT := strings.Contains(text, "rtt") || strings.Contains(text, "round-trip")
+	if hasRTT {
+		if m := pingRTTRE.FindStringSubmatch(text); m != nil {
+			if v, err := strconv.ParseFloat(m[1], 32); err == nil {
+				stats.RttMinMs = float32(v)
+			}
+			if v, err := strconv.ParseFloat(m[2], 32); err == nil {
+				stats.RttAvgMs = float32(v)
+			}
+			if v, err := strconv.ParseFloat(m[3], 32); err == nil {
+				stats.RttMaxMs = float32(v)
+			}
+			if v, err := strconv.ParseFloat(m[4], 32); err == nil {
+				stats.RttMdevMs = float32(v)
+			}
 		}
 	}
 	return stats
@@ -125,7 +145,21 @@ var (
 // parseLinuxTraceroute extracts a [pb.TracerouteParsed] from raw
 // iputils traceroute output, or nil when the header is missing.
 func parseLinuxTraceroute(raw []byte) *pb.TracerouteParsed {
+	if len(raw) > 16384 {
+		return nil
+	}
 	text := string(raw)
+	if strings.Count(text, "\n") > 128 {
+		return nil
+	}
+	for _, line := range strings.Split(text, "\n") {
+		if len(line) > 512 {
+			return nil
+		}
+	}
+	if !strings.Contains(text, "traceroute to") {
+		return nil
+	}
 	tp := &pb.TracerouteParsed{}
 
 	if m := tracerouteHeaderRE.FindStringSubmatch(text); len(m) >= 2 {
@@ -138,6 +172,9 @@ func parseLinuxTraceroute(raw []byte) *pb.TracerouteParsed {
 	}
 
 	for _, line := range strings.Split(text, "\n") {
+		if len(line) > 2048 {
+			continue
+		}
 		m := hopLineRE.FindStringSubmatch(line)
 		if m == nil {
 			continue

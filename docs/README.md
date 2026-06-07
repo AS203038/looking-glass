@@ -1,15 +1,8 @@
 # Looking Glass — Documentation
 
-Looking Glass is a modern, stateless network-diagnostic platform: a
-single self-contained Go binary that fronts a fleet of routers over
-SSH and exposes ping / traceroute / BGP lookups through a gRPC
-(ConnectRPC) API, a CLI client (`lg-cli`), and an embedded SvelteKit
-web UI.
+Looking Glass is a modern, stateless network-diagnostic platform: a single self-contained Go binary that fronts a fleet of routers over SSH and exposes ping / traceroute / BGP lookups through a gRPC (ConnectRPC) API, a CLI client (`lg-cli`), and an embedded SvelteKit web UI.
 
-This `docs/` tree is the authoritative documentation for operators,
-contributors, and integrators. It is intentionally task-oriented:
-each file answers a specific question rather than describing the
-codebase in the abstract.
+This `docs/` tree is the authoritative documentation for operators, contributors, and integrators. It is intentionally task-oriented: each file answers a specific question rather than describing the codebase in the abstract.
 
 ## Documentation map
 
@@ -17,6 +10,7 @@ codebase in the abstract.
 | --------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | [getting-started.md](./getting-started.md)         | New operators       | Five-minute path from `git clone` to a running server with the demo config.                                       |
 | [configuration.md](./configuration.md)             | Operators           | Every `config.yaml` key, defaults, environment variables, validation rules.                                       |
+| [bmp.md](./bmp.md)                                 | Operators / SREs    | BGP Monitoring Protocol (BMP) guide: architecture, mutual exclusivity, benefits, drawbacks, and configuration.  |
 | [deployment.md](./deployment.md)                   | Operators / SREs    | Production deployment: Docker, Kubernetes, reverse proxies, TLS, Redis, Sentry, scaling, observability.           |
 | [router-templates.md](./router-templates.md)       | Template authors    | Authoring guide for vendor YAML templates: schema, variables, conventions, troubleshooting, and shipped examples. |
 | [router-hardening.md](./router-hardening.md)       | Operators / Security | Per-vendor least-privilege role/class/profile snippets for the LG's SSH user (Arista, Cisco, Juniper, Nokia, MikroTik, FRR). |
@@ -30,9 +24,7 @@ codebase in the abstract.
 * **Shell snippets** start from the repository root unless noted.
 * **Configuration snippets** are valid YAML — copy-paste should work.
 * **Commands** are POSIX (`bash`). Windows users should adapt paths.
-* **Variables** in code references use Go's godoc form
-  (e.g. `utils.Config`, `routers.Yaml`); browse the source at the
-  same path under `pkg/` / `cmd/`.
+* **Variables** in code references use Go's godoc form (e.g. `utils.Config`, `routers.Yaml`); browse the source at the same path under `pkg/` / `cmd/`.
 
 ## Where things live in the repository
 
@@ -64,6 +56,4 @@ codebase in the abstract.
 * **Issue tracker:** <https://github.com/AS203038/looking-glass/issues>
 * **License:** GPL-3.0-or-later
 
-If you spot a documentation gap, please open an issue or PR — the
-docs ship in-tree precisely so they can be fixed at the same time as
-the code.
+If you spot a documentation gap, please open an issue or PR — the docs ship in-tree precisely so they can be fixed at the same time as the code.

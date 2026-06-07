@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"io/fs"
 	"log/slog"
 	"os"
 	"strings"
@@ -58,6 +59,10 @@ type _tpl_data struct {
 	LargeCommunity string
 	// ASPath is the sanitised AS-path regex.
 	ASPath string
+	// PeerIP is the IP address of the peer session.
+	PeerIP string
+	// PeerName is the administrative name of the peer session.
+	PeerName string
 }
 
 // parserSpec is the YAML projection of a per-operation parser declaration.
@@ -98,10 +103,21 @@ type Yaml struct {
 			Community      []string `yaml:"community"`
 			LargeCommunity []string `yaml:"largecommunity"`
 			ASPath         []string `yaml:"aspath"`
+			PeerRoutes     struct {
+				Received   []string `yaml:"received"`
+				Accepted   []string `yaml:"accepted"`
+				Rejected   []string `yaml:"rejected"`
+				Advertised []string `yaml:"advertised"`
+			} `yaml:"peer_routes"`
 		} `yaml:"bgp"`
 		// Parsers is the per-operation parser declaration map.
 		Parsers map[string]parserSpec `yaml:"parsers"`
 	}
+}
+
+type readFS interface {
+	ReadDir(name string) ([]fs.DirEntry, error)
+	ReadFile(name string) ([]byte, error)
 }
 
 // compiledRouters embeds every `*.yml` file in this package directory.
@@ -109,62 +125,71 @@ type Yaml struct {
 //go:embed all:*.yml
 var compiledRouters embed.FS
 
+var compiledRoutersFS readFS = compiledRouters
+
 // init populates the global template registry, first from the optional
 // ROUTER_DIR directory (where loaded templates win on name collision)
 // and then from the bundled `*.yml` files. Exits the process on any
 // parse error.
 func init() {
-	rd := os.Getenv("ROUTER_DIR")
-	if rd != "" {
-		files, err := os.ReadDir(rd)
-		if err != nil {
-			yamlLog.Error("could not read router dir",
-				slog.String("dir", rd), slog.Any("err", err))
-			os.Exit(exitRouterDirRead)
-		}
-		yamlLog.Info("loading routers from dir", slog.String("dir", rd))
-		for _, file := range files {
-			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yml") && !strings.HasSuffix(file.Name(), ".yaml")) {
-				continue
-			}
-			y := &Yaml{Path: file.Name()}
-			yamlFile, err := os.ReadFile(rd + "/" + y.Path)
-			if err != nil {
-				yamlLog.Error("could not read router file",
-					slog.String("dir", rd),
-					slog.String("path", y.Path),
-					slog.Any("err", err))
-				os.Exit(exitRouterDirReadFile)
-			}
-			err = yaml.Unmarshal(yamlFile, &y.Template)
-			if err != nil {
-				yamlLog.Error("could not unmarshal router file",
-					slog.String("dir", rd),
-					slog.String("path", y.Path),
-					slog.Any("err", err))
-				os.Exit(exitRouterDirParse)
-			}
-			if y.Template.Name == "" {
-				yamlLog.Error("router name cannot be empty",
-					slog.String("dir", rd),
-					slog.String("path", y.Path))
-				continue
-			}
-			register(y.Template.Name, y)
-			yamlLog.Info("router registered",
-				slog.String("router", y.Template.Name),
-				slog.String("source", rd+"/"+y.Path))
-		}
-	}
+	loadCustomDir(os.Getenv("ROUTER_DIR"))
+	loadBuiltin()
+}
 
-	files, err := compiledRouters.ReadDir(".")
+func loadCustomDir(rd string) {
+	if rd == "" {
+		return
+	}
+	files, err := os.ReadDir(rd)
+	if err != nil {
+		yamlLog.Error("could not read router dir",
+			slog.String("dir", rd), slog.Any("err", err))
+		os.Exit(exitRouterDirRead)
+	}
+	yamlLog.Info("loading routers from dir", slog.String("dir", rd))
+	for _, file := range files {
+		if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yml") && !strings.HasSuffix(file.Name(), ".yaml")) {
+			continue
+		}
+		y := &Yaml{Path: file.Name()}
+		yamlFile, err := os.ReadFile(rd + "/" + y.Path)
+		if err != nil {
+			yamlLog.Error("could not read router file",
+				slog.String("dir", rd),
+				slog.String("path", y.Path),
+				slog.Any("err", err))
+			os.Exit(exitRouterDirReadFile)
+		}
+		err = yaml.Unmarshal(yamlFile, &y.Template)
+		if err != nil {
+			yamlLog.Error("could not unmarshal router file",
+				slog.String("dir", rd),
+				slog.String("path", y.Path),
+				slog.Any("err", err))
+			os.Exit(exitRouterDirParse)
+		}
+		if y.Template.Name == "" {
+			yamlLog.Error("router name cannot be empty",
+				slog.String("dir", rd),
+				slog.String("path", y.Path))
+			continue
+		}
+		register(y.Template.Name, y)
+		yamlLog.Info("router registered",
+			slog.String("router", y.Template.Name),
+			slog.String("source", rd+"/"+y.Path))
+	}
+}
+
+func loadBuiltin() {
+	files, err := compiledRoutersFS.ReadDir(".")
 	if err != nil {
 		yamlLog.Error("could not read builtin dir", slog.Any("err", err))
 		os.Exit(exitBuiltinDirRead)
 	}
 	for _, file := range files {
 		y := &Yaml{Path: file.Name()}
-		yamlFile, err := compiledRouters.ReadFile(y.Path)
+		yamlFile, err := compiledRoutersFS.ReadFile(y.Path)
 		if err != nil {
 			yamlLog.Error("could not read builtin file",
 				slog.String("path", y.Path),
@@ -222,6 +247,14 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 		tpl = rt.Template.BGP.LargeCommunity
 	case "bgp.aspath":
 		tpl = rt.Template.BGP.ASPath
+	case "bgp.peer_routes.received":
+		tpl = rt.Template.BGP.PeerRoutes.Received
+	case "bgp.peer_routes.accepted":
+		tpl = rt.Template.BGP.PeerRoutes.Accepted
+	case "bgp.peer_routes.rejected":
+		tpl = rt.Template.BGP.PeerRoutes.Rejected
+	case "bgp.peer_routes.advertised":
+		tpl = rt.Template.BGP.PeerRoutes.Advertised
 	}
 	if tpl == nil {
 		attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
@@ -230,7 +263,22 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 	}
 	for i, t := range tpl {
 		var buf bytes.Buffer
-		tt, err := template.New(t).Parse(t)
+		tt, err := template.New(t).Funcs(template.FuncMap{
+			"bird_community": func(c string) string {
+				parts := strings.Split(c, ":")
+				if len(parts) == 2 {
+					return "(" + parts[0] + ", " + parts[1] + ")"
+				}
+				return c
+			},
+			"bird_large_community": func(c string) string {
+				parts := strings.Split(c, ":")
+				if len(parts) == 3 {
+					return "(" + parts[0] + ", " + parts[1] + ", " + parts[2] + ")"
+				}
+				return c
+			},
+		}).Parse(t)
 		if err != nil {
 			attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
 			attrs = append(attrs,
@@ -294,6 +342,24 @@ func (rt *Yaml) BGPLargeCommunity(cfg *utils.RouterConfig, largeCommunity string
 // BGPASPath renders the AS-path regex lookup command sequence.
 func (rt *Yaml) BGPASPath(cfg *utils.RouterConfig, aspath string) ([]string, error) {
 	return rt._tpl("bgp.aspath", _tpl_data{Cfg: cfg, ASPath: aspath})
+}
+
+// BGPPeerRoutes renders the peer session route lookup command sequence.
+func (rt *Yaml) BGPPeerRoutes(cfg *utils.RouterConfig, peerIP, peerName, queryType string) ([]string, error) {
+	var op string
+	switch queryType {
+	case "received":
+		op = "bgp.peer_routes.received"
+	case "accepted":
+		op = "bgp.peer_routes.accepted"
+	case "rejected":
+		op = "bgp.peer_routes.rejected"
+	case "advertised":
+		op = "bgp.peer_routes.advertised"
+	default:
+		return nil, errs.OperationUnknown
+	}
+	return rt._tpl(op, _tpl_data{Cfg: cfg, PeerIP: peerIP, PeerName: peerName})
 }
 
 // Parser returns the parser declared for op together with its

@@ -66,10 +66,13 @@ func (ip *IPNet) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	i, err := NewIPNET(tmp)
+	if err != nil {
+		return err
+	}
 	ip.IP = i.IP
 	ip.CIDR = i.CIDR
 	ip.Family = i.Family
-	return err
+	return nil
 }
 
 // NewIPNET parses a textual IP address or CIDR prefix into an [IPNet].
@@ -77,18 +80,13 @@ func (ip *IPNet) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func NewIPNET(ip string) (*IPNet, error) {
 	var ret = &IPNet{}
 	ret.IP = ip
-	if strings.Contains(ip, "/") {
+	hasSlash := strings.Contains(ip, "/")
+	if hasSlash {
 		if _, _, err := net.ParseCIDR(ip); err != nil {
 			return nil, errs.NetInvalid
 		}
 		ret.CIDR = strings.Split(ip, "/")[1]
 		ret.IP = strings.Split(ip, "/")[0]
-	} else {
-		if ret.Family == IPv4 {
-			ret.CIDR = "32"
-		} else {
-			ret.CIDR = "128"
-		}
 	}
 	if net.ParseIP(ret.IP) == nil {
 		return nil, errs.IPInvalid
@@ -97,6 +95,13 @@ func NewIPNET(ip string) (*IPNet, error) {
 		ret.Family = IPv6
 	} else {
 		ret.Family = IPv4
+	}
+	if !hasSlash {
+		if ret.Family == IPv4 {
+			ret.CIDR = "32"
+		} else {
+			ret.CIDR = "128"
+		}
 	}
 	return ret, nil
 }

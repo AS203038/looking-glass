@@ -23,6 +23,15 @@ bgp:
         - /routing bgp advertisements print detail where large-communities~"{{.LargeCommunity}}"
     aspath:
         - /routing bgp advertisements print detail where as-path~"{{.ASPath}}"
+    peer_routes:
+        received:
+            - /routing route print detail where peer="{{.PeerName}}"
+        accepted:
+            - /routing route print detail where peer="{{.PeerName}}" and !filtered
+        rejected:
+            - /routing route print detail where peer="{{.PeerName}}" and filtered
+        advertised:
+            - /routing bgp advertisements print detail where peer="{{.PeerName}}"
 
 parsers:
     ping:
@@ -44,5 +53,17 @@ parsers:
         kind: textfsm
         template: mikrotik_routeros_show_bgp_advertisements
     bgp.aspath:
+        kind: textfsm
+        template: mikrotik_routeros_show_bgp_advertisements
+    bgp.peer_routes.received:
+        kind: textfsm
+        template: mikrotik_routeros_show_bgp_advertisements
+    bgp.peer_routes.accepted:
+        kind: textfsm
+        template: mikrotik_routeros_show_bgp_advertisements
+    bgp.peer_routes.rejected:
+        kind: textfsm
+        template: mikrotik_routeros_show_bgp_advertisements
+    bgp.peer_routes.advertised:
         kind: textfsm
         template: mikrotik_routeros_show_bgp_advertisements

@@ -1,0 +1,55 @@
+site_name: Looking Glass
+site_url: https://as203038.github.io/looking-glass/
+repo_url: https://github.com/AS203038/looking-glass
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Welcome: README.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - BMP Support: bmp.md
+  - Deployment: deployment.md
+  - Router Templates: router-templates.md
+  - Router Hardening: router-hardening.md
+  - Architecture: architecture.md
+  - Development: development.md
+  - API Reference: api.md
+  - CLI Reference: cli.md

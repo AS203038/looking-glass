@@ -1,0 +1,2 @@
+go test fuzz v1
+string("PING 0000000X0000000\n\n\n\n\n\n\n0 packets transmitted, 0 received, 0% pack000\nrtt min/avg/Bax/!|m\xe3]\x8d\xa3\xa5mdev = 00000")

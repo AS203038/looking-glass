@@ -202,6 +202,9 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 // returned as the coarse [errs] sentinels; detailed diagnostics are written
 // to the server log.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
+	if !router.HasSSHCredentials() {
+		return nil, errs.AuthFailed
+	}
 	auths := []ssh.AuthMethod{}
 	methods := make([]string, 0, 3)
 	if router.SSHKey != "" {

@@ -11,6 +11,17 @@ export interface HistoryEntry {
 	results: Record<string, ExecResult>;
 }
 
+function generateUUID(): string {
+	if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+		return crypto.randomUUID();
+	}
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+		const r = (Math.random() * 16) | 0;
+		const v = c === 'x' ? r : (r & 0x3) | 0x8;
+		return v.toString(16);
+	});
+}
+
 function uint8ToBase64(u8: Uint8Array): string {
 	let binary = '';
 	const len = u8.byteLength;
@@ -117,7 +128,7 @@ export function pushHistory(
 		}
 
 		const entry: HistoryEntry = {
-			id: crypto.randomUUID(),
+			id: generateUUID(),
 			timestamp: new Date(),
 			command,
 			parameter,

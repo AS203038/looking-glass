@@ -29,6 +29,10 @@ const (
 	OpBGPLargeCommunity Op = "bgp.largecommunity"
 	OpBGPASPath         Op = "bgp.aspath"
 	OpBGPSummary        Op = "bgp.summary"
+	OpBGPPeerRoutesReceived   Op = "bgp.peer_routes.received"
+	OpBGPPeerRoutesAccepted   Op = "bgp.peer_routes.accepted"
+	OpBGPPeerRoutesRejected   Op = "bgp.peer_routes.rejected"
+	OpBGPPeerRoutesAdvertised Op = "bgp.peer_routes.advertised"
 )
 
 // Result is the envelope returned by every [Parser.Parse] call.
@@ -43,7 +47,11 @@ type Result struct {
 	//   OpBGPRoute,
 	//   OpBGPCommunity,
 	//   OpBGPLargeCommunity,
-	//   OpBGPASPath        → *pb.BGPPaths
+	//   OpBGPASPath,
+	//   OpBGPPeerRoutesReceived,
+	//   OpBGPPeerRoutesAccepted,
+	//   OpBGPPeerRoutesRejected,
+	//   OpBGPPeerRoutesAdvertised → *pb.BGPPaths
 	Payload proto.Message
 	// Kind names the parser pipe that produced Payload.
 	Kind pb.ParserKind

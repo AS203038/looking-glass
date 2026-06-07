@@ -55,10 +55,7 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 		envobj.SentryEnv = cfg.Sentry.Environment
 		envobj.SentrySampleRate = cfg.Sentry.SampleRate
 	}
-	envjson, err := json.Marshal(envobj)
-	if err != nil {
-		panic(err)
-	}
+	envjson, _ := json.Marshal(envobj)
 	envjs := "export const env = " + string(envjson)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")

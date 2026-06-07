@@ -1,16 +1,10 @@
 # Configuration Reference
 
-Looking Glass is configured by a single YAML file: `config.yaml` in
-the server's working directory. There is no command-line flag for
-config path, no environment-variable equivalents for individual
-keys, and no runtime reload — restart the server to apply changes.
+Looking Glass is configured by a single YAML file: `config.yaml` in the server's working directory. There is no command-line flag for config path, no environment-variable equivalents for individual keys, and no runtime reload — restart the server to apply changes.
 
-The only environment variable consulted by the server itself is
-**`ROUTER_DIR`** (see [Router templates](#router-templates)).
+The only environment variable consulted by the server itself is **`ROUTER_DIR`** (see [Router templates](#router-templates)).
 
-The canonical, fully-annotated example lives at
-[`example.config.yaml`](../example.config.yaml). This page is the
-spec.
+The canonical, fully-annotated example lives at [`example.config.yaml`](../example.config.yaml). This page is the spec.
 
 ## Top-level shape
 
@@ -19,13 +13,12 @@ devices:        []          # required (may be empty but key must exist)
 grpc:           {}          # gRPC/HTTP listener
 web:            {}          # embedded WebUI + runtime env
 redis:          {}          # optional response cache
+bmp:            {}          # optional BGP Monitoring Protocol listener
 logging:        {}          # optional slog-based event-stream settings
 security.txt:   {}          # optional RFC 9116 endpoint
 ```
 
-YAML unknown keys are ignored (yaml.v2 default), so older configs
-keep working after upgrades. Validation happens once at startup in
-`utils.ValidateConfig`:
+YAML unknown keys are ignored (yaml.v2 default), so older configs keep working after upgrades. Validation happens once at startup in `utils.ValidateConfig`:
 
 * Devices without a `hostname` are silently dropped.
 * Devices without `source4` default to `127.0.0.1`.
@@ -33,9 +26,7 @@ keep working after upgrades. Validation happens once at startup in
 
 ## `devices` (required)
 
-A list of routers. Order matters: a router's stable ID is its
-1-based position in this list (`devices[0]` is ID 1, etc.). The ID
-is exposed to clients via gRPC, the CLI, and in WebUI URLs.
+A list of routers. Order matters: a router's stable ID is its 1-based position in this list (`devices[0]` is ID 1, etc.). The ID is exposed to clients via gRPC, the CLI, and in WebUI URLs.
 
 ```yaml
 devices:
@@ -70,18 +61,12 @@ devices:
 
 ### A note on credentials
 
-Credentials are stored in plain text in the config file. The
-recommended deployment posture is:
+Credentials are stored in plain text in the config file. The recommended deployment posture is:
 
-* Restrict the file's permissions (`chmod 0600` and a dedicated
-  user/group).
-* In Kubernetes, project the file in from a `Secret` (not a
-  `ConfigMap`).
-* Use SSH keys (`ssh_key:`) over passwords where possible, and put
-  the key in a `Secret` too.
-* Bind a per-router, read-only account on the router. Looking Glass
-  never issues configuration commands, but defence in depth is
-  cheap.
+* Restrict the file's permissions (`chmod 0600` and a dedicated user/group).
+* In Kubernetes, project the file in from a `Secret` (not a `ConfigMap`).
+* Use SSH keys (`ssh_key:`) over passwords where possible, and put the key in a `Secret` too.
+* Bind a per-router, read-only account on the router. Looking Glass never issues configuration commands, but defence in depth is cheap.
 
 ## `grpc` (HTTP/2 listener)
 
@@ -113,14 +98,11 @@ The listener serves *all* HTTP surfaces from this one port:
 * `/.well-known/security.txt` — only when `security.txt.enabled`
 * `/*` — embedded SvelteKit static bundle
 
-There is no way to disable the WebUI mount independently of the
-gRPC mount; toggle `web.enabled` instead.
+There is no way to disable the WebUI mount independently of the gRPC mount; toggle `web.enabled` instead.
 
 ## `web` (embedded WebUI)
 
-The WebUI is a SvelteKit static build embedded into the Go binary
-at compile time. This section controls a small runtime
-configuration object (`/_app/env.js`) the WebUI fetches on boot.
+The WebUI is a SvelteKit static build embedded into the Go binary at compile time. This section controls a small runtime configuration object (`/_app/env.js`) the WebUI fetches on boot.
 
 ```yaml
 web:
@@ -162,10 +144,7 @@ web:
 | `sentry.environment` | string  | `""`    | Tag attached to every event. Treated by Sentry as "production" when blank.                        |
 | `sentry.sample_rate` | float   | `0.0`   | Traces-sample-rate `[0,1]`. `0` keeps error reporting but disables performance tracing.            |
 
-The link list is serialised into a `"name|href,name|href"` string
-in `/_app/env.js` (see `utils.HFBlock.LinksString`). This is an
-implementation detail of the env bridge and not part of any public
-API.
+The link list is serialised into a `"name|href,name|href"` string in `/_app/env.js` (see `utils.HFBlock.LinksString`). This is an implementation detail of the env bridge and not part of any public API.
 
 ## `redis` (optional response cache)
 
@@ -182,8 +161,7 @@ redis:
 | `uri`     | string | —       | Parsed by `redis.ParseURL`. Standard `redis://` and `rediss://` schemes; `?protocol=3` enables RESP3. Parse failure disables the cache and logs. |
 | `ttl`     | string | `1m`    | Go [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) string. Malformed values fall back to 60 seconds and log a warning.            |
 
-RPC payloads are cached inside the ConnectRPC layer (under `pkg/http/grpc/`). 
-The cache keys are method-specific and structured as follows:
+RPC payloads are cached inside the ConnectRPC layer (under `pkg/http/grpc/`). The cache keys are method-specific and structured as follows:
 
 * `Ping`: `lg:rpc:<version>:ping:<router_id>:<target>`
 * `Traceroute`: `lg:rpc:<version>:traceroute:<router_id>:<target>`
@@ -192,25 +170,36 @@ The cache keys are method-specific and structured as follows:
 * `BGPCommunity`: `lg:rpc:<version>:bgpcommunity:<router_id>:<community>`
 * `BGPLargeCommunity`: `lg:rpc:<version>:bgplargecommunity:<router_id>:<community>`
 * `BGPASPath`: `lg:rpc:<version>:bgpaspath:<router_id>:<md5(pattern)>`
+* `BGPPeerRoutes`: `lg:rpc:<version>:peerroutes:<router_id>:<peer_ip>:<peer_name>:<query_type>`
 
-Hits serve the cached protobuf message and set the `X-Cache: HIT` 
-response header so the structured access log shows cache effectiveness:
+Hits serve the cached protobuf message and set the `X-Cache: HIT` response header so the structured access log shows cache effectiveness:
 
 ```json
 {"time":"2026-05-16T06:00:00Z","level":"INFO","msg":"http access","component":"httpaccess","remote":"192.0.2.42","method":"POST","uri":"/lookingglass.v0.LookingGlassService/Ping","status":200,"duration":12400000,"cache":"HIT"}
 ```
 
-There is no manual invalidation API. Wait for the TTL or flush the
-Redis database.
+There is no manual invalidation API. Wait for the TTL or flush the Redis database.
+
+## `bmp` (optional BGP Monitoring Protocol collector)
+
+The server integrates a vendor-agnostic BGP Monitoring Protocol (BMP, RFC 7854) collector that ingests real-time routing tables (RIB-In) and peer notifications, caching them in Redis to serve queries in `< 1ms` with zero router CPU overhead.
+
+For full architectural details, benefits, drawbacks, and mutual exclusivity considerations with SSH execution, please see the dedicated [BMP Support Guide](./bmp.md).
+
+```yaml
+bmp:
+  enabled: true
+  listen: ":11019"             # standard or custom TCP listen port
+```
+
+| Key       | Type   | Default | Notes                                                                                                                                          |
+| --------- | ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled` | bool   | `false` | When true, starts the background TCP listener and enables real-time RIB caching. Requires `redis` response cache configuration.                 |
+| `listen`  | string | `":11019"`| Bind address. BMP-capable routers/route-servers must be configured to dial this endpoint as a BMP Collector.                                   |
 
 ## `logging` (optional)
 
-The server emits every diagnostic event through `log/slog`. Records
-are filtered by a configurable minimum level (default `info`),
-encoded in a configurable format (default `json`), and written to a
-configurable sink (default `stdout`). Each event carries a
-`component=<name>` attribute identifying the subsystem so operators
-can grep / filter / aggregate by subsystem.
+The server emits every diagnostic event through `log/slog`. Records are filtered by a configurable minimum level (default `info`), encoded in a configurable format (default `json`), and written to a configurable sink (default `stdout`). Each event carries a `component=<name>` attribute identifying the subsystem so operators can grep / filter / aggregate by subsystem.
 
 ```yaml
 logging:
@@ -231,16 +220,11 @@ logging:
 | `source`     | bool   | `false`  | When true, each record carries `source` (file:line). Useful for debugging at higher cost.                                                       |
 | `components` | map    | `{}`     | Per-component level overrides; a component's threshold replaces `level` for that subsystem. Unknown components are accepted (no-op).            |
 
-The HTTP access log, previously emitted in Apache Common Log Format,
-is now a structured `INFO` record on the `httpaccess` component
-carrying every field the old single-line format carried.
+The HTTP access log, previously emitted in Apache Common Log Format, is now a structured `INFO` record on the `httpaccess` component carrying every field the old single-line format carried.
 
 ### Components
 
-Each component emits events at the levels below. Setting `level: debug`
-globally (or for one component via `components: { name: debug }`) turns
-on the additional per-request / per-tick / per-render visibility marked
-"DEBUG". The default `level: info` is appropriate for production.
+Each component emits events at the levels below. Setting `level: debug` globally (or for one component via `components: { name: debug }`) turns on the additional per-request / per-tick / per-render visibility marked "DEBUG". The default `level: info` is appropriate for production.
 
 | Component    | DEBUG events                                                                                  | INFO/WARN/ERROR events                                                       |
 | ------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -255,12 +239,12 @@ on the additional per-request / per-tick / per-render visibility marked
 | `yaml`       | —                                                                                             | `router registered` per template; `unknown parser kind` (WARN); load failures (ERROR + exit). |
 | `tpl`        | `tpl render` per rendered command (with the final rendered string).                          | `operation not defined for router` (WARN); `parse failed` / `execute failed` (ERROR). |
 | `parse`      | `parser run` / `parser ok` (per parser invocation: parser, op, raw bytes, records/paths/peers/hops). | `template missing` / `no projection` (WARN); load / exec failures (ERROR).  |
+| `bmp`        | `BMP accept failed` / TCP parsing / payload read details (DEBUG).                             | `BMP router telemetry feed connected` / peer up/down sessions (INFO) / malformed common headers (ERROR). |
 | `stdlog`     | —                                                                                             | Anything routed via the stdlib `log` package (e.g. `net/http` server errors). |
 
 ### Process exit codes
 
-The server uses distinct exit codes for distinct startup failures so
-the cause is recoverable from the shell without scraping log output:
+The server uses distinct exit codes for distinct startup failures so the cause is recoverable from the shell without scraping log output:
 
 | Code | Source                              | Meaning                                                |
 | ---: | ----------------------------------- | ------------------------------------------------------ |
@@ -278,8 +262,7 @@ the cause is recoverable from the shell without scraping log output:
 
 ## `security.txt` (optional)
 
-When enabled, the server publishes an RFC 9116 document at
-`/.well-known/security.txt`.
+When enabled, the server publishes an RFC 9116 document at `/.well-known/security.txt`.
 
 ```yaml
 security.txt:
@@ -295,15 +278,11 @@ security.txt:
   expires: "2026-12-31T23:59:59Z"     # optional; auto-generates +1 year if omitted
 ```
 
-All fields are rendered verbatim, one per line, in the order shown
-in `utils.SecurityTxtConfig.String`. Empty fields still emit blank
-values to keep the document shape deterministic.
+All fields are rendered verbatim, one per line, in the order shown in `utils.SecurityTxtConfig.String`. Empty fields still emit blank values to keep the document shape deterministic.
 
 ## Router templates
 
-In addition to the bundled `pkg/routers/*.yml` templates compiled
-into the binary, the server can load **additional** templates from
-a directory specified by the `ROUTER_DIR` environment variable.
+In addition to the bundled `pkg/routers/*.yml` templates compiled into the binary, the server can load **additional** templates from a directory specified by the `ROUTER_DIR` environment variable.
 
 ```bash
 ROUTER_DIR=/etc/looking-glass/routers ./looking-glass
@@ -311,24 +290,12 @@ ROUTER_DIR=/etc/looking-glass/routers ./looking-glass
 
 Loading rules (see `pkg/routers/yaml.go`):
 
-1. If `ROUTER_DIR` is set, every `*.yml` / `*.yaml` file in that
-   directory is parsed and registered first. A template here with
-   the same `name:` as a bundled template **wins** — this is the
-   supported escape hatch for overriding shipped templates.
-2. Bundled templates are then iterated. Each is registered only if
-   no template under its name has been registered yet; otherwise a
-   warning is logged and the bundled copy is skipped.
+1. If `ROUTER_DIR` is set, every `*.yml` / `*.yaml` file in that directory is parsed and registered first. A template here with the same `name:` as a bundled template **wins** — this is the supported escape hatch for overriding shipped templates.
+2. Bundled templates are then iterated. Each is registered only if no template under its name has been registered yet; otherwise a warning is logged and the bundled copy is skipped.
 
-Any parse or read error at this stage logs an `ERROR` event and
-exits the process with a distinct non-zero exit code (20–25,
-[see exit-code table](#process-exit-codes)) — a malformed template
-would otherwise render the device that references it permanently
-broken at request time, and failing at startup is strictly better
-than failing on every request. Validate templates before deploying
-them.
+Any parse or read error at this stage logs an `ERROR` event and exits the process with a distinct non-zero exit code (20–25, [see exit-code table](#process-exit-codes)) — a malformed template would otherwise render the device that references it permanently broken at request time, and failing at startup is strictly better than failing on every request. Validate templates before deploying them.
 
-See [router-templates.md](./router-templates.md) for authoring
-guidance.
+See [router-templates.md](./router-templates.md) for authoring guidance.
 
 ## A complete reference example
 
@@ -357,6 +324,10 @@ redis:
   ttl: 5m
   uri: "redis://redis-svc:6379/0?protocol=3"
 
+bmp:
+  enabled: true
+  listen: ":11019"
+
 web:
   enabled: true
   title: "AS65000 Looking Glass"
@@ -379,17 +350,11 @@ security.txt:
 
 In case it saves you time grepping:
 
-* SSH **host-key verification** is currently `InsecureIgnoreHostKey`.
-  There is no `known_hosts` mode yet.
+* SSH **host-key verification** is currently `InsecureIgnoreHostKey`. There is no `known_hosts` mode yet.
 * SSH **connections are pooled** if `ssh_pool_size` is configured on the device to a value greater than `0`. When configured, idle SSH connections are cached up to that size, checked out exclusively per request, and automatically validated/reestablished if stale.
-* The **health check interval** is hardcoded to 60 seconds (see
-  `pkg/http/grpc/grpc.go:healthcheck`).
-* The **WebUI router-list refresh** is hardcoded to 5 minutes (see
-  `webui/src/lib/stores/routers.ts`).
-* Build-time **`-ldflags "-X .../utils.release=…"`** is the only way
-  to set the version string shown in `GetInfo` / WebUI footer / ETag
-  / Sentry release. The Makefile and Dockerfile both handle this
-  automatically.
+* The **health check interval** is hardcoded to 60 seconds (see `pkg/http/grpc/grpc.go:healthcheck`).
+* The **WebUI router-list refresh** is hardcoded to 5 minutes (see `webui/src/lib/stores/routers.ts`).
+* Build-time **`-ldflags "-X .../utils.release=…"`** is the only way to set the version string shown in `GetInfo` / WebUI footer / ETag / Sentry release. The Makefile and Dockerfile both handle this automatically.
 
 ## Validation behaviour cheat sheet
 

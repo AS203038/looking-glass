@@ -1,92 +1,65 @@
 # Architecture
 
-This page describes how Looking Glass is built — the pieces, how
-they talk to each other, and why certain decisions were made. It's
-aimed at anyone who wants to read the source with a map in hand,
-contribute non-trivial changes, or operate a deployment knowingly.
+This page describes how Looking Glass is built — the pieces, how they talk to each other, and why certain decisions were made. It's aimed at anyone who wants to read the source with a map in hand, contribute non-trivial changes, or operate a deployment knowingly.
 
-For a config-only view see [configuration.md](./configuration.md);
-for the API contract see [api.md](./api.md).
+For a config-only view see [configuration.md](./configuration.md); for the API contract see [api.md](./api.md).
 
 ## Bird's-eye view
 
-```
-                          ┌──────────────────────────┐
-   Browser / lg-cli       │   Public ingress / TLS   │
-   ──────────────────────►│   (Caddy, NGINX, …)      │
-                          └────────────┬─────────────┘
-                                       │  HTTP/2 (h2c or TLS)
-                                       ▼
-   ┌─────────────────────────────────────────────────────────────────┐
-   │                  Looking Glass Go process                       │
-   │                                                                 │
-   │   ┌────────────── Middleware chain (outer → inner) ──────────┐  │
-   │   │  Sentry?  →  Logging  →  CORS  →  Mux                    │  │
-   │   └──────────────────────────────┬───────────────────────────┘  │
-   │                                  │                              │
-   │   ┌──────────────────────────────┴───────────────────────────┐  │
-   │   │            http.ServeMux mounts                          │  │
-   │   │  /lookingglass.v0.LookingGlassService/*   (ConnectRPC)   │  │
-   │   │  /grpc.health.v1.Health/*                 (health proto) │  │
-   │   │  /_app/env.js                             (runtime env)  │  │
-   │   │  /.well-known/security.txt                (RFC 9116)     │  │
-   │   │  /*                                       (embedded fs)  │  │
-   │   └────┬───────────────────────────┬─────────────────────────┘  │
-   │        │                           │                            │
-   │        ▼                           ▼                            │
-   │   gRPC service        ┌─ Background ticker (1 min) ──────┐      │
-   │   handlers ───┐       │   Health-check every router      │      │
-   │        │      │       └──────────────────────────────────┘      │
-   │        ▼      │                                                 │
-   │   RouterMap   │  (immutable, populated at startup)              │
-   │   [*]RouterInstance → Router (template) + Config + HealthCheck  │
-   │        │                                                        │
-   └────────┼────────────────────────────────────────────────────────┘
-            │  SSH (one TCP+SSH per RPC)
-            ▼
-   ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
-   │  Router 1      │  │  Router 2      │  │  Router N      │
-   │  (any vendor)  │  │                │  │                │
-   └────────────────┘  └────────────────┘  └────────────────┘
+```mermaid
+graph TD
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef process fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef ext fill:#eceff1,stroke:#607d8b,stroke-width:2px;
+
+    Client["Browser / lg-cli"]:::ext
+    Ingress["Public ingress / TLS<br>(Caddy, NGINX, ...)"]:::ext
+
+    subgraph GoProcess ["Looking Glass Go Process"]
+        direction TB
+        subgraph Middleware ["Middleware Chain (outer → inner)"]
+            M_Sentry["Sentry?"] --> M_Log["Logging"] --> M_CORS["CORS"] --> M_Mux["Mux"]
+        end
+
+        MuxMounts["<b>http.ServeMux mounts</b><br>- /lookingglass.v0.LookingGlassService/* (ConnectRPC)<br>- /grpc.health.v1.Health/* (health proto)<br>- /_app/env.js (runtime env)<br>- /.well-known/security.txt (RFC 9116)<br>- /* (embedded fs)"]
+
+        Handlers["gRPC Service Handlers"]
+        Ticker["Background Ticker (1 min)<br>Health-check every router"]:::process
+
+        RouterMap["<b>RouterMap</b> (immutable, populated at startup)<br>[*]RouterInstance → Router (template) + Config + HealthCheck"]
+    end
+
+    Routers["Routers (1...N)<br>(FRRouting, Cisco, Arista, Juniper, Nokia, MikroTik)"]:::ext
+
+    Client -->|HTTP/2 or HTTP/1.1| Ingress
+    Ingress -->|"HTTP/2 (h2c or TLS)"| Middleware
+    M_Mux --> MuxMounts
+    MuxMounts --> Handlers
+    MuxMounts -.-> Ticker
+    Handlers --> RouterMap
+    Ticker --> RouterMap
+    RouterMap -->|"SSH (one TCP+SSH per RPC)"| Routers
 ```
 
-The server is a single Go binary. The WebUI is a SvelteKit static
-build embedded into the binary at compile time via `//go:embed`.
-Optional services (Redis, Sentry) are *external* to the process and
-toggled by config.
+The server is a single Go binary. The WebUI is a SvelteKit static build embedded into the binary at compile time via `//go:embed`. Optional services (Redis, Sentry) are *external* to the process and toggled by config.
 
 ## Components
 
 ### `cmd/server` — entry point
 
-`main.go` parses `config.yaml`, asks `pkg/routers` to materialise
-the device list, and hands control to `pkg/http.ListenAndServe`.
-The whole file is ~60 lines because the heavy lifting lives in
-`pkg/`.
+`main.go` parses `config.yaml`, asks `pkg/routers` to materialise the device list, and hands control to `pkg/http.ListenAndServe`. The whole file is ~60 lines because the heavy lifting lives in `pkg/`.
 
-The `//go:embed all:dist` directive is what gives the binary its
-self-contained nature. The SvelteKit build (`webui/`) writes its
-static output to `cmd/server/dist/` via the adapter-static
-configuration in `webui/svelte.config.js`, so the embed picks it up
-on the next `go build`.
+The `//go:embed all:dist` directive is what gives the binary its self-contained nature. The SvelteKit build (`webui/`) writes its static output to `cmd/server/dist/` via the adapter-static configuration in `webui/svelte.config.js`, so the embed picks it up on the next `go build`.
 
 ### `cmd/cli` — `lg-cli`
 
-Cobra-based CLI with one file per subcommand (`cmd_info.go`,
-`cmd_routers.go`, `cmd_pingtrace.go`, `cmd_bgp.go`, …). Shared
-plumbing lives in `root.go` (global flags, context with timeout +
-signal handling), `client.go` (ConnectRPC client construction),
-`index.go` (public-index lookup + ASN/name/URL resolution), and
-`output.go` (pretty / json / raw output modes).
+Cobra-based CLI with one file per subcommand (`cmd_info.go`, `cmd_routers.go`, `cmd_pingtrace.go`, `cmd_bgp.go`, …). Shared plumbing lives in `root.go` (global flags, context with timeout + signal handling), `client.go` (ConnectRPC client construction), `index.go` (public-index lookup + ASN/name/URL resolution), and `output.go` (pretty / json / raw output modes).
 
 See [cli.md](./cli.md) for the user-facing reference.
 
 ### `pkg/http` — listener + middleware
 
-The HTTP/2 listener is constructed in `ListenAndServe`. The
-middleware chain is intentionally built bottom-up (innermost first)
-so the order of `handler = wrap(handler)` assignments matches the
-order each wrapper sees the request:
+The HTTP/2 listener is constructed in `ListenAndServe`. The middleware chain is intentionally built bottom-up (innermost first) so the order of `handler = wrap(handler)` assignments matches the order each wrapper sees the request:
 
 ```go
 handler = mux                                // base
@@ -106,111 +79,65 @@ The chain is defined in `pkg/http/http.go`. Unlike HTTP request logging and CORS
 
 ### `pkg/http/grpc` — ConnectRPC service
 
-`Mux(ctx, mux, rts)` mounts the LookingGlassService handler and the
-gRPC-Health endpoint, then launches the health-check ticker. The
-service implementation is in `service.go`; it is a thin
-adapter:
+`Mux(ctx, mux, rts)` mounts the LookingGlassService handler and the gRPC-Health endpoint, then launches the health-check ticker. The service implementation is in `service.go`; it is a thin adapter:
 
-* **Catalogue methods** (`GetInfo`, `GetRouters`) read from the
-  in-memory router catalogue. No SSH, no I/O.
-* **Operation methods** (`Ping`, `Traceroute`, `BGP*`) follow the
-  same five-step recipe:
+* **Catalogue methods** (`GetInfo`, `GetRouters`) read from the in-memory router catalogue. No SSH, no I/O.
+* **Operation methods** (`Ping`, `Traceroute`, `BGP*`) follow the same five-step recipe:
   1. Look up the router by ID. `errs.UnknownRouter` on miss.
-  2. Parse/sanitise the operand (`utils.NewIPNetFromProtobuf` or
-     `utils.SanitizeASPathRegex`). Sentinel on failure.
+  2. Parse/sanitise the operand (`utils.NewIPNetFromProtobuf` or `utils.SanitizeASPathRegex`). Sentinel on failure.
   3. Render the vendor template (`RouterInstance.Foo(operand)`).
-  4. Execute commands over SSH (`utils.SSHExec`). Sentinel on
-     failure (`errs.ExecFailed`).
+  4. Execute commands over SSH (`utils.SSHExec`). Sentinel on failure (`errs.ExecFailed`).
   5. Wrap stdout into the protobuf response + server timestamp.
 
-Errors visible to clients are intentionally coarse — see `pkg/errs`.
-Detailed context (hostname, stderr, etc.) is logged server-side
-with a tag like `op=Ping router_id=1 router=rt1 type=frrouting
-stage=ssh_exec: …`.
+Errors visible to clients are intentionally coarse — see `pkg/errs`. Detailed context (hostname, stderr, etc.) is logged server-side with a tag like `op=Ping router_id=1 router=rt1 type=frrouting stage=ssh_exec: …`.
 
 ### `pkg/http/webui` — runtime env injector
 
-The WebUI is built without any deployment-specific values baked in.
-On boot it fetches `/_app/env.js`, an ES module exporting a single
-`env` object. `webui.ConfigInjector` constructs this module from
-`utils.WebConfig` *at handler-creation time*, so the response body
-is precomputed and the hot path is a single memcpy.
+The WebUI is built without any deployment-specific values baked in. On boot it fetches `/_app/env.js`, an ES module exporting a single `env` object. `webui.ConfigInjector` constructs this module from `utils.WebConfig` *at handler-creation time*, so the response body is precomputed and the hot path is a single memcpy.
 
-This is a single source of truth: every `PUBLIC_*` key the WebUI
-reads is defined in `EnvJS` (`webui.go`) and consumed in
-`webui/src/lib/env.ts`. Adding a new key requires changes to both
-files.
+This is a single source of truth: every `PUBLIC_*` key the WebUI reads is defined in `EnvJS` (`webui.go`) and consumed in `webui/src/lib/env.ts`. Adding a new key requires changes to both files.
 
 ### `pkg/routers` — template registry
 
-The `Yaml` struct implements `utils.Router`. The whole point of the
-package is to load YAML templates (bundled and external) into a
-process-global registry.
+The `Yaml` struct implements `utils.Router`. The whole point of the package is to load YAML templates (bundled and external) into a process-global registry.
 
-* `init()` in `yaml.go` is where loading happens. The function
-  panics on malformed input — see [Why panic at startup?](#why-panic-at-startup).
-* `register(name, rt)` installs a template under a unique name.
-  Duplicates panic; empty names panic.
+* `init()` in `yaml.go` is where loading happens. The function panics on malformed input — see [Why panic at startup?](#why-panic-at-startup).
+* `register(name, rt)` installs a template under a unique name. Duplicates panic; empty names panic.
 * `Get(name)` is the runtime lookup, used by `CreateRouterMap`.
-* `CreateRouterMap(cfg)` walks `cfg.Devices`, binds each to its
-  template, and spawns one health-check goroutine per router.
+* `CreateRouterMap(cfg)` walks `cfg.Devices`, binds each to its template, and spawns one health-check goroutine per router.
 
-The bundled templates live alongside the Go source as `*.yml`
-files and are embedded via `//go:embed all:*.yml`.
+The bundled templates live alongside the Go source as `*.yml` files and are embedded via `//go:embed all:*.yml`.
 
 ### `pkg/utils` — everything else
 
 * `config.go` — YAML parsing + validation (`ValidateConfig`).
-* `interface.go` — `Router` interface, `RouterInstance` (binds
-  Router + Config + HealthCheck), `RouterMap` (slice + lookup).
-* `ipnet.go` — IP / CIDR parsing + family detection. The
-  `IPFamily` constants (`ipv4` / `ipv6`) are lower-case because
-  they're interpolated verbatim into vendor commands.
-* `sanitize.go` — `SanitizeASPathRegex`: tight allow-list for
-  AS-path regex (digits and underscores only, ≤30 chars, optional
-  `$` anchor). Prevents both command injection and ReDoS.
-* `ssh.go` — `SSHExec(cfg, cmds)`: one TCP+SSH per call, runs each
-  command in its own session, captures stdout, logs stderr on
-  failure (truncated to 512 bytes), returns sentinel errors.
-* `tls.go` — self-signed cert generation (`GenerateSelfSignedPair`)
-  for `grpc.tls.self_signed: true`.
-* `Version()` — lazily computed `<release>+<unix-nanos-hex>` used
-  as the ETag, Sentry release, and `GetInfo` reply.
+* `interface.go` — `Router` interface, `RouterInstance` (binds Router + Config + HealthCheck), `RouterMap` (slice + lookup).
+* `ipnet.go` — IP / CIDR parsing + family detection. The `IPFamily` constants (`ipv4` / `ipv6`) are lower-case because they're interpolated verbatim into vendor commands.
+* `sanitize.go` — `SanitizeASPathRegex`: tight allow-list for AS-path regex (digits and underscores only, ≤30 chars, optional `$` anchor). Prevents both command injection and ReDoS.
+* `ssh.go` — `SSHExec(cfg, cmds)`: one TCP+SSH per call, runs each command in its own session, captures stdout, logs stderr on failure (truncated to 512 bytes), returns sentinel errors.
+* `tls.go` — self-signed cert generation (`GenerateSelfSignedPair`) for `grpc.tls.self_signed: true`.
+* `Version()` — lazily computed `<release>+<unix-nanos-hex>` used as the ETag, Sentry release, and `GetInfo` reply.
 
 ### `pkg/errs` — sentinel errors
 
-Five files of one-liner `errors.New(...)`. The whole point is that
-RPC clients never see anything more specific than these sentinels;
-operators see the gory detail in logs. The split per file is
-purely organisational (ipnet / sanitize / router / ssh).
+Five files of one-liner `errors.New(...)`. The whole point is that RPC clients never see anything more specific than these sentinels; operators see the gory detail in logs. The split per file is purely organisational (ipnet / sanitize / router / ssh).
 
 ### `webui` — SvelteKit 5 frontend
 
-A pnpm workspace linked to `../protobuf` via `workspace:*`. Key
-files:
+A pnpm workspace linked to `../protobuf` via `workspace:*`. Key files:
 
 * `svelte.config.js` — adapter-static, output to `../cmd/server/dist`.
-* `src/lib/env.ts` — reads `PUBLIC_*` from
-  `$env/dynamic/public` with sane defaults; consumed by every other
-  module.
+* `src/lib/env.ts` — reads `PUBLIC_*` from `$env/dynamic/public` with sane defaults; consumed by every other module.
 * `src/lib/grpc.ts` — singleton ConnectRPC client.
-* `src/lib/stores/routers.ts` — fetches the router catalogue,
-  refreshes every 5 minutes, pauses while the tab is hidden.
+* `src/lib/stores/routers.ts` — fetches the router catalogue, refreshes every 5 minutes, pauses while the tab is hidden.
 * `src/lib/stores/query.ts` — the actual RPC dispatch from the UI.
-* `src/lib/components/CommandDock.svelte` — sticky-bottom command
-  surface; the dock that's always reachable.
-* `src/lib/components/ResultsSheet.svelte` — DevTools-style
-  bottom sheet for command results.
-* `hooks.client.ts` — lazy-imports `@sentry/svelte` when a DSN is
-  configured.
+* `src/lib/components/CommandDock.svelte` — sticky-bottom command surface; the dock that's always reachable.
+* `src/lib/components/ResultsSheet.svelte` — DevTools-style bottom sheet for command results.
+* `hooks.client.ts` — lazy-imports `@sentry/svelte` when a DSN is configured.
 
 ### `protobuf` — buf-managed service contract
 
-Single proto file (`lookingglass/v0/lookingglass.proto`) generates
-Go *and* TypeScript via `buf generate`. Comments in the `.proto`
-propagate into both languages, so the godoc / TSDoc are the single
-source of truth for API documentation. See [api.md](./api.md) for
-the full contract.
+Single proto file (`lookingglass/v0/lookingglass.proto`) generates Go *and* TypeScript via `buf generate`. Comments in the `.proto` propagate into both languages, so the godoc / TSDoc are the single source of truth for API documentation. See [api.md](./api.md) for the full contract.
 
 ## Concurrency model
 
@@ -221,17 +148,9 @@ the full contract.
 | Async cache writes        | One per cache miss    | Fire-and-forget Redis SET; errors logged.                                              |
 | Sentry flush on shutdown  | One                   | Internal to `sentry-go`.                                                              |
 
-There is **no shared mutable state** between request handlers.
-`RouterMap` is populated once at startup and treated as immutable
-thereafter; `_routers` in `pkg/routers` likewise. This is the
-property that makes the server horizontally scalable: replicas
-share nothing except (optionally) the Redis cache.
+There is **no shared mutable state** between request handlers. `RouterMap` is populated once at startup and treated as immutable thereafter; `_routers` in `pkg/routers` likewise. This is the property that makes the server horizontally scalable: replicas share nothing except (optionally) the Redis cache.
 
-The HealthCheck struct is technically read concurrently from RPC
-handlers and written concurrently from the ticker, but it holds
-only scalar values (`bool`, `time.Time`), so Go's memory model
-makes the race benign in practice — readers may see a slightly
-stale snapshot, never a torn struct.
+The HealthCheck struct is technically read concurrently from RPC handlers and written concurrently from the ticker, but it holds only scalar values (`bool`, `time.Time`), so Go's memory model makes the race benign in practice — readers may see a slightly stale snapshot, never a torn struct.
 
 ## Request lifecycle (Ping example)
 
@@ -284,70 +203,46 @@ stale snapshot, never a torn struct.
    * `fs.Sub(webemned, "dist")` strips the embed prefix.
    * Calls `Start(ctx, web)`.
 3. `Start(ctx, web)`:
-   * `utils.ParseConfigYaml("config.yaml")` → `*Config` (fatal on
-     error).
-   * `routers.CreateRouterMap(cfg)` → spawns one health-check
-     goroutine per device.
-   * `http.ListenAndServe(ctx, cfg, rm, web)` blocks for the
-     lifetime of the listener.
+   * `utils.ParseConfigYaml("config.yaml")` → `*Config` (fatal on error).
+   * `routers.CreateRouterMap(cfg)` → spawns one health-check goroutine per device.
+   * `http.ListenAndServe(ctx, cfg, rm, web)` blocks for the lifetime of the listener.
 
-There is currently **no graceful shutdown**. Cancelling `ctx`
-stops the health-check ticker but does not propagate to the HTTP
-server. This is a known limitation; for now, SIGTERM kills the
-process and any in-flight requests are lost. The stateless design
-makes this acceptable in practice.
+There is currently **no graceful shutdown**. Cancelling `ctx` stops the health-check ticker but does not propagate to the HTTP server. This is a known limitation; for now, SIGTERM kills the process and any in-flight requests are lost. The stateless design makes this acceptable in practice.
 
 ## Why panic at startup?
 
-Several code paths (`pkg/routers/yaml.go`, the duplicate-register
-case) panic instead of returning errors. This is deliberate:
+Several code paths (`pkg/routers/yaml.go`, the duplicate-register case) panic instead of returning errors. This is deliberate:
 
-* Malformed YAML, missing `name`, duplicate registrations all
-  indicate **packaging defects**. The operator cannot fix them at
-  runtime; the process should not pretend to start.
-* Failing at startup is observable (process exits, the supervisor
-  notices) while failing on every request is not (it surfaces as
-  a 500 nobody investigates until a customer complains).
-* The blast radius is bounded: the binary either runs cleanly or
-  doesn't run at all.
+* Malformed YAML, missing `name`, duplicate registrations all indicate **packaging defects**. The operator cannot fix them at runtime; the process should not pretend to start.
+* Failing at startup is observable (process exits, the supervisor notices) while failing on every request is not (it surfaces as a 500 nobody investigates until a customer complains).
+* The blast radius is bounded: the binary either runs cleanly or doesn't run at all.
 
 ## Why ConnectRPC?
 
-Vanilla gRPC requires HTTP/2 trailers, which browsers do not
-expose to JavaScript. ConnectRPC implements three wire protocols
-on the same handler:
+Vanilla gRPC requires HTTP/2 trailers, which browsers do not expose to JavaScript. ConnectRPC implements three wire protocols on the same handler:
 
 * `application/grpc`         — gRPC for native clients
 * `application/grpc-web`     — gRPC-Web for browsers
 * `application/json`         — Connect's own JSON-over-POST
 
-The WebUI uses `@connectrpc/connect-web` (transport-aware), the
-Go CLI uses the regular gRPC transport, and you can debug with
-`curl` using JSON. One handler, three audiences.
+The WebUI uses `@connectrpc/connect-web` (transport-aware), the Go CLI uses the regular gRPC transport, and you can debug with `curl` using JSON. One handler, three audiences.
 
-A nice side effect: HTTP/1.1 clients can hit the JSON endpoint, so
-the `curl` sanity-check from [getting-started.md](./getting-started.md)
-works without any HTTP/2 plumbing on the client.
+A nice side effect: HTTP/1.1 clients can hit the JSON endpoint, so the `curl` sanity-check from [getting-started.md](./getting-started.md) works without any HTTP/2 plumbing on the client.
 
 ## Why embed the WebUI?
 
-The trade-off is **build complexity for deployment simplicity**.
-Pros:
+The trade-off is **build complexity for deployment simplicity**. Pros:
 
 * One artefact to ship, version, sign, scan.
-* Frontend and backend can never drift — same release, same git
-  commit, same Sentry release tag.
-* No web server / static-files CDN / object-store-with-public-acl
-  to operate.
+* Frontend and backend can never drift — same release, same git commit, same Sentry release tag.
+* No web server / static-files CDN / object-store-with-public-acl to operate.
 
 Cons:
 
-* You can't independently rev the WebUI without rebuilding the Go
-  binary (in practice this is fine; both are small).
+* You can't independently rev the WebUI without rebuilding the Go binary (in practice this is fine; both are small).
 * The Go binary is ~20MB rather than ~6MB.
 
-The `webui/svelte.config.js` adapter-static writes directly to
-`cmd/server/dist`, so `go build` always picks up the freshest WebUI.
+The `webui/svelte.config.js` adapter-static writes directly to `cmd/server/dist`, so `go build` always picks up the freshest WebUI.
 
 ## SSH Connection Pooling
 
