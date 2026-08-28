@@ -1,0 +1,24 @@
+Value Required prefix ([0-9a-fA-F:.]+/\d+)
+Value nexthop ([0-9a-fA-F:.]+)
+Value origin (\S+)
+Value local_pref (\d+)
+Value med (\d+)
+Value as_path (\d+(?:[,\s]+\d+)*)
+Value communities (\d+:\d+(?:,\d+:\d+)*)
+Value large_communities (\d+:\d+:\d+(?:,\d+:\d+:\d+)*)
+Value best (A)
+Value description (\S+)
+
+Start
+  ^.*dst-address=${prefix} -> Continue
+  ^.*gateway=${nexthop} -> Continue
+  ^.*bgp\.session=${description} -> Continue
+  ^.*\.as-path="${as_path}" -> Continue
+  ^.*\.as-path="${as_path}$$ -> ASPathCont
+  ^.*\.large-communities=${large_communities} -> Continue
+  ^.*\.med=${med} -> Continue
+  ^.*\.origin=${origin}.*$$ -> Record
+
+ASPathCont
+  ^\s*${as_path}"\s*\.large-communities=${large_communities}\s+\.med=${med}\s+\.origin=${origin}.*$$ -> Record Start
+  ^\s*${as_path}" -> Start

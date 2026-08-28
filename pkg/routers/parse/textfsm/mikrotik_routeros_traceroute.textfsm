@@ -3,5 +3,4 @@ Value ip ([0-9a-fA-F:.]+)
 Value rtt_ms (\d+(?:\.\d+)?)
 
 Start
-  ^\s*${ttl}\s+${ip}\s+\d+%\s+\d+\s+\S+\s+${rtt_ms}ms -> Record
-  ^\s*${ttl}\s+\(timeout\)\s+\d+% -> Record
+  ^\s*${ttl}\s+${ip}\s+\d+%\s+\d+\s+${rtt_ms}ms -> Record
