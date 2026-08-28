@@ -1,0 +1,16 @@
+Value Required peer_ip ([0-9a-fA-F:.]+)
+Value peer_asn (\d+)
+Value description (\S+)
+Value uptime (\S+)
+Value prefixes_received (\d+)
+Value prefixes_sent (\d+)
+Value state (E)
+
+Start
+  ^\s*\d+\s+${state}\s+name="${description}" -> Continue
+  ^.+remote\.address=${peer_ip} -> Continue
+  ^.+\.as=${peer_asn} -> PeerInfo
+
+PeerInfo
+  ^.+uptime=${uptime} -> Continue
+  ^.+prefix-count=${prefixes_received}$$ -> Record Start

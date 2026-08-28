@@ -122,7 +122,7 @@ func (p TextFSMParser) Parse(op Op, raw []byte, cfg Config) Result {
 		return tfsmTracerouteResult(records)
 	case OpBGPSummary:
 		return tfsmBGPSummaryResult(records)
-	case OpBGPRoute, OpBGPCommunity, OpBGPLargeCommunity, OpBGPASPath:
+	case OpBGPRoute, OpBGPCommunity, OpBGPLargeCommunity, OpBGPASPath, OpBGPPeerRoutesAccepted, OpBGPPeerRoutesAdvertised, OpBGPPeerRoutesReceived, OpBGPPeerRoutesRejected:
 		return tfsmBGPPathsResult(records)
 	default:
 		parseLog.Warn("textfsm parser has no projection",

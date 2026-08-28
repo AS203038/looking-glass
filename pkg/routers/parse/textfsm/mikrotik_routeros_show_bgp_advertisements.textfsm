@@ -10,10 +10,6 @@ Value best (A)
 Value description (\S+)
 
 Start
-  ^\s*Flags:\s+A\s+-\s+active
-  ^\s*\d+(?:\s+${best})?\s+peer="${description}"\s+dst-address=${prefix}
-  ^\s+nexthop=${nexthop}(?:\s+origin=${origin})?(?:\s+local-pref=${local_pref})?(?:\s+med=${med})?
-  ^\s+as-path="${as_path}"
-  ^\s+communities=${communities}\s*$$
-  ^\s+large-communities=${large_communities}\s*$$ -> Record
-  ^\s*$$ -> Record
+  ^\s+peer=${description}\s+dst=${prefix} -> Continue
+  ^.*nexthop=${nexthop} -> Continue
+  ^.*origin=${origin}\s+as-path=sequence\s+${as_path}.*$$ -> Record
