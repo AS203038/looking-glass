@@ -7,6 +7,5 @@ Value rtt_avg_ms (\d+(?:\.\d+)?)
 Value rtt_max_ms (\d+(?:\.\d+)?)
 
 Start
-  ^\s*\d+\s+${target}\s+\d+
-  ^\s+sent=${packets_sent}\s+received=${packets_received}\s+packet-loss=${loss_pct}%\s+min-rtt=${rtt_min_ms}ms\s+avg-rtt=${rtt_avg_ms}ms\s+max-rtt=${rtt_max_ms}ms\s*$$ -> Record
-  ^\s+sent=${packets_sent}\s+received=${packets_received}\s+packet-loss=${loss_pct}%\s*$$ -> Record
+  ^\s+sent=${packets_sent}\s+received=${packets_received}\s+packet-loss=${loss_pct}%\s+min-rtt=${rtt_min_ms}ms\d+us\s+avg-rtt=${rtt_avg_ms}ms\d+us
+  ^\s*max-rtt=${rtt_max_ms}ms\d+us\s+$$ -> Record

@@ -2,36 +2,36 @@ name: mikrotik_routeros
 
 ping:
     ipv4:
-        - /ping {{.IP.IP}} src-address={{.Cfg.Source4.IP}} count=5 routing-table={{.Cfg.VRF}}
+        - /ping {{.IP.IP}} src-address={{.Cfg.Source4.IP}} count=5 vrf={{.Cfg.VRF}}
     ipv6:
-        - /ping {{.IP.IP}} src-address={{.Cfg.Source6.IP}} count=5 routing-table={{.Cfg.VRF}}
+        - /ping {{.IP.IP}} src-address={{.Cfg.Source6.IP}} count=5 vrf={{.Cfg.VRF}}
 
 traceroute:
     ipv4:
-        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}} routing-table={{.Cfg.VRF}} count=1 duration=10s
+        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}} vrf={{.Cfg.VRF}} count=1 duration=10s
     ipv6:
-        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}} routing-table={{.Cfg.VRF}} count=1 duration=10s
+        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}} vrf={{.Cfg.VRF}} count=1 duration=10s
 
 bgp:
     summary:
         - /routing bgp session print detail without-paging
     route:
-        - /routing bgp advertisements print detail where dst-address~"{{.IP.IP}}"
+        - /routing route print detail where bgp and dst-address~"{{.IP.IP}}"
     community:
-        - /routing bgp advertisements print detail where communities~"{{.Community}}"
+        - /routing route print detail where bgp.communities~"{{.Community}}"
     largecommunity:
-        - /routing bgp advertisements print detail where large-communities~"{{.LargeCommunity}}"
+        - /routing route print detail where bgp.large-communities~"{{.LargeCommunity}}"
     aspath:
-        - /routing bgp advertisements print detail where as-path~"{{.ASPath}}"
+        - /routing route print detail where bgp.as-path~"{{.ASPath}}"
     peer_routes:
         received:
-            - /routing route print detail where peer="{{.PeerName}}"
+            - /routing route print detail where bgp and belongs-to~"{{.PeerIP}}"
         accepted:
-            - /routing route print detail where peer="{{.PeerName}}" and !filtered
+            - /routing route print detail where bgp and belongs-to~"{{.PeerIP}}" and !filtered
         rejected:
-            - /routing route print detail where peer="{{.PeerName}}" and filtered
+            - /routing route print detail where bgp and belongs-to~"{{.PeerIP}}" and filtered
         advertised:
-            - /routing bgp advertisements print detail where peer="{{.PeerName}}"
+            - /routing bgp advertisements print detail where peer~"{{.PeerName}}"
 
 parsers:
     ping:
@@ -42,28 +42,28 @@ parsers:
         template: mikrotik_routeros_traceroute
     bgp.summary:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_summary
+        template: mikrotik_routeros_show_bgp_session
     bgp.route:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.community:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.largecommunity:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.aspath:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.peer_routes.received:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.peer_routes.accepted:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.peer_routes.rejected:
         kind: textfsm
-        template: mikrotik_routeros_show_bgp_advertisements
+        template: mikrotik_routeros_show_bgp_routes
     bgp.peer_routes.advertised:
         kind: textfsm
         template: mikrotik_routeros_show_bgp_advertisements
