@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1589,24 +1589,24 @@
 </span></code></pre></div>
 <h3 id="verification">Verification<a class="headerlink" href="#verification" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Positive checks</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">&#39;show privilege&#39;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">'show privilege'</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># → Current privilege level is 15</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">&#39;ping vrf default ip 1.1.1.1 repeat 1&#39;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">'ping vrf default ip 1.1.1.1 repeat 1'</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># → normal ping output</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">&#39;show ip bgp summary&#39;</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">'show ip bgp summary'</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># → normal BGP summary</span>
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Negative checks — must all be denied</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">&#39;configure&#39;</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># → % Authorization denied for command &#39;configure&#39;</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">'configure'</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># → % Authorization denied for command 'configure'</span>
 </span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">&#39;show running-config&#39;</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># → % Authorization denied for command &#39;show running-config&#39;</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">'show running-config'</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># → % Authorization denied for command 'show running-config'</span>
 </span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">&#39;reload&#39;</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="c1"># → % Authorization denied for command &#39;reload&#39;</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>ssh<span class="w"> </span>lookingglass@arn01-border-a<span class="w"> </span><span class="s1">'reload'</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="c1"># → % Authorization denied for command 'reload'</span>
 </span></code></pre></div>
 <h3 id="caveats">Caveats<a class="headerlink" href="#caveats" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1667,10 +1667,10 @@
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>!
 </span></code></pre></div>
 <h3 id="verification_1">Verification<a class="headerlink" href="#verification_1" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show privilege&#39;</span><span class="w">         </span><span class="c1"># → 15  (Option 1) or 5 (Option 2)</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show bgp ipv4 unicast summary&#39;</span><span class="w">  </span><span class="c1"># works</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;configure terminal&#39;</span><span class="w">     </span><span class="c1"># denied</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show running-config&#39;</span><span class="w">    </span><span class="c1"># denied</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show privilege'</span><span class="w">         </span><span class="c1"># → 15  (Option 1) or 5 (Option 2)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show bgp ipv4 unicast summary'</span><span class="w">  </span><span class="c1"># works</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'configure terminal'</span><span class="w">     </span><span class="c1"># denied</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show running-config'</span><span class="w">    </span><span class="c1"># denied</span>
 </span></code></pre></div>
 <h3 id="caveats_1">Caveats<a class="headerlink" href="#caveats_1" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1687,7 +1687,7 @@
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>show route protocol bgp … table &lt;vrf&gt;.inet[6].0 detail
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>show route protocol bgp community &lt;c&gt; table … detail
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>show route protocol bgp large-community &lt;lc&gt; table … detail
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>show route protocol bgp aspath-regex &quot;&lt;r&gt;&quot; table … detail
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>show route protocol bgp aspath-regex "&lt;r&gt;" table … detail
 </span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>show route receive-protocol bgp &lt;peer&gt;
 </span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>show route protocol bgp neighbor &lt;peer&gt; table &lt;vrf&gt;.inet[6].0 detail
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>show route receive-protocol bgp &lt;peer&gt; filtered
@@ -1699,25 +1699,25 @@
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    login {
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        class lg-readonly {
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>            permissions [ network ];
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>            allow-commands &quot;^(show route protocol bgp|show bgp summary|ping|traceroute)( |$)&quot;;
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>            deny-commands &quot;^(configure|edit|set|delete|clear|file|request|start|restart|test|monitor|op|load|save|copy)( |$)&quot;;
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>            allow-commands "^(show route protocol bgp|show bgp summary|ping|traceroute)( |$)";
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>            deny-commands "^(configure|edit|set|delete|clear|file|request|start|restart|test|monitor|op|load|save|copy)( |$)";
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        }
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>        user lookingglass {
 </span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>            class lg-readonly;
 </span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>            authentication {
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>                ssh-ed25519 &quot;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...&quot;;
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>                ssh-ed25519 "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...";
 </span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>            }
 </span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        }
 </span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    }
 </span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>}
 </span></code></pre></div>
 <h3 id="verification_2">Verification<a class="headerlink" href="#verification_2" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show system users&#39;</span><span class="w">           </span><span class="c1"># → user shown with class lg-readonly</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;ping 1.1.1.1 count 1 rapid&#39;</span><span class="w">  </span><span class="c1"># works</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show bgp summary&#39;</span><span class="w">            </span><span class="c1"># works</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;configure&#39;</span><span class="w">                   </span><span class="c1"># → error: permission denied</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;request system reboot&#39;</span><span class="w">       </span><span class="c1"># denied</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show configuration&#39;</span><span class="w">          </span><span class="c1"># denied (no view-configuration permission)</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show system users'</span><span class="w">           </span><span class="c1"># → user shown with class lg-readonly</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'ping 1.1.1.1 count 1 rapid'</span><span class="w">  </span><span class="c1"># works</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show bgp summary'</span><span class="w">            </span><span class="c1"># works</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'configure'</span><span class="w">                   </span><span class="c1"># → error: permission denied</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'request system reboot'</span><span class="w">       </span><span class="c1"># denied</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show configuration'</span><span class="w">          </span><span class="c1"># denied (no view-configuration permission)</span>
 </span></code></pre></div>
 <h3 id="caveats_2">Caveats<a class="headerlink" href="#caveats_2" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1734,7 +1734,7 @@
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>show router &lt;vrf&gt; bgp routes &lt;addr&gt; hunt
 </span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>show router &lt;vrf&gt; bgp routes community &lt;c&gt; detail
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>show router &lt;vrf&gt; bgp routes community large:&lt;lc&gt; detail
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>show router &lt;vrf&gt; bgp routes aspath-regex &quot;&lt;r&gt;&quot; detail
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>show router &lt;vrf&gt; bgp routes aspath-regex "&lt;r&gt;" detail
 </span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>show router &lt;vrf&gt; bgp routes neighbor &lt;peer&gt; received hunt
 </span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>show router &lt;vrf&gt; bgp routes neighbor &lt;peer&gt; hunt
 </span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>show router &lt;vrf&gt; bgp routes neighbor &lt;peer&gt; rejected hunt
@@ -1743,31 +1743,31 @@
 <p>That is the <em>complete</em> surface from <a href="../pkg/routers/nokia_sros.yml"><code>pkg/routers/nokia_sros.yml</code></a>.</p>
 <h3 id="configuration_2">Configuration<a class="headerlink" href="#configuration_2" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>configure system security
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    profile &quot;lg-readonly&quot;
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    profile "lg-readonly"
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>        default-action deny-all
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        entry 10
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>            match &quot;show router&quot;
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>            match "show router"
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>            action permit
 </span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        exit
 </span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        entry 20
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>            match &quot;ping&quot;
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>            match "ping"
 </span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>            action permit
 </span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>        exit
 </span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        entry 30
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            match &quot;traceroute&quot;
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            match "traceroute"
 </span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>            action permit
 </span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>        exit
 </span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    exit
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    user &quot;lookingglass&quot;
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    user "lookingglass"
 </span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>        access console
 </span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>        console
-</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>            member &quot;lg-readonly&quot;
-</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>            no member &quot;default&quot;
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>            member "lg-readonly"
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>            no member "default"
 </span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>        exit
 </span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>        public-keys
 </span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>            ecdsa
 </span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>                ecdsa-key 1 create
-</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>                    key-value &quot;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...&quot;
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>                    key-value "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
 </span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>                exit
 </span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>            exit
 </span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>        exit
@@ -1775,11 +1775,11 @@
 </span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>exit all
 </span></code></pre></div>
 <h3 id="verification_3">Verification<a class="headerlink" href="#verification_3" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show router 1 bgp summary&#39;</span><span class="w">   </span><span class="c1"># works</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;ping 1.1.1.1 count 1&#39;</span><span class="w">        </span><span class="c1"># works</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;admin reboot&#39;</span><span class="w">                </span><span class="c1"># denied</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;configure&#39;</span><span class="w">                   </span><span class="c1"># denied</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;show system version&#39;</span><span class="w">         </span><span class="c1"># denied</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show router 1 bgp summary'</span><span class="w">   </span><span class="c1"># works</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'ping 1.1.1.1 count 1'</span><span class="w">        </span><span class="c1"># works</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'admin reboot'</span><span class="w">                </span><span class="c1"># denied</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'configure'</span><span class="w">                   </span><span class="c1"># denied</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'show system version'</span><span class="w">         </span><span class="c1"># denied</span>
 </span></code></pre></div>
 <h3 id="caveats_3">Caveats<a class="headerlink" href="#caveats_3" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1794,19 +1794,19 @@
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>/tool traceroute &lt;addr&gt; src-address=&lt;src&gt; routing-table=&lt;vrf&gt; count=1 duration=10s
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>/routing bgp session print detail without-paging
 </span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>/routing bgp advertisements print detail where …
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>/routing route print detail where peer=&quot;&lt;peer&gt;&quot;
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>/routing route print detail where peer=&quot;&lt;peer&gt;&quot; and !filtered
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>/routing route print detail where peer=&quot;&lt;peer&gt;&quot; and filtered
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>/routing bgp advertisements print detail where peer=&quot;&lt;peer&gt;&quot;
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>/routing route print detail where peer="&lt;peer&gt;"
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>/routing route print detail where peer="&lt;peer&gt;" and !filtered
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>/routing route print detail where peer="&lt;peer&gt;" and filtered
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>/routing bgp advertisements print detail where peer="&lt;peer&gt;"
 </span></code></pre></div>
 <p>That is the <em>complete</em> surface from <a href="../pkg/routers/mikrotik_routeros.yml"><code>pkg/routers/mikrotik_routeros.yml</code></a>.</p>
 <h3 id="configuration_3">Configuration<a class="headerlink" href="#configuration_3" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>/user group add name=lg-readonly \
 </span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    policy=ssh,read,test,!local,!telnet,!winbox,!web,!ftp,!api,!reboot,!write,!policy,!password,!sniff,!sensitive,!romon,!dude,!tikapp
 </span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>/user add name=lookingglass group=lg-readonly disabled=no comment=&quot;Looking Glass automation&quot;
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>/user add name=lookingglass group=lg-readonly disabled=no comment="Looking Glass automation"
 </span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a># Import the LG&#39;s public key (file uploaded to the router first)
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a># Import the LG's public key (file uploaded to the router first)
 </span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>/user ssh-keys import public-key-file=lookingglass.pub user=lookingglass
 </span></code></pre></div>
 <p>Required policies, in detail:</p>
@@ -1817,11 +1817,11 @@
 </ul>
 <p>Everything else is <strong>explicitly negated</strong> with <code>!policy</code>. RouterOS defaults are permissive; the negations matter.</p>
 <h3 id="verification_4">Verification<a class="headerlink" href="#verification_4" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;/ping 1.1.1.1 count=1&#39;</span><span class="w">                       </span><span class="c1"># works</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;/routing/bgp/session/print detail&#39;</span><span class="w">           </span><span class="c1"># works</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;/system reboot&#39;</span><span class="w">                              </span><span class="c1"># denied</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;/file print&#39;</span><span class="w">                                 </span><span class="c1"># denied</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;/user print&#39;</span><span class="w">                                 </span><span class="c1"># denied</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'/ping 1.1.1.1 count=1'</span><span class="w">                       </span><span class="c1"># works</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'/routing/bgp/session/print detail'</span><span class="w">           </span><span class="c1"># works</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'/system reboot'</span><span class="w">                              </span><span class="c1"># denied</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'/file print'</span><span class="w">                                 </span><span class="c1"># denied</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'/user print'</span><span class="w">                                 </span><span class="c1"># denied</span>
 </span></code></pre></div>
 <h3 id="caveats_4">Caveats<a class="headerlink" href="#caveats_4" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1836,12 +1836,12 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ping -n -4 -c5 -I &lt;src&gt; &lt;addr&gt;           | ping -n -6 -c5 -I &lt;src&gt; &lt;addr&gt;
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>traceroute -4 -w 1 -q1 -I --back --mtu -e -s &lt;src&gt; &lt;addr&gt;
 </span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>traceroute -6 -w 1 -q1 -I --back --mtu -e -s &lt;src&gt; &lt;addr&gt;
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>vtysh -c &#39;show bgp vrf &lt;vrf&gt; ipv4 unicast …&#39;
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>vtysh -c &#39;show bgp vrf &lt;vrf&gt; ipv6 unicast …&#39;
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>vtysh -c &#39;show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; received-routes json&#39;
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>vtysh -c &#39;show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; routes json&#39;
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>vtysh -c &#39;show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; received-routes filtered json&#39;
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>vtysh -c &#39;show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; advertised-routes json&#39;
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>vtysh -c 'show bgp vrf &lt;vrf&gt; ipv4 unicast …'
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>vtysh -c 'show bgp vrf &lt;vrf&gt; ipv6 unicast …'
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>vtysh -c 'show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; received-routes json'
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>vtysh -c 'show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; routes json'
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>vtysh -c 'show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; received-routes filtered json'
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>vtysh -c 'show bgp vrf &lt;vrf&gt; ipv4/ipv6 unicast neighbors &lt;peer&gt; advertised-routes json'
 </span></code></pre></div>
 <p>That is the <em>complete</em> surface from <a href="../pkg/routers/frrouting.yml"><code>pkg/routers/frrouting.yml</code></a>.</p>
 <h3 id="configuration_4">Configuration<a class="headerlink" href="#configuration_4" title="Permanent link">&para;</a></h3>
@@ -1851,39 +1851,39 @@
 </span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>sudo<span class="w"> </span>install<span class="w"> </span>-d<span class="w"> </span>-o<span class="w"> </span>lookingglass<span class="w"> </span>-g<span class="w"> </span>lookingglass<span class="w"> </span>-m<span class="w"> </span><span class="m">700</span><span class="w"> </span>/var/lib/lookingglass/.ssh
 </span></code></pre></div>
 <p><strong>2. Install the whitelist wrapper as <code>/usr/local/sbin/lg-shell</code>:</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/usr/local/sbin/lg-shell<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39; &gt;/dev/null</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/usr/local/sbin/lg-shell<span class="w"> </span><span class="s">&lt;&lt;'EOF' &gt;/dev/null</span>
 </span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="s">#!/bin/bash</span>
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="s"># /usr/local/sbin/lg-shell — Looking Glass command whitelist.</span>
 </span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="s"># Invoked by sshd ForceCommand; the original SSH client command is</span>
 </span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="s"># in $SSH_ORIGINAL_COMMAND. Only commands matching the patterns</span>
 </span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="s"># below are executed; everything else is rejected with exit 126.</span>
 </span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="s">set -eu</span>
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="s">cmd=&quot;${SSH_ORIGINAL_COMMAND:-}&quot;</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="s">cmd="${SSH_ORIGINAL_COMMAND:-}"</span>
 </span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>
 </span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="s"># Reject any command containing shell metacharacters as defence in</span>
 </span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="s"># depth. The LG renders all operands through strict validators</span>
 </span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="s"># (pkg/utils/sanitize.go, net.ParseIP / net.ParseCIDR) so these</span>
 </span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="s"># bytes can never legitimately appear; their presence indicates</span>
 </span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="s"># either a misconfigured LG or active tampering.</span>
-</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="s">case &quot;$cmd&quot; in</span>
-</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="s">    *&#39;;&#39;*|*&#39;|&#39;*|*&#39;&amp;&#39;*|*&#39;`&#39;*|*&#39;$(&#39;*|*&#39;&gt;&#39;*|*&#39;&lt;&#39;*|*$&#39;\n&#39;*|*$&#39;\r&#39;*)</span>
-</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="s">        echo &quot;lg-shell: rejected metacharacters&quot; &gt;&amp;2</span>
+</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="s">case "$cmd" in</span>
+</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="s">    *';'*|*'|'*|*'&amp;'*|*'`'*|*'$('*|*'&gt;'*|*'&lt;'*|*$'\n'*|*$'\r'*)</span>
+</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="s">        echo "lg-shell: rejected metacharacters" &gt;&amp;2</span>
 </span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a><span class="s">        exit 126</span>
 </span><span id="__span-19-19"><a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a><span class="s">        ;;</span>
 </span><span id="__span-19-20"><a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a><span class="s">esac</span>
 </span><span id="__span-19-21"><a id="__codelineno-19-21" name="__codelineno-19-21" href="#__codelineno-19-21"></a>
-</span><span id="__span-19-22"><a id="__codelineno-19-22" name="__codelineno-19-22" href="#__codelineno-19-22"></a><span class="s">case &quot;$cmd&quot; in</span>
-</span><span id="__span-19-23"><a id="__codelineno-19-23" name="__codelineno-19-23" href="#__codelineno-19-23"></a><span class="s">    &quot;ping -n -4 -c5 -I &quot;*\ *|&quot;ping -n -6 -c5 -I &quot;*\ *)</span>
-</span><span id="__span-19-24"><a id="__codelineno-19-24" name="__codelineno-19-24" href="#__codelineno-19-24"></a><span class="s">        exec /bin/bash -c -- &quot;$cmd&quot;</span>
+</span><span id="__span-19-22"><a id="__codelineno-19-22" name="__codelineno-19-22" href="#__codelineno-19-22"></a><span class="s">case "$cmd" in</span>
+</span><span id="__span-19-23"><a id="__codelineno-19-23" name="__codelineno-19-23" href="#__codelineno-19-23"></a><span class="s">    "ping -n -4 -c5 -I "*\ *|"ping -n -6 -c5 -I "*\ *)</span>
+</span><span id="__span-19-24"><a id="__codelineno-19-24" name="__codelineno-19-24" href="#__codelineno-19-24"></a><span class="s">        exec /bin/bash -c -- "$cmd"</span>
 </span><span id="__span-19-25"><a id="__codelineno-19-25" name="__codelineno-19-25" href="#__codelineno-19-25"></a><span class="s">        ;;</span>
-</span><span id="__span-19-26"><a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a><span class="s">    &quot;traceroute -4 &quot;*|&quot;traceroute -6 &quot;*)</span>
-</span><span id="__span-19-27"><a id="__codelineno-19-27" name="__codelineno-19-27" href="#__codelineno-19-27"></a><span class="s">        exec /bin/bash -c -- &quot;$cmd&quot;</span>
+</span><span id="__span-19-26"><a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a><span class="s">    "traceroute -4 "*|"traceroute -6 "*)</span>
+</span><span id="__span-19-27"><a id="__codelineno-19-27" name="__codelineno-19-27" href="#__codelineno-19-27"></a><span class="s">        exec /bin/bash -c -- "$cmd"</span>
 </span><span id="__span-19-28"><a id="__codelineno-19-28" name="__codelineno-19-28" href="#__codelineno-19-28"></a><span class="s">        ;;</span>
-</span><span id="__span-19-29"><a id="__codelineno-19-29" name="__codelineno-19-29" href="#__codelineno-19-29"></a><span class="s">    &quot;vtysh -c &#39;show bgp &quot;*&quot;&#39;&quot;)</span>
-</span><span id="__span-19-30"><a id="__codelineno-19-30" name="__codelineno-19-30" href="#__codelineno-19-30"></a><span class="s">        exec /bin/bash -c -- &quot;$cmd&quot;</span>
+</span><span id="__span-19-29"><a id="__codelineno-19-29" name="__codelineno-19-29" href="#__codelineno-19-29"></a><span class="s">    "vtysh -c 'show bgp "*"'")</span>
+</span><span id="__span-19-30"><a id="__codelineno-19-30" name="__codelineno-19-30" href="#__codelineno-19-30"></a><span class="s">        exec /bin/bash -c -- "$cmd"</span>
 </span><span id="__span-19-31"><a id="__codelineno-19-31" name="__codelineno-19-31" href="#__codelineno-19-31"></a><span class="s">        ;;</span>
 </span><span id="__span-19-32"><a id="__codelineno-19-32" name="__codelineno-19-32" href="#__codelineno-19-32"></a><span class="s">    *)</span>
-</span><span id="__span-19-33"><a id="__codelineno-19-33" name="__codelineno-19-33" href="#__codelineno-19-33"></a><span class="s">        echo &quot;lg-shell: command not in whitelist: $cmd&quot; &gt;&amp;2</span>
+</span><span id="__span-19-33"><a id="__codelineno-19-33" name="__codelineno-19-33" href="#__codelineno-19-33"></a><span class="s">        echo "lg-shell: command not in whitelist: $cmd" &gt;&amp;2</span>
 </span><span id="__span-19-34"><a id="__codelineno-19-34" name="__codelineno-19-34" href="#__codelineno-19-34"></a><span class="s">        exit 126</span>
 </span><span id="__span-19-35"><a id="__codelineno-19-35" name="__codelineno-19-35" href="#__codelineno-19-35"></a><span class="s">        ;;</span>
 </span><span id="__span-19-36"><a id="__codelineno-19-36" name="__codelineno-19-36" href="#__codelineno-19-36"></a><span class="s">esac</span>
@@ -1913,13 +1913,13 @@
 </span></code></pre></div>
 <h3 id="verification_5">Verification<a class="headerlink" href="#verification_5" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Positive checks</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;ping -n -4 -c5 -I 192.0.2.1 1.1.1.1&#39;</span><span class="w">       </span><span class="c1"># works</span>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s2">&quot;vtysh -c &#39;show bgp vrf default ipv4 unicast summary json&#39;&quot;</span><span class="w">  </span><span class="c1"># works</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'ping -n -4 -c5 -I 192.0.2.1 1.1.1.1'</span><span class="w">       </span><span class="c1"># works</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s2">"vtysh -c 'show bgp vrf default ipv4 unicast summary json'"</span><span class="w">  </span><span class="c1"># works</span>
 </span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>
 </span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="c1"># Negative checks</span>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;whoami&#39;</span><span class="w">                  </span><span class="c1"># → exit 126, &quot;not in whitelist&quot;</span>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;cat /etc/passwd&#39;</span><span class="w">         </span><span class="c1"># → exit 126</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">&#39;ls; cat /etc/shadow&#39;</span><span class="w">     </span><span class="c1"># → exit 126, &quot;rejected metacharacters&quot;</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'whoami'</span><span class="w">                  </span><span class="c1"># → exit 126, "not in whitelist"</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'cat /etc/passwd'</span><span class="w">         </span><span class="c1"># → exit 126</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span><span class="s1">'ls; cat /etc/shadow'</span><span class="w">     </span><span class="c1"># → exit 126, "rejected metacharacters"</span>
 </span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>ssh<span class="w"> </span>lookingglass@rt<span class="w"> </span>-t<span class="w">                        </span><span class="c1"># → no PTY (sshd PermitTTY no)</span>
 </span></code></pre></div>
 <h3 id="caveats_5">Caveats<a class="headerlink" href="#caveats_5" title="Permanent link">&para;</a></h3>
@@ -1941,7 +1941,7 @@
 </span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>lg-cli<span class="w"> </span>bgp<span class="w"> </span>aspath<span class="w"> </span>&lt;instance&gt;<span class="w"> </span>&lt;router&gt;<span class="w"> </span><span class="m">64500</span>
 </span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>
 </span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="c1"># Confirm escalation is denied (this should *fail*):</span>
-</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>ssh<span class="w"> </span>lookingglass@&lt;router&gt;-host<span class="w"> </span><span class="s1">&#39;&lt;vendor-specific-write-command&gt;&#39;</span>
+</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>ssh<span class="w"> </span>lookingglass@&lt;router&gt;-host<span class="w"> </span><span class="s1">'&lt;vendor-specific-write-command&gt;'</span>
 </span></code></pre></div>
 <p>If all positive checks succeed and the negative check is denied, the role is correctly scoped.</p>
 <h2 id="maintenance-notes">Maintenance notes<a class="headerlink" href="#maintenance-notes" title="Permanent link">&para;</a></h2>
@@ -2008,7 +2008,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1139,10 +1139,10 @@
 <p>See <a href="../cli/">cli.md</a> for the user-facing reference.</p>
 <h3 id="pkghttp-listener-middleware"><code>pkg/http</code> — listener + middleware<a class="headerlink" href="#pkghttp-listener-middleware" title="Permanent link">&para;</a></h3>
 <p>The HTTP/2 listener is constructed in <code>ListenAndServe</code>. The middleware chain is intentionally built bottom-up (innermost first) so the order of <code>handler = wrap(handler)</code> assignments matches the order each wrapper sees the request:</p>
-<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">mux</span><span class="w">                                </span><span class="c1">// base</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">corsHandler</span><span class="p">.</span><span class="nx">Handler</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">       </span><span class="c1">// CORS allow-list</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">loggingHandler</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">            </span><span class="c1">// Structured slog + ETag</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nx">handler</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">sentryhttp</span><span class="p">.</span><span class="err">…</span><span class="nx">Handle</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">        </span><span class="c1">// Sentry (optional)</span>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">mux</span><span class="w">                                </span><span class="c1">// base</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nx">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">corsHandler</span><span class="p">.</span><span class="nx">Handler</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">       </span><span class="c1">// CORS allow-list</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nx">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">loggingHandler</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">            </span><span class="c1">// Structured slog + ETag</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nx">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sentryhttp</span><span class="p">.</span><span class="err">…</span><span class="nx">Handle</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span><span class="w">        </span><span class="c1">// Sentry (optional)</span>
 </span></code></pre></div>
 <p>So a request flows <strong>outermost → innermost</strong> as:</p>
 <ol>
@@ -1237,7 +1237,7 @@
 <p>There is <strong>no shared mutable state</strong> between request handlers. <code>RouterMap</code> is populated once at startup and treated as immutable thereafter; <code>_routers</code> in <code>pkg/routers</code> likewise. This is the property that makes the server horizontally scalable: replicas share nothing except (optionally) the Redis cache.</p>
 <p>The HealthCheck struct is technically read concurrently from RPC handlers and written concurrently from the ticker, but it holds only scalar values (<code>bool</code>, <code>time.Time</code>), so Go's memory model makes the race benign in practice — readers may see a slightly stale snapshot, never a torn struct.</p>
 <h2 id="request-lifecycle-ping-example">Request lifecycle (Ping example)<a class="headerlink" href="#request-lifecycle-ping-example" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1.  Browser submits PingRequest{router_id:1, target:&quot;1.1.1.1&quot;}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1.  Browser submits PingRequest{router_id:1, target:"1.1.1.1"}
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    via ConnectRPC gRPC-Web.
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>2.  Caddy/NGINX terminates TLS; upstream sees h2c.
@@ -1259,8 +1259,8 @@
 </span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>       - **HIT**: Retrieves the cached `PingResponse`, sets the `X-Cache: HIT` response header, and returns immediately.
 </span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>       - **MISS**: Continues execution:
 </span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>         i.   rm.GetByID(1) → RouterInstance.
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>         ii.  utils.NewIPNetFromProtobuf(&quot;1.1.1.1&quot;) → IPNet{ipv4}.
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>         iii. RouterInstance.Ping(ipnet) renders &quot;ping -n -4 -c5 -I 192.0.2.1 1.1.1.1&quot; and runs it over SSH (`utils.SSHExec`).
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>         ii.  utils.NewIPNetFromProtobuf("1.1.1.1") → IPNet{ipv4}.
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>         iii. RouterInstance.Ping(ipnet) renders "ping -n -4 -c5 -I 192.0.2.1 1.1.1.1" and runs it over SSH (`utils.SSHExec`).
 </span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>         iv.  Assembles &amp;PingResponse{result, timestamp}.
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>         v.   Spawns an asynchronous goroutine to save the marshaled protobuf response to Redis with the configured TTL (`rpcCacheSet`).
 </span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
@@ -1477,7 +1477,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
