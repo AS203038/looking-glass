@@ -13,4 +13,4 @@ Start
 
 PeerInfo
   ^.+uptime=${uptime} -> Continue
-  ^.+prefix-count=${prefixes_received}$$ -> Record Start
+  ^.+prefix-count=${prefixes_received}\s*$$ -> Record Start
