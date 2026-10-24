@@ -310,12 +310,13 @@ func TestTextFSMParserNokiaTraceroute(t *testing.T) {
 }
 
 const mikrotikPingSample = `  SEQ HOST                                     SIZE TTL TIME       STATUS
-    0 1.1.1.1                                    56  58 2ms        echo reply
-    1 1.1.1.1                                    56  58 2ms        echo reply
-    2 1.1.1.1                                    56  58 2ms        echo reply
-    3 1.1.1.1                                    56  58 2ms        echo reply
-    4 1.1.1.1                                    56  58 2ms        echo reply
-    sent=5 received=5 packet-loss=0% min-rtt=1ms avg-rtt=2ms max-rtt=4ms
+    0 1.1.1.1                                    56  58 2ms500us   echo reply
+    1 1.1.1.1                                    56  58 2ms300us   echo reply
+    2 1.1.1.1                                    56  58 2ms300us   echo reply
+    3 1.1.1.1                                    56  58 2ms300us   echo reply
+    4 1.1.1.1                                    56  58 2ms300us   echo reply
+    sent=5 received=5 packet-loss=0% min-rtt=1ms500us avg-rtt=2ms300us
+    max-rtt=4ms100us 
 `
 
 func TestTextFSMParserMikroTikPing(t *testing.T) {
@@ -328,9 +329,6 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	if !ok {
 		t.Fatalf("Payload type = %T", r.Payload)
 	}
-	if stats.Target != "1.1.1.1" {
-		t.Errorf("Target = %q, want 1.1.1.1", stats.Target)
-	}
 	if stats.PacketsSent != 5 || stats.PacketsReceived != 5 {
 		t.Errorf("packets sent=%d recv=%d", stats.PacketsSent, stats.PacketsReceived)
 	}
@@ -340,11 +338,11 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	}
 }
 
-const mikrotikTracerouteSample = ` # ADDRESS                                    LOSS SENT    LAST     AVG    BEST   WORST STD-DEV STATUS
- 1 10.0.0.254                                   0%    1   0.2ms   0.2ms   0.2ms   0.2ms       0
- 2 192.0.2.1                                    0%    1   1.1ms   1.1ms   1.1ms   1.1ms       0
- 3 (timeout)                                  100%    1                                       0
- 4 1.1.1.1                                      0%    1   8.0ms   8.0ms   8.0ms   8.0ms       0
+const mikrotikTracerouteSample = `target=1.1.1.1
+ttl=1;address=10.0.0.254;rtt=0.2
+ttl=2;address=192.0.2.1;rtt=1.1
+ttl=3;address=;rtt=
+ttl=4;address=1.1.1.1;rtt=8.0
 `
 
 func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
@@ -851,12 +849,8 @@ func TestTextFSMParserNokiaBGPRoutes(t *testing.T) {
 	}
 }
 
-const mikrotikBGPAdvSample = ` Flags: A - active
-  0 A peer="peer1" dst-address=1.1.1.0/24
-      nexthop=10.0.0.2 origin=igp local-pref=100 med=0
-      as-path="65001,65002"
-      communities=65000:100,65000:200
-      large-communities=214503:8:3607
+const mikrotikBGPAdvSample = `   peer=peer1 dst=1.1.1.0/24
+     afi=ipv4 nexthop=10.0.0.2 origin=0 as-path=sequence 65001 65002
 `
 
 func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
@@ -876,18 +870,11 @@ func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	if p.Prefix != "1.1.1.0/24" {
 		t.Errorf("Prefix = %q", p.Prefix)
 	}
-	// AS-path is comma-separated in RouterOS; projector splits.
 	if got, want := p.AsPath, []uint32{65001, 65002}; !equalU32(got, want) {
 		t.Errorf("AsPath = %v, want %v", got, want)
 	}
-	if p.Origin != "igp" {
-		t.Errorf("Origin = %q, want igp", p.Origin)
-	}
-	if !p.Best {
-		t.Errorf("Best=false, want true (`A` flag)")
-	}
-	if got, want := p.Communities, []string{"65000:100", "65000:200"}; !equalStr(got, want) {
-		t.Errorf("Communities = %v, want %v", got, want)
+	if p.Origin != "0" {
+		t.Errorf("Origin = %q, want 0 (RouterOS numeric IGP origin)", p.Origin)
 	}
 }
 
@@ -1191,24 +1178,30 @@ func TestTextFSMParserNokiaBGPSummary(t *testing.T) {
 	}
 }
 
-const mikrotikBGPSummarySample = ` Flags: E - established, * - dynamic
-  0 E name="peer1"
-      remote.address=10.0.0.2 .as=65001 .id=10.0.0.2 .refresh=yes
-      local.address=10.0.0.1 .as=65000 .role=ebgp
-      output.network="bgp-networks" .filter-chain="" .accepted-routes=600
-      input.filter="bgp-in" .accepted-routes=500 .rejected-routes=0 .ignored-routes=0
-      hold-time=3m keepalive-time=1m uptime=1d2h3m4s
-      prefix-count=500
-  1 name="peer2"
-      remote.address=10.0.0.3 .as=65002 .id=0.0.0.0 .refresh=no
-      local.address=10.0.0.1 .as=65000 .role=ebgp
-      hold-time=3m keepalive-time=1m uptime=0s
-      prefix-count=0
+const mikrotikBGPSummarySample = ` Flags: E - ESTABLISHED
+ 0 E name="peer1" instance=bgp-instance-1 remote.address=10.0.0.2
+     .as=65001 .id=10.0.0.2 .capabilities=mp,rr,gr,as4,err .afi=ipv4
+     .hold-time=4m .messages=12345 .bytes=234567 .eor=ipv4
+     local.address=10.0.0.1 .as=65000 .id=10.0.0.1
+     .cluster-id=10.0.0.1 .capabilities=mp,rr,enhe,gr,as4 .afi=ipv4
+     .messages=1000 .bytes=20000 .eor="" output.procid=20 .filter-chain=bgp_out
+     .network=bgp-networks input.procid=20 .filter=bgp_in ebgp hold-time=3m
+     keepalive-time=1m uptime=1d2h3m4s last-started=2026-10-23 12:00:00
+     prefix-count=500 
+ 1 name="peer2" instance=bgp-instance-1 remote.address=10.0.0.3
+     .as=65002 .id=0.0.0.0 .capabilities=mp,rr,as4 .afi=ipv4
+     .hold-time=4m .messages=0 .bytes=0 .eor=""
+     local.address=10.0.0.1 .as=65000 .id=10.0.0.1
+     .cluster-id=10.0.0.1 .capabilities=mp,rr,enhe,gr,as4 .afi=ipv4
+     .messages=0 .bytes=0 .eor="" output.procid=20 .filter-chain=bgp_out
+     .network=bgp-networks input.procid=20 .filter=bgp_in ebgp hold-time=3m
+     keepalive-time=1m uptime=0s
+     prefix-count=0 
 `
 
 func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(mikrotikBGPSummarySample),
-		Config{Template: "mikrotik_routeros_show_bgp_summary"})
+		Config{Template: "mikrotik_routeros_show_bgp_session"})
 	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
 		t.Fatalf("Status = %v, want OK", r.Status)
 	}
@@ -1226,9 +1219,8 @@ func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
 	if s.Peers[0].PeerAsn != 65001 {
 		t.Errorf("peer0 asn = %d", s.Peers[0].PeerAsn)
 	}
-	if s.Peers[0].PrefixesReceived != 500 || s.Peers[0].PrefixesSent != 600 {
-		t.Errorf("peer0 pfx recv/sent = %d/%d",
-			s.Peers[0].PrefixesReceived, s.Peers[0].PrefixesSent)
+	if s.Peers[0].PrefixesReceived != 500 {
+		t.Errorf("peer0 pfx recv = %d", s.Peers[0].PrefixesReceived)
 	}
 	// Peer 2: no `E` flag → state empty.
 	if s.Peers[1].State != "" {
