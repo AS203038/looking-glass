@@ -878,6 +878,43 @@ func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	}
 }
 
+const mikrotikBGPRoutesSample = ` Flags: X - DISABLED, F - FILTERED, U - UNREACHABLE, A - ACTIVE; c - CONNECT, s - STATIC, r - RIP, b - BGP, n - BGP-NET, o - OSPF, i - ISIS, d - DHCP, v - VPN, m - MODEM, a - LDP-ADDRESS, l - LDP-MAPPING, g - SLAAC, y - BGP-MPLS-VPN, e - EVPN
+        H - HW-OFFLOADED; + - ECMP, B - BLACKHOLE
+ Ab afi=ipv4 contribution=active dst-address=1.1.1.0/24 routing-table=main gateway=10.0.0.1 immediate-gw=10.0.0.1 distance=20 scope=40 target-scope=10 belongs-to="bgp-IPv4-10.0.0.1"
+    rpki=unknown bgp.session=peer1 .as-path="65001,65002" .communities=65000:100,65000:200 .large-communities=214503:8:3607 .origin=igp debug.fwp-ptr=0x00000001 
+`
+
+func TestTextFSMParserMikroTikBGPRoutes(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPRoute, []byte(mikrotikBGPRoutesSample),
+		Config{Template: "mikrotik_routeros_show_bgp_routes"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	paths, ok := r.Payload.(*pb.BGPPaths)
+	if !ok {
+		t.Fatalf("Payload type = %T", r.Payload)
+	}
+	if got := len(paths.Paths); got != 1 {
+		t.Fatalf("len(Paths) = %d, want 1", got)
+	}
+	p := paths.Paths[0]
+	if p.Prefix != "1.1.1.0/24" {
+		t.Errorf("Prefix = %q", p.Prefix)
+	}
+	if p.Nexthop != "10.0.0.1" {
+		t.Errorf("Nexthop = %q", p.Nexthop)
+	}
+	if got, want := p.AsPath, []uint32{65001, 65002}; !equalU32(got, want) {
+		t.Errorf("AsPath = %v, want %v", got, want)
+	}
+	if p.Origin != "igp" {
+		t.Errorf("Origin = %q, want igp", p.Origin)
+	}
+	if got, want := p.LargeCommunities, []string{"214503:8:3607"}; !equalStr(got, want) {
+		t.Errorf("LargeCommunities = %v, want %v", got, want)
+	}
+}
+
 const aristaBGPSummarySample = `BGP summary information for VRF default
 Router identifier 10.0.0.1, local AS number 65000
 Neighbor        V AS           MsgRcvd MsgSent  InQ OutQ  Up/Down State  PfxRcd PfxAcc
