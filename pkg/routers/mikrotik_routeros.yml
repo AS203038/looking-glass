@@ -8,9 +8,9 @@ ping:
 
 traceroute:
     ipv4:
-        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}} vrf={{.Cfg.VRF}} count=1 duration=10s
+        - :put "target={{.IP.IP}}"; :local i 1; :foreach h in=[/tool traceroute {{.IP.IP}} src-address={{.Cfg.Source4.IP}} vrf={{.Cfg.VRF}} count=1 duration=10s as-value] do={ :local a ($h->"avg"); :local r ""; :if ([:typeof $a] != "nothing") do={ :set r (($a / 10) . "." . ($a % 10)) }; :put ("ttl=$i;address=" . ($h->"address") . ";rtt=$r"); :set i ($i + 1) }
     ipv6:
-        - /tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}} vrf={{.Cfg.VRF}} count=1 duration=10s
+        - :put "target={{.IP.IP}}"; :local i 1; :foreach h in=[/tool traceroute {{.IP.IP}} src-address={{.Cfg.Source6.IP}} vrf={{.Cfg.VRF}} count=1 duration=10s as-value] do={ :local a ($h->"avg"); :local r ""; :if ([:typeof $a] != "nothing") do={ :set r (($a / 10) . "." . ($a % 10)) }; :put ("ttl=$i;address=" . ($h->"address") . ";rtt=$r"); :set i ($i + 1) }
 
 bgp:
     summary:
