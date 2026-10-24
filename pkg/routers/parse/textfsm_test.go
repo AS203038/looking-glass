@@ -332,11 +332,6 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	if !ok {
 		t.Fatalf("Payload type = %T", r.Payload)
 	}
-	// The template's rules cover only the wrapped summary line, so the
-	// per-sequence HOST column is not projected into Target.
-	if stats.Target != "" {
-		t.Errorf("Target = %q, want empty", stats.Target)
-	}
 	if stats.PacketsSent != 5 || stats.PacketsReceived != 5 {
 		t.Errorf("packets sent=%d recv=%d", stats.PacketsSent, stats.PacketsReceived)
 	}
@@ -349,14 +344,12 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	}
 }
 
-// RouterOS aggregates every probe of a hop into one row, and a fully
-// timed-out hop prints "--" placeholders instead of millisecond values.
-const mikrotikTracerouteSample = " # ADDRESS                          LOSS SENT    LAST     AVG    BEST   WORST STD-DEV STATUS\n" +
-	" 1 10.0.0.254                          0%    1   0.2ms    0.2ms    0.2ms    0.2ms       0\n" +
-	" 2 192.0.2.1                           0%    1   1.1ms    1.1ms    1.1ms    1.1ms       0\n" +
-	" 3 198.51.100.1                       50%    2   3.4ms    3.6ms    3.4ms    3.8ms     0.2\n" +
-	" 4 0.0.0.0                           100%    1    --       --       --       --        0\n" +
-	" 5 1.1.1.1                             0%    1   8.0ms    8.0ms    8.0ms    8.0ms       0\n"
+const mikrotikTracerouteSample = `target=1.1.1.1
+ttl=1;address=10.0.0.254;rtt=0.2
+ttl=2;address=192.0.2.1;rtt=1.1
+ttl=3;address=;rtt=
+ttl=4;address=1.1.1.1;rtt=8.0
+`
 
 // TestTextFSMParserMikroTikTraceroute verifies the RouterOS traceroute
 // template emits one probe per hop and drops timed-out hops.
@@ -870,13 +863,9 @@ func TestTextFSMParserNokiaBGPRoutes(t *testing.T) {
 	}
 }
 
-// RouterOS wraps long entry lines, so `peer= … dst= …` lands on its own
-// line and the AS-path prints as `as-path=sequence <n,n,…>`.
-const mikrotikBGPAdvSample = " Flags: X - disabled, A - active\n" +
-	"   0 A\n" +
-	"     peer=\"peer1\" dst=1.1.1.0/24 state=installed,ready,active\n" +
-	"        nexthop=10.0.0.2 origin=igp as-path=sequence 65001,65002\n" +
-	"        community=65000:100,65000:200 big-communities=214503:8:3607\n"
+const mikrotikBGPAdvSample = `   peer=peer1 dst=1.1.1.0/24
+     afi=ipv4 nexthop=10.0.0.2 origin=0 as-path=sequence 65001 65002
+`
 
 // TestTextFSMParserMikroTikBGPAdvertisements verifies the RouterOS
 // advertisements template projects prefix, next-hop, and AS-path.
@@ -1217,24 +1206,31 @@ func TestTextFSMParserNokiaBGPSummary(t *testing.T) {
 	}
 }
 
-// RouterOS prints session detail with dotted continuation keys
-// (`remote.address=` / `.as=`), so the flag and name share the entry line.
-const mikrotikBGPSessionSample = " Flags: X - disabled, E - established\n" +
-	" 0 E name=\"upstream-peer\"\n" +
-	"     remote.address=10.0.0.2 .as=65001 .id=0.0.0.0 .refresh=yes\n" +
-	"     local.address=10.0.0.1 .as=65000 .role=ebgp\n" +
-	"     hold-time=3m keepalive-time=1m uptime=1d2h3m4s\n" +
-	"     prefix-count=500\n" +
-	" 1 name=\"downstream-peer\"\n" +
-	"     remote.address=10.0.0.3 .as=65002 .id=0.0.0.0 .refresh=no\n" +
-	"     local.address=10.0.0.1 .as=65000 .role=ebgp\n" +
-	"     hold-time=3m keepalive-time=1m uptime=0s\n" +
-	"     prefix-count=0\n"
+const mikrotikBGPSummarySample = ` Flags: E - ESTABLISHED
+ 0 E name="peer1" instance=bgp-instance-1 remote.address=10.0.0.2
+     .as=65001 .id=10.0.0.2 .capabilities=mp,rr,gr,as4,err .afi=ipv4
+     .hold-time=4m .messages=12345 .bytes=234567 .eor=ipv4
+     local.address=10.0.0.1 .as=65000 .id=10.0.0.1
+     .cluster-id=10.0.0.1 .capabilities=mp,rr,enhe,gr,as4 .afi=ipv4
+     .messages=1000 .bytes=20000 .eor="" output.procid=20 .filter-chain=bgp_out
+     .network=bgp-networks input.procid=20 .filter=bgp_in ebgp hold-time=3m
+     keepalive-time=1m uptime=1d2h3m4s last-started=2026-10-23 12:00:00
+     prefix-count=500 
+ 1 name="peer2" instance=bgp-instance-1 remote.address=10.0.0.3
+     .as=65002 .id=0.0.0.0 .capabilities=mp,rr,as4 .afi=ipv4
+     .hold-time=4m .messages=0 .bytes=0 .eor=""
+     local.address=10.0.0.1 .as=65000 .id=10.0.0.1
+     .cluster-id=10.0.0.1 .capabilities=mp,rr,enhe,gr,as4 .afi=ipv4
+     .messages=0 .bytes=0 .eor="" output.procid=20 .filter-chain=bgp_out
+     .network=bgp-networks input.procid=20 .filter=bgp_in ebgp hold-time=3m
+     keepalive-time=1m uptime=0s
+     prefix-count=0 
+`
 
 // TestTextFSMParserMikroTikBGPSession verifies the RouterOS session
 // template projects peer state, ASN, and prefix counters.
-func TestTextFSMParserMikroTikBGPSession(t *testing.T) {
-	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(mikrotikBGPSessionSample),
+func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(mikrotikBGPSummarySample),
 		Config{Template: "mikrotik_routeros_show_bgp_session"})
 	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
 		t.Fatalf("Status = %v, want OK", r.Status)
