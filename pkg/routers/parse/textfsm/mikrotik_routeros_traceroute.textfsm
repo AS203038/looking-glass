@@ -1,6 +1,13 @@
-Value Required ttl (\d+)
-Value ip ([0-9a-fA-F:.]+)
-Value rtt_ms (\d+(?:\.\d+)?)
+Value Filldown target ([^\s\]";]+)
+Value Filldown source ([^\s\]";]+)
+Value Required ttl ([0-9a-fA-F]+)
+Value ip ([^;]*)
+Value hostname ([^;]*)
+Value rtt_ms ([\d.]+)
+Value asn (\d+)
 
 Start
-  ^\s*${ttl}\s+${ip}\s+\d+%\s+\d+\s+${rtt_ms}ms -> Record
+  ^.*/tool traceroute.*\saddress=${target} -> Continue
+  ^.*/tool traceroute.*\ssrc-address=${source}
+  ^target=${target}\s*$$
+  ^ttl=${ttl};address=${ip};rtt=${rtt_ms}?\s*$$ -> Record
