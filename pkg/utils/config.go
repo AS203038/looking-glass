@@ -72,6 +72,8 @@ type RouterConfig struct {
 	Password string `yaml:"password"`
 	// SSHKey is the path to a private key on the server filesystem.
 	SSHKey string `yaml:"ssh_key"`
+	// SSHCert is the path to an OpenSSH user certificate for SSHKey.
+	SSHCert string `yaml:"ssh_cert"`
 	// VRF is the routing instance interpolated into vendor templates.
 	VRF string `yaml:"vrf"`
 	// Location is the free-form site label.
@@ -189,7 +191,9 @@ func ParseConfigYaml(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	ValidateConfig(&config)
+	if err := ValidateConfig(&config); err != nil {
+		return nil, err
+	}
 	return &config, nil
 }
 
@@ -238,11 +242,15 @@ func (s *SecurityTxtConfig) String() string {
 
 // ValidateConfig normalises a freshly-parsed [Config] in place: drops devices
 // without a Hostname and supplies loopback defaults for missing Source4/Source6.
-func ValidateConfig(c *Config) {
+// It returns an error for a kept device that sets SSHCert without SSHKey.
+func ValidateConfig(c *Config) error {
 	var valid []RouterConfig
 	for _, v := range c.Devices {
 		if v.Hostname == "" {
 			continue
+		}
+		if v.SSHCert != "" && v.SSHKey == "" {
+			return fmt.Errorf("device %q: ssh_cert requires ssh_key", v.Name)
 		}
 		if v.Source4 == nil {
 			v.Source4, _ = NewIPNET("127.0.0.1")
@@ -253,4 +261,5 @@ func ValidateConfig(c *Config) {
 		valid = append(valid, v)
 	}
 	c.Devices = valid
+	return nil
 }
