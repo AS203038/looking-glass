@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -34,7 +35,7 @@ func resolveTemplate(name string) (gotextfsm.TextFSM, error) {
 		return gotextfsm.TextFSM{}, errTemplateMissing
 	}
 	if cached, ok := templateCache.Load(name); ok {
-		return cached.(gotextfsm.TextFSM), nil
+		return parseCopy(cached.(gotextfsm.TextFSM)), nil
 	}
 	body, err := readTemplateBody(name)
 	if err != nil {
@@ -45,7 +46,13 @@ func resolveTemplate(name string) (gotextfsm.TextFSM, error) {
 		return gotextfsm.TextFSM{}, fmt.Errorf("textfsm template %q parse: %w", name, err)
 	}
 	templateCache.Store(name, tpl)
-	return tpl, nil
+	return parseCopy(tpl), nil
+}
+
+// parseCopy gives tpl its own Values map, because gotextfsm keeps the state of a parse in it.
+func parseCopy(tpl gotextfsm.TextFSM) gotextfsm.TextFSM {
+	tpl.Values = maps.Clone(tpl.Values)
+	return tpl
 }
 
 // readTemplateBody locates a template body under `$ROUTER_DIR/textfsm/`
