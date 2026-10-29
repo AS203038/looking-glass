@@ -26,8 +26,7 @@ func TestMuxAndHealthcheck(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	Mux(ctx, mux, rts)
-	time.Sleep(5 * time.Millisecond)
+	<-Mux(ctx, mux, rts)
 
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	healthcheckInterval = 2 * time.Millisecond
@@ -36,10 +35,10 @@ func TestMuxAndHealthcheck(t *testing.T) {
 	}()
 
 	mux2 := http.NewServeMux()
-	Mux(ctx2, mux2, rts)
+	done := Mux(ctx2, mux2, rts)
 	time.Sleep(10 * time.Millisecond)
 	cancel2()
-	time.Sleep(5 * time.Millisecond)
+	<-done
 }
 
 // TestProbeRouterOnce verifies the probeRouterOnce reachability state machine.
