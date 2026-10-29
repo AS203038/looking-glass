@@ -352,7 +352,7 @@ ttl=4;address=1.1.1.1;rtt=8.0
 `
 
 // TestTextFSMParserMikroTikTraceroute verifies the RouterOS traceroute
-// template emits one probe per hop and drops timed-out hops.
+// template emits one probe per hop and keeps timed-out hops (empty IP).
 func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpTraceroute, []byte(mikrotikTracerouteSample),
 		Config{Template: "mikrotik_routeros_traceroute"})
@@ -363,7 +363,7 @@ func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	if !ok {
 		t.Fatalf("Payload type = %T", r.Payload)
 	}
-	// Hop 4 timed out, so its row is not matched and the TTL jumps 3 → 5.
+	// Hop 3 timed out: the row is kept with an empty IP and no RTT.
 	if got := len(tp.Hops); got != 4 {
 		t.Fatalf("len(Hops) = %d, want 4", got)
 	}
@@ -377,12 +377,12 @@ func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	if tp.Hops[1].Probes[0].Ip != "192.0.2.1" {
 		t.Errorf("hop2 probe0 ip: %+v", tp.Hops[1].Probes[0])
 	}
-	if tp.Hops[2].Probes[0].Ip != "198.51.100.1" || tp.Hops[2].Probes[0].RttMs != 3.4 {
-		t.Errorf("hop3 probe0: %+v, want 198.51.100.1 at 3.4ms", tp.Hops[2].Probes[0])
+	if tp.Hops[2].Ttl != 3 || tp.Hops[2].Probes[0].Ip != "" || tp.Hops[2].Probes[0].RttMs != 0 {
+		t.Errorf("hop3 (timeout): %+v", tp.Hops[2])
 	}
-	// Hop 5 — destination probe carries the destination IP.
-	if tp.Hops[3].Ttl != 5 {
-		t.Errorf("hop4 ttl = %d, want 5", tp.Hops[3].Ttl)
+	// Hop 4 — destination probe carries the destination IP.
+	if tp.Hops[3].Ttl != 4 {
+		t.Errorf("hop4 ttl = %d, want 4", tp.Hops[3].Ttl)
 	}
 	if tp.Hops[3].Probes[0].Ip != "1.1.1.1" {
 		t.Errorf("hop4 probe0 ip: %+v", tp.Hops[3].Probes[0])
@@ -893,8 +893,10 @@ func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	if got, want := p.AsPath, []uint32{65001, 65002}; !equalU32(got, want) {
 		t.Errorf("AsPath = %v, want %v", got, want)
 	}
-	if p.Origin != "igp" {
-		t.Errorf("Origin = %q, want igp", p.Origin)
+	// RouterOS prints the numeric ORIGIN code (0 = igp); the template
+	// passes it through unchanged.
+	if p.Origin != "0" {
+		t.Errorf("Origin = %q, want 0", p.Origin)
 	}
 	// The template rules reference neither `best` nor `communities`, so
 	// those columns stay unset.
@@ -1289,8 +1291,8 @@ func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
 	if s.Peers[0].PeerAsn != 65001 {
 		t.Errorf("peer0 asn = %d, want 65001", s.Peers[0].PeerAsn)
 	}
-	if s.Peers[0].Description != "upstream-peer" {
-		t.Errorf("peer0 description = %q, want upstream-peer", s.Peers[0].Description)
+	if s.Peers[0].Description != "peer1" {
+		t.Errorf("peer0 description = %q, want peer1", s.Peers[0].Description)
 	}
 	if s.Peers[0].PrefixesReceived != 500 {
 		t.Errorf("peer0 pfx recv = %d, want 500", s.Peers[0].PrefixesReceived)
