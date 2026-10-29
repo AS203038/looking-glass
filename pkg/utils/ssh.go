@@ -49,7 +49,10 @@ func isAlive(client *ssh.Client) bool {
 	return err == nil
 }
 
-func (p *sshPool) Checkout(router *RouterConfig, config *ssh.ClientConfig) (*ssh.Client, error) {
+// Checkout returns an idle connection that is still alive, or dials a new one.
+// newConfig runs only for a new connection: an idle connection keeps the
+// credentials of its original handshake.
+func (p *sshPool) Checkout(router *RouterConfig, newConfig func() (*ssh.ClientConfig, error)) (*ssh.Client, error) {
 	for {
 		p.mu.Lock()
 		if len(p.conns) > 0 {
@@ -79,6 +82,13 @@ func (p *sshPool) Checkout(router *RouterConfig, config *ssh.ClientConfig) (*ssh
 		p.numOpen++
 		p.mu.Unlock()
 
+		config, err := newConfig()
+		if err != nil {
+			p.mu.Lock()
+			p.numOpen--
+			p.mu.Unlock()
+			return nil, err
+		}
 		sshLogAt(slog.LevelDebug, "ssh pool slot acquired, dialing new connection", router)
 		client, err := ssh.Dial("tcp", router.Hostname, config)
 		if err != nil {
@@ -207,56 +217,12 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	if !router.HasSSHCredentials() {
 		return nil, errs.AuthFailed
 	}
-	auths := []ssh.AuthMethod{}
-	methods := make([]string, 0, 3)
-	if router.SSHKey != "" {
-		k, err := os.ReadFile(router.SSHKey)
-		if err != nil {
-			sshLogAt(slog.LevelError, "read ssh key failed", router,
-				slog.String("key", router.SSHKey),
-				slog.Any("err", err))
-			return nil, errs.AuthFailed
-		}
-		key, err := ssh.ParsePrivateKey(k)
-		if err != nil {
-			sshLogAt(slog.LevelError, "parse ssh key failed", router,
-				slog.String("key", router.SSHKey),
-				slog.Any("err", err))
-			return nil, errs.AuthFailed
-		}
-		signers := []ssh.Signer{key}
-		if router.SSHCert != "" {
-			certSigner, err := loadCertSigner(router, key)
-			if err != nil {
-				return nil, err
-			}
-			signers = []ssh.Signer{certSigner, key}
-			methods = append(methods, "publickey-cert")
-		}
-		auths = append(auths, ssh.PublicKeys(signers...))
-		methods = append(methods, "publickey")
-	}
-	if router.Password != "" {
-		auths = append(auths,
-			ssh.Password(router.Password),
-			ssh.KeyboardInteractive(func(user, instruction string, questions []string, echos []bool) ([]string, error) {
-				answers := make([]string, len(questions))
-				for i := range questions {
-					answers[i] = router.Password
-				}
-				return answers, nil
-			}),
-		)
-		methods = append(methods, "password", "keyboard-interactive")
-	}
-
-	config := &ssh.ClientConfig{
-		User:            router.Username,
-		Auth:            auths,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
 
 	if router.SSHPoolSize <= 0 {
+		config, methods, err := sshClientConfig(router)
+		if err != nil {
+			return nil, err
+		}
 		sshLogAt(slog.LevelDebug, "ssh dial start (unpooled)", router,
 			slog.Any("auth_methods", methods),
 			slog.Int("commands", len(cmd)))
@@ -279,10 +245,13 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 
 	// Pooled Execution Path
 	pool := getPool(router)
-	client, err := pool.Checkout(router, config)
+	client, err := pool.Checkout(router, func() (*ssh.ClientConfig, error) {
+		config, _, err := sshClientConfig(router)
+		return config, err
+	})
 	if err != nil {
-		if errors.Is(err, errs.PoolExhausted) {
-			return nil, errs.PoolExhausted
+		if errors.Is(err, errs.PoolExhausted) || errors.Is(err, errs.AuthFailed) {
+			return nil, err
 		}
 		sshLogAt(slog.LevelError, "checkout failed", router, slog.Any("err", err))
 		return nil, errs.ConnectionFailed
@@ -295,6 +264,59 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+// sshClientConfig reads the key and the certificate of router and returns the
+// client config for one new connection with the names of its auth methods.
+func sshClientConfig(router *RouterConfig) (*ssh.ClientConfig, []string, error) {
+	auths := []ssh.AuthMethod{}
+	methods := make([]string, 0, 3)
+	if router.SSHKey != "" {
+		k, err := os.ReadFile(router.SSHKey)
+		if err != nil {
+			sshLogAt(slog.LevelError, "read ssh key failed", router,
+				slog.String("key", router.SSHKey),
+				slog.Any("err", err))
+			return nil, nil, errs.AuthFailed
+		}
+		key, err := ssh.ParsePrivateKey(k)
+		if err != nil {
+			sshLogAt(slog.LevelError, "parse ssh key failed", router,
+				slog.String("key", router.SSHKey),
+				slog.Any("err", err))
+			return nil, nil, errs.AuthFailed
+		}
+		signers := []ssh.Signer{key}
+		if router.SSHCert != "" {
+			certSigner, err := loadCertSigner(router, key)
+			if err != nil {
+				return nil, nil, err
+			}
+			signers = []ssh.Signer{certSigner, key}
+			methods = append(methods, "publickey-cert")
+		}
+		auths = append(auths, ssh.PublicKeys(signers...))
+		methods = append(methods, "publickey")
+	}
+	if router.Password != "" {
+		auths = append(auths,
+			ssh.Password(router.Password),
+			ssh.KeyboardInteractive(func(user, instruction string, questions []string, echos []bool) ([]string, error) {
+				answers := make([]string, len(questions))
+				for i := range questions {
+					answers[i] = router.Password
+				}
+				return answers, nil
+			}),
+		)
+		methods = append(methods, "password", "keyboard-interactive")
+	}
+
+	return &ssh.ClientConfig{
+		User:            router.Username,
+		Auth:            auths,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}, methods, nil
 }
 
 // loadCertSigner reads the OpenSSH certificate at router.SSHCert and binds it

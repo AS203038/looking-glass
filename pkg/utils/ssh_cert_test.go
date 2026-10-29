@@ -334,6 +334,30 @@ func TestSSHExecCertRenewedFileIsRead(t *testing.T) {
 	}
 }
 
+func TestSSHExecPooledReuseSkipsCertFile(t *testing.T) {
+	e := newCertTestEnv(t)
+	writeTestCert(t, e.certPath, e.ca, e.key.PublicKey(), 1, ssh.CertTimeInfinity)
+	router := e.router(e.certPath)
+	router.Name = "cert-pool-test"
+	router.SSHPoolSize = 1
+	t.Cleanup(ClosePools)
+
+	if _, err := SSHExec(router, []string{"show version"}); err != nil {
+		t.Fatalf("first SSHExec: %v", err)
+	}
+	if err := os.Remove(e.certPath); err != nil {
+		t.Fatalf("remove cert: %v", err)
+	}
+	if _, err := SSHExec(router, []string{"show version"}); err != nil {
+		t.Fatalf("SSHExec on the idle pooled connection without the cert file: %v", err)
+	}
+
+	ClosePools()
+	if _, err := SSHExec(router, []string{"show version"}); !errors.Is(err, errs.AuthFailed) {
+		t.Fatalf("expected errs.AuthFailed for a new connection without the cert file, got %v", err)
+	}
+}
+
 func TestParseConfigSSHCertRequiresKey(t *testing.T) {
 	dir := t.TempDir()
 	parse := func(device string) (*Config, error) {
