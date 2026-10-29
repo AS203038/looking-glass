@@ -214,6 +214,15 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 // returned as the coarse [errs] sentinels; detailed diagnostics are written
 // to the server log.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
+	return withSSHClient(router, len(cmd), func(client *ssh.Client) ([]string, error) {
+		return execOnClient(client, router, cmd)
+	})
+}
+
+// withSSHClient authenticates to the router and calls run with a connected
+// client. The client comes from the router's pool and goes back to it, or is
+// dialed for this call only when pooling is off. commands is only logged.
+func withSSHClient(router *RouterConfig, commands int, run func(*ssh.Client) ([]string, error)) ([]string, error) {
 	if !router.HasSSHCredentials() {
 		return nil, errs.AuthFailed
 	}
@@ -225,7 +234,7 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 		}
 		sshLogAt(slog.LevelDebug, "ssh dial start (unpooled)", router,
 			slog.Any("auth_methods", methods),
-			slog.Int("commands", len(cmd)))
+			slog.Int("commands", commands))
 		dialStart := time.Now()
 		client, err := ssh.Dial("tcp", router.Hostname, config)
 		if err != nil {
@@ -240,7 +249,7 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 			client.Close()
 			sshLogAt(slog.LevelDebug, "ssh client close (unpooled)", router)
 		}()
-		return execOnClient(client, router, cmd)
+		return run(client)
 	}
 
 	// Pooled Execution Path
@@ -257,7 +266,7 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 		return nil, errs.ConnectionFailed
 	}
 
-	ret, err := execOnClient(client, router, cmd)
+	ret, err := run(client)
 	pool.Recycle(client, router, err == nil)
 	if err != nil {
 		return nil, err
