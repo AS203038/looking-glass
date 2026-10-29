@@ -30,13 +30,19 @@ var healthcheckInterval = time.Minute
 
 // Mux mounts the LookingGlassService and the gRPC health endpoint onto
 // mux, marks the service as Serving, and launches the [healthcheck] loop.
-func Mux(ctx context.Context, mux *http.ServeMux, rts utils.RouterMap) {
+// The returned channel is closed when the loop returns after ctx is cancelled.
+func Mux(ctx context.Context, mux *http.ServeMux, rts utils.RouterMap) <-chan struct{} {
 	server := connect.NewServer()
 	lookingglassconnect.RegisterLookingGlassServiceHandler(server, NewLookingGlassService(ctx, rts))
 	grpchealth.Register(server, Health)
 	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(maxRequestBytes))
 	Health.SetStatus(lookingglassconnect.LookingGlassServiceName, grpchealth.StatusServing)
-	go healthcheck(ctx, rts)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		healthcheck(ctx, rts)
+	}()
+	return done
 }
 
 // healthcheck runs one [probeRouterOnce] sweep per minute over rts
