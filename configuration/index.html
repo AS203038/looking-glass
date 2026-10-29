@@ -1046,10 +1046,11 @@
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">"lg"</span><span class="w">                    </span><span class="c1"># required for SSH login</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">"secret"</span><span class="w">                </span><span class="c1"># optional (use ssh_key instead)</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nt">ssh_key</span><span class="p">:</span><span class="w">  </span><span class="s">"/run/secrets/lg-key"</span><span class="w">   </span><span class="c1"># optional, takes precedence if set</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">source4</span><span class="p">:</span><span class="w">  </span><span class="s">"192.0.2.1"</span><span class="w">             </span><span class="c1"># required for IPv4 ping/traceroute</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nt">source6</span><span class="p">:</span><span class="w">  </span><span class="s">"2001:db8::1"</span><span class="w">           </span><span class="c1"># required for IPv6 ping/traceroute</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">vrf</span><span class="p">:</span><span class="w">      </span><span class="s">"default"</span><span class="w">               </span><span class="c1"># required (use "default" / "main" / "Base" if you don't run VRFs)</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">ssh_pool_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                  </span><span class="c1"># optional maximum idle connections to pool for this device (0 disables pooling)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">ssh_cert</span><span class="p">:</span><span class="w"> </span><span class="s">"/run/secrets/lg-key-cert.pub"</span><span class="w"> </span><span class="c1"># optional OpenSSH certificate for ssh_key</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nt">source4</span><span class="p">:</span><span class="w">  </span><span class="s">"192.0.2.1"</span><span class="w">             </span><span class="c1"># required for IPv4 ping/traceroute</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">source6</span><span class="p">:</span><span class="w">  </span><span class="s">"2001:db8::1"</span><span class="w">           </span><span class="c1"># required for IPv6 ping/traceroute</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">vrf</span><span class="p">:</span><span class="w">      </span><span class="s">"default"</span><span class="w">               </span><span class="c1"># required (use "default" / "main" / "Base" if you don't run VRFs)</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">ssh_pool_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                  </span><span class="c1"># optional maximum idle connections to pool for this device (0 disables pooling)</span>
 </span></code></pre></div>
 <h3 id="field-semantics">Field semantics<a class="headerlink" href="#field-semantics" title="Permanent link">&para;</a></h3>
 <table>
@@ -1105,6 +1106,12 @@
 <td>Filesystem path to a PEM-encoded private key. Read at every connection. When set, it's appended to the auth methods.</td>
 </tr>
 <tr>
+<td><code>ssh_cert</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Filesystem path to an OpenSSH user certificate (<code>*-cert.pub</code>) for <code>ssh_key</code>. Read at every connection and offered before the plain key. Requires <code>ssh_key</code>: without it, the server does not start. A certificate for another key fails the connection with an authentication error.</td>
+</tr>
+<tr>
 <td><code>source4</code></td>
 <td>IPNet</td>
 <td><code>127.0.0.1</code></td>
@@ -1136,6 +1143,7 @@
 <li>Restrict the file's permissions (<code>chmod 0600</code> and a dedicated user/group).</li>
 <li>In Kubernetes, project the file in from a <code>Secret</code> (not a <code>ConfigMap</code>).</li>
 <li>Use SSH keys (<code>ssh_key:</code>) over passwords where possible, and put the key in a <code>Secret</code> too.</li>
+<li>For short-lived credentials, let an SSH CA sign the key and set <code>ssh_cert:</code> to the certificate file. Looking Glass reads the key and the certificate at every new connection, so a renewal that replaces the file in place needs no restart. Pooled idle connections keep the certificate from their handshake.</li>
 <li>Bind a per-router, read-only account on the router. Looking Glass never issues configuration commands, but defence in depth is cheap.</li>
 </ul>
 <h2 id="grpc-http2-listener"><code>grpc</code> (HTTP/2 listener)<a class="headerlink" href="#grpc-http2-listener" title="Permanent link">&para;</a></h2>
