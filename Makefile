@@ -162,9 +162,9 @@ all: install generate build ## Install deps, generate code, and build everything
 test: test-go test-fuzz ## Run all tests (including fuzz tests)
 
 .PHONY: test-go
-test-go: $(DIST_DIR) ## Run Go standard tests
+test-go: $(DIST_DIR) ## Run Go standard tests with the race detector
 	@printf "$(BOLD)>> Running Go standard tests$(RESET)\n"
-	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test ./...
+	CGO_ENABLED=1 GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -race ./...
 
 .PHONY: test-fuzz
 test-fuzz: $(DIST_DIR) ## Run all Go fuzz tests sequentially
