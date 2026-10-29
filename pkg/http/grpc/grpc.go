@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"connectrpc.com/grpchealth"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/grpchealth/v2"
 	"github.com/AS203038/looking-glass/pkg/bmp"
 	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/utils"
@@ -19,13 +21,20 @@ import (
 // Health is the process-wide [grpchealth.Checker].
 var Health = grpchealth.NewStaticChecker(lookingglassconnect.LookingGlassServiceName)
 
+// maxRequestBytes bounds the size of a single inbound RPC message. Requests
+// carry a router id plus a target, peer, or AS-path expression, so 1 MiB is
+// orders of magnitude above any legitimate payload.
+const maxRequestBytes = 1 << 20
+
 var healthcheckInterval = time.Minute
 
 // Mux mounts the LookingGlassService and the gRPC health endpoint onto
 // mux, marks the service as Serving, and launches the [healthcheck] loop.
 func Mux(ctx context.Context, mux *http.ServeMux, rts utils.RouterMap) {
-	mux.Handle(lookingglassconnect.NewLookingGlassServiceHandler(NewLookingGlassService(ctx, rts)))
-	mux.Handle(grpchealth.NewHandler(Health))
+	server := connect.NewServer()
+	lookingglassconnect.RegisterLookingGlassServiceHandler(server, NewLookingGlassService(ctx, rts))
+	grpchealth.Register(server, Health)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(maxRequestBytes))
 	Health.SetStatus(lookingglassconnect.LookingGlassServiceName, grpchealth.StatusServing)
 	go healthcheck(ctx, rts)
 }

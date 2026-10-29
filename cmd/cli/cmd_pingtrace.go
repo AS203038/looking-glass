@@ -1,7 +1,6 @@
 package main
 
 import (
-	"connectrpc.com/connect"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"github.com/spf13/cobra"
 )
@@ -27,14 +26,14 @@ func newPingCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.PingRequest{
+			resp, err := callWithRetry(ctx, &pb.PingRequest{
 				RouterId: routerID,
 				Target:   args[2],
-			}), client.Ping)
+			}, client.Ping)
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			var parsed any
 			if msg.GetParsed() != nil {
 				parsed = msg.GetParsed()
@@ -67,14 +66,14 @@ func newTracerouteCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.TracerouteRequest{
+			resp, err := callWithRetry(ctx, &pb.TracerouteRequest{
 				RouterId: routerID,
 				Target:   args[2],
-			}), client.Traceroute)
+			}, client.Traceroute)
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			var parsed any
 			if msg.GetParsed() != nil {
 				parsed = msg.GetParsed()

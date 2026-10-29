@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,15 +13,21 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
+	"google.golang.org/protobuf/proto"
 )
 
-// newClient builds a ConnectRPC client pointed at lg's URL.
+// newClient builds a ConnectRPC client pointed at lg's URL. Responses carry
+// raw router command output and can exceed v2's default per-message read
+// limit, so the CLI keeps reads unbounded.
 func newClient(lg *LookingGlass) lookingglassconnect.LookingGlassServiceClient {
 	verbosef("connecting to %s (%s)", lg.Name, lg.URL)
-	return lookingglassconnect.NewLookingGlassServiceClient(http.DefaultClient, lg.URL)
+	return lookingglassconnect.NewLookingGlassServiceClient(connect.NewClient(
+		connecthttp.NewTransport(http.DefaultClient, lg.URL, connecthttp.WithReadMaxBytes(0)),
+	))
 }
 
 // fetchAllRouters pages through GetRouters and returns every router.
@@ -50,15 +57,15 @@ func fetchAllRouters(ctx context.Context, client lookingglassconnect.LookingGlas
 		page uint32 = 1
 	)
 	for {
-		resp, err := client.GetRouters(ctx, connect.NewRequest(&pb.GetRoutersRequest{
+		resp, err := client.GetRouters(ctx, &pb.GetRoutersRequest{
 			Limit:     pageSize,
 			PageToken: page,
-		}))
+		})
 		if err != nil {
 			return nil, err
 		}
-		all = append(all, resp.Msg.GetRouters()...)
-		next := resp.Msg.GetNextPage()
+		all = append(all, resp.GetRouters()...)
+		next := resp.GetNextPage()
 		if next == 0 || next == page {
 			break
 		}
@@ -138,11 +145,12 @@ func resolveRouter(
 
 // callWithRetry executes a ConnectRPC client request, retrying with exponential backoff
 // if the server reports that the SSH connection pool is exhausted.
-func callWithRetry[Req any, Resp any](
+func callWithRetry[Req, Resp proto.Message](
 	ctx context.Context,
-	req *connect.Request[Req],
-	call func(context.Context, *connect.Request[Req]) (*connect.Response[Resp], error),
-) (*connect.Response[Resp], error) {
+	req Req,
+	call func(context.Context, Req) (Resp, error),
+) (Resp, error) {
+	var zero Resp
 	backoff := 100 * time.Millisecond
 	maxBackoff := 5 * time.Second
 	for {
@@ -151,11 +159,12 @@ func callWithRetry[Req any, Resp any](
 			return resp, nil
 		}
 
-		if connectErr, ok := err.(*connect.Error); ok && connectErr.Code() == connect.CodeResourceExhausted {
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeResourceExhausted {
 			verbosef("SSH pool exhausted, retrying in %s...", backoff)
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return zero, ctx.Err()
 			case <-time.After(backoff):
 				backoff *= 2
 				if backoff > maxBackoff {
@@ -165,6 +174,6 @@ func callWithRetry[Req any, Resp any](
 			}
 		}
 
-		return nil, err
+		return zero, err
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -25,11 +24,11 @@ func newInfoCmd() *cobra.Command {
 			}
 			client := newClient(lg)
 
-			resp, err := client.GetInfo(ctx, connect.NewRequest(&emptypb.Empty{}))
+			resp, err := client.GetInfo(ctx, &emptypb.Empty{})
 			if err != nil {
 				return err
 			}
-			info := resp.Msg
+			info := resp
 
 			switch opts.Output {
 			case "json":
