@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/AS203038/looking-glass/pkg/bmp"
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"github.com/AS203038/looking-glass/pkg/logging"
@@ -112,6 +112,15 @@ func nowPB() *timestamppb.Timestamp {
 	}
 }
 
+// markCacheHit labels the in-flight RPC response with an X-Cache: HIT
+// header. It is a no-op when ctx carries no server [connect.CallInfo], which
+// happens only when a handler is invoked outside a connect.Server.
+func markCacheHit(ctx context.Context) {
+	if info, ok := connect.CallInfoForServerContext(ctx); ok {
+		info.ResponseHeader().Set("X-Cache", "HIT")
+	}
+}
+
 // LookingGlassService is the ConnectRPC implementation of the
 // LookingGlassService protobuf service.
 type LookingGlassService struct {
@@ -134,7 +143,7 @@ func NewLookingGlassService(ctx context.Context, rts utils.RouterMap) lookinggla
 }
 
 // GetInfo returns the server's hostname and version string.
-func (s *LookingGlassService) GetInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetInfoResponse], error) {
+func (s *LookingGlassService) GetInfo(ctx context.Context, req *emptypb.Empty) (*pb.GetInfoResponse, error) {
 	start := time.Now()
 	logRPCMetaStart("GetInfo")
 	h, err := os.Hostname()
@@ -145,18 +154,18 @@ func (s *LookingGlassService) GetInfo(ctx context.Context, req *connect.Request[
 	logRPCMetaOK("GetInfo", start,
 		slog.String("hostname", h),
 		slog.String("version", version))
-	return connect.NewResponse(&pb.GetInfoResponse{
+	return &pb.GetInfoResponse{
 		Hostname: h,
 		Version:  version,
-	}), nil
+	}, nil
 }
 
 // GetRouters returns one page of the router catalogue. Defaults: limit=10, page=1.
-func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Request[pb.GetRoutersRequest]) (*connect.Response[pb.GetRoutersResponse], error) {
+func (s *LookingGlassService) GetRouters(ctx context.Context, req *pb.GetRoutersRequest) (*pb.GetRoutersResponse, error) {
 	tStart := time.Now()
 	var ret []*pb.Router
-	lim := req.Msg.GetLimit()
-	page := req.Msg.GetPageToken()
+	lim := req.GetLimit()
+	page := req.GetPageToken()
 	total := uint32(len(s.rts))
 	logRPCMetaStart("GetRouters",
 		slog.Uint64("limit", uint64(lim)),
@@ -178,7 +187,7 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 			slog.Int("returned", 0),
 			slog.Uint64("total", uint64(total)),
 			slog.Uint64("next_page", 0))
-		return connect.NewResponse(&pb.GetRoutersResponse{}), nil
+		return &pb.GetRoutersResponse{}, nil
 	}
 	for k, v := range s.rts[start:end] {
 		ret = append(ret, &pb.Router{
@@ -204,15 +213,15 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *connect.Reque
 		slog.Int("returned", len(ret)),
 		slog.Uint64("total", uint64(total)),
 		slog.Uint64("next_page", uint64(nextPage)))
-	return connect.NewResponse(&pb.GetRoutersResponse{
+	return &pb.GetRoutersResponse{
 		Routers:  ret,
 		NextPage: nextPage,
-	}), nil
+	}, nil
 }
 
 // Ping executes the ping command sequence against the requested router.
-func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.PingRequest]) (*connect.Response[pb.PingResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("Ping", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -221,7 +230,7 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	tag := rpcLogTag("Ping", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
-	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
+	target, err := utils.NewIPNetFromProtobuf(req.GetTarget())
 	if err != nil {
 		logRPCError(tag, "parse_target", err)
 		return nil, errs.IPInvalid
@@ -229,16 +238,15 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	key := pingCacheKey(rt, target.String())
 	var cached pb.PingResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 	ret, err := ri.Ping(target)
 	if err != nil {
 		logRPCError(tag, "ping_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -255,12 +263,12 @@ func (s *LookingGlassService) Ping(ctx context.Context, req *connect.Request[pb.
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // Traceroute executes the traceroute command sequence against the requested router.
-func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Request[pb.TracerouteRequest]) (*connect.Response[pb.TracerouteResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) Traceroute(ctx context.Context, req *pb.TracerouteRequest) (*pb.TracerouteResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("Traceroute", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -269,7 +277,7 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	tag := rpcLogTag("Traceroute", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
-	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
+	target, err := utils.NewIPNetFromProtobuf(req.GetTarget())
 	if err != nil {
 		logRPCError(tag, "parse_target", err)
 		return nil, errs.IPInvalid
@@ -277,16 +285,15 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	key := tracerouteCacheKey(rt, target.String())
 	var cached pb.TracerouteResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 	ret, err := ri.Traceroute(target)
 	if err != nil {
 		logRPCError(tag, "traceroute_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -303,12 +310,12 @@ func (s *LookingGlassService) Traceroute(ctx context.Context, req *connect.Reque
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // BGPSummary executes the neighbour-summary command sequence against the requested router.
-func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Request[pb.BGPSummaryRequest]) (*connect.Response[pb.BGPSummaryResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) BGPSummary(ctx context.Context, req *pb.BGPSummaryRequest) (*pb.BGPSummaryResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("BGPSummary", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -320,10 +327,9 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 	key := bgpSummaryCacheKey(rt)
 	var cached pb.BGPSummaryResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 
 	// Try BMP first
@@ -331,7 +337,7 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 		peers, err := bmp.GetBMPPeers(ctx, rpcCacheClient, ri.Config.Name)
 		if err != nil {
 			logRPCError(tag, "bgp_summary_bmp_get", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 		var pbPeers []*pb.BGPPeer
 		for _, p := range peers {
@@ -355,14 +361,14 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
 	ret, err := ri.BGPSummary()
 	if err != nil {
 		logRPCError(tag, "bgp_summary_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -379,12 +385,12 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *connect.Reque
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // BGPRoute executes the bgp.route command sequence against the requested router.
-func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request[pb.BGPRouteRequest]) (*connect.Response[pb.BGPRouteResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) BGPRoute(ctx context.Context, req *pb.BGPRouteRequest) (*pb.BGPRouteResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("BGPRoute", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -393,7 +399,7 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	tag := rpcLogTag("BGPRoute", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
-	target, err := utils.NewIPNetFromProtobuf(req.Msg.GetTarget())
+	target, err := utils.NewIPNetFromProtobuf(req.GetTarget())
 	if err != nil {
 		logRPCError(tag, "parse_target", err)
 		return nil, errs.IPInvalid
@@ -401,10 +407,9 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	key := bgpRouteCacheKey(rt, target.String())
 	var cached pb.BGPRouteResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 
 	// Try BMP first
@@ -412,7 +417,7 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 		routes, err := bmp.FindBMPRoutesByPrefix(ctx, rpcCacheClient, ri.Config.Name, target.String())
 		if err != nil {
 			logRPCError(tag, "bgp_route_bmp_get", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 		var pbPaths []*pb.BGPPath
 		for _, r := range routes {
@@ -435,14 +440,14 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
 	ret, err := ri.BGPRoute(target)
 	if err != nil {
 		logRPCError(tag, "bgp_route_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -459,12 +464,12 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *connect.Request
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // BGPPeerRoutes executes peer-specific routing lookups.
-func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Request[pb.BGPPeerRoutesRequest]) (*connect.Response[pb.BGPPeerRoutesResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *pb.BGPPeerRoutesRequest) (*pb.BGPPeerRoutesResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("BGPPeerRoutes", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -474,8 +479,8 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 	start := time.Now()
 	logRPCStart(tag)
 
-	peerIP := req.Msg.GetPeerIp()
-	peerName := req.Msg.GetPeerName()
+	peerIP := req.GetPeerIp()
+	peerName := req.GetPeerName()
 
 	// Sanitize inputs
 	var err error
@@ -494,7 +499,7 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 	}
 
 	qTypeStr := ""
-	switch req.Msg.GetQueryType() {
+	switch req.GetQueryType() {
 	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED:
 		qTypeStr = "received"
 	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ACCEPTED:
@@ -504,16 +509,16 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 	case pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ADVERTISED:
 		qTypeStr = "advertised"
 	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported query type"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "unsupported query type")
 	}
 
-	limit := int64(req.Msg.GetLimit())
+	limit := int64(req.GetLimit())
 	if limit <= 0 {
 		limit = 50
 	}
 	var cursor uint64
-	if req.Msg.GetPageToken() != "" {
-		c, err := strconv.ParseUint(req.Msg.GetPageToken(), 10, 64)
+	if req.GetPageToken() != "" {
+		c, err := strconv.ParseUint(req.GetPageToken(), 10, 64)
 		if err == nil {
 			cursor = c
 		}
@@ -522,10 +527,9 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 	key := rpcCacheKeyPrefix() + "peerroutes:" + strconv.FormatInt(rt, 10) + ":" + peerIP + ":" + peerName + ":" + qTypeStr + ":" + strconv.FormatUint(cursor, 10) + ":" + strconv.FormatInt(limit, 10)
 	var cached pb.BGPPeerRoutesResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 
 	// Try BMP first
@@ -545,13 +549,13 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 
 		if resolvedIP == "" {
 			logRPCError(tag, "peer_routes_bmp_no_ip", errors.New("unresolved peer IP under BMP mode"))
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("peer IP must be provided or resolvable under BMP mode"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, "peer IP must be provided or resolvable under BMP mode")
 		}
 
 		routes, err := bmp.GetBMPPeerRoutes(ctx, rpcCacheClient, ri.Config.Name, resolvedIP, qTypeStr)
 		if err != nil {
 			logRPCError(tag, "peer_routes_bmp_get", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 
 		var pbPaths []*pb.BGPPath
@@ -576,7 +580,7 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
 	// Fallback to SSH Template execution
@@ -584,7 +588,7 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 	if err != nil {
 		logRPCError(tag, "peer_routes_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -611,12 +615,12 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *connect.Re
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // BGPCommunity executes the bgp.community command sequence against the requested router.
-func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Request[pb.BGPCommunityRequest]) (*connect.Response[pb.BGPCommunityResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *pb.BGPCommunityRequest) (*pb.BGPCommunityResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("BGPCommunity", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -625,7 +629,7 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	tag := rpcLogTag("BGPCommunity", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
-	community := req.Msg.GetCommunity()
+	community := req.GetCommunity()
 	if community == nil {
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
 		return nil, errs.OperationUnknown
@@ -638,10 +642,9 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	key := bgpCommunityCacheKey(rt, commStr)
 	var cached pb.BGPCommunityResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 
 	// Try BMP first
@@ -649,7 +652,7 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		routes, err := bmp.FindBMPRoutesByCommunity(ctx, rpcCacheClient, ri.Config.Name, commStr)
 		if err != nil {
 			logRPCError(tag, "bgp_community_bmp_get", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 		var pbPaths []*pb.BGPPath
 		for _, r := range routes {
@@ -672,14 +675,14 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
 	ret, err := ri.BGPCommunity(commStr)
 	if err != nil {
 		logRPCError(tag, "bgp_community_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -696,12 +699,12 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *connect.Req
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // BGPLargeCommunity executes the bgp.largecommunity command sequence against the requested router.
-func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connect.Request[pb.BGPLargeCommunityRequest]) (*connect.Response[pb.BGPLargeCommunityResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *pb.BGPLargeCommunityRequest) (*pb.BGPLargeCommunityResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("BGPLargeCommunity", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -710,7 +713,7 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	tag := rpcLogTag("BGPLargeCommunity", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
-	community := req.Msg.GetCommunity()
+	community := req.GetCommunity()
 	if community == nil {
 		logRPCError(tag, "community_nil", errs.OperationUnknown)
 		return nil, errs.OperationUnknown
@@ -722,10 +725,9 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	key := bgpLargeCommunityCacheKey(rt, lc)
 	var cached pb.BGPLargeCommunityResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 
 	// Try BMP first
@@ -733,7 +735,7 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 		routes, err := bmp.FindBMPRoutesByLargeCommunity(ctx, rpcCacheClient, ri.Config.Name, lc)
 		if err != nil {
 			logRPCError(tag, "bgp_largecommunity_bmp_get", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 		var pbPaths []*pb.BGPPath
 		for _, r := range routes {
@@ -756,14 +758,14 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
 	ret, err := ri.BGPLargeCommunity(lc)
 	if err != nil {
 		logRPCError(tag, "bgp_largecommunity_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -780,12 +782,12 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *connec
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // BGPASPath executes the bgp.aspath command sequence against the requested router.
-func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Request[pb.BGPASPathRequest]) (*connect.Response[pb.BGPASPathResponse], error) {
-	rt := req.Msg.GetRouterId()
+func (s *LookingGlassService) BGPASPath(ctx context.Context, req *pb.BGPASPathRequest) (*pb.BGPASPathResponse, error) {
+	rt := req.GetRouterId()
 	ri, ok := s.rts.GetByID(rt)
 	if !ok {
 		logRPCError(rpcLogTag("BGPASPath", rt, nil), "router_lookup", errs.UnknownRouter)
@@ -794,7 +796,7 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	tag := rpcLogTag("BGPASPath", rt, ri)
 	start := time.Now()
 	logRPCStart(tag)
-	aspath, err := utils.SanitizeASPathRegex(req.Msg.GetPattern())
+	aspath, err := utils.SanitizeASPathRegex(req.GetPattern())
 	if err != nil {
 		logRPCError(tag, "sanitize_aspath", err)
 		return nil, err
@@ -802,10 +804,9 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	key := bgpASPathCacheKey(rt, aspath)
 	var cached pb.BGPASPathResponse
 	if rpcCacheGet(ctx, key, &cached) {
-		out := connect.NewResponse(&cached)
-		out.Header().Set("X-Cache", "HIT")
+		markCacheHit(ctx)
 		logRPCOK(tag, start, cached.GetResult(), parse.Result{Kind: cached.GetParserKind(), Status: cached.GetParseStatus()})
-		return out, nil
+		return &cached, nil
 	}
 
 	// Try BMP first
@@ -813,7 +814,7 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 		routes, err := bmp.FindBMPRoutesByASPath(ctx, rpcCacheClient, ri.Config.Name, aspath)
 		if err != nil {
 			logRPCError(tag, "bgp_aspath_bmp_get", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("BMP datastore lookup failed"))
+			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 		var pbPaths []*pb.BGPPath
 		for _, r := range routes {
@@ -836,14 +837,14 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
 	ret, err := ri.BGPASPath(aspath)
 	if err != nil {
 		logRPCError(tag, "bgp_aspath_exec", err)
 		if errors.Is(err, errs.PoolExhausted) {
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).WithCause(err)
 		}
 		return nil, errs.ExecFailed
 	}
@@ -860,5 +861,5 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *connect.Reques
 	}
 	rpcCacheSet(ctx, key, resp)
 	logRPCOK(tag, start, raw, pr)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }

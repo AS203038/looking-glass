@@ -12,10 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connectinprocess"
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
+	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/ssh"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -312,22 +314,27 @@ func TestLookingGlassService(t *testing.T) {
 
 	rts := utils.RouterMap{ri, riFailed, riSSH, riExhausted}
 	srv := NewLookingGlassService(context.Background(), rts)
+	server := connect.NewServer()
+	lookingglassconnect.RegisterLookingGlassServiceHandler(server, srv)
+	cli := lookingglassconnect.NewLookingGlassServiceClient(
+		connect.NewClient(connectinprocess.New(server)),
+	)
 	ctx := context.Background()
 
-	infoResp, err := srv.GetInfo(ctx, connect.NewRequest(&emptypb.Empty{}))
+	infoResp, err := cli.GetInfo(ctx, &emptypb.Empty{})
 	if err != nil {
 		t.Fatalf("GetInfo failed: %v", err)
 	}
-	if infoResp.Msg.Version == "" {
+	if infoResp.Version == "" {
 		t.Errorf("empty version in GetInfo response")
 	}
 
-	rResp, err := srv.GetRouters(ctx, connect.NewRequest(&pb.GetRoutersRequest{Limit: 10, PageToken: 1}))
+	rResp, err := cli.GetRouters(ctx, &pb.GetRoutersRequest{Limit: 10, PageToken: 1})
 	if err != nil {
 		t.Fatalf("GetRouters failed: %v", err)
 	}
-	if len(rResp.Msg.Routers) != 4 {
-		t.Errorf("unexpected router catalog count: %d", len(rResp.Msg.Routers))
+	if len(rResp.Routers) != 4 {
+		t.Errorf("unexpected router catalog count: %d", len(rResp.Routers))
 	}
 
 	verifyCacheHit := func(t *testing.T, reqFunc func() (string, string, error)) {
@@ -352,156 +359,164 @@ func TestLookingGlassService(t *testing.T) {
 	}
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.Ping(ctx, connect.NewRequest(&pb.PingRequest{RouterId: 1, Target: "1.1.1.1"}))
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.Ping(callCtx, &pb.PingRequest{RouterId: 1, Target: "1.1.1.1"})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.Traceroute(ctx, connect.NewRequest(&pb.TracerouteRequest{RouterId: 1, Target: "1.1.1.1"}))
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.Traceroute(callCtx, &pb.TracerouteRequest{RouterId: 1, Target: "1.1.1.1"})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.BGPSummary(ctx, connect.NewRequest(&pb.BGPSummaryRequest{RouterId: 1}))
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.BGPSummary(callCtx, &pb.BGPSummaryRequest{RouterId: 1})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.BGPRoute(ctx, connect.NewRequest(&pb.BGPRouteRequest{RouterId: 1, Target: "1.1.1.1"}))
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.BGPRoute(callCtx, &pb.BGPRouteRequest{RouterId: 1, Target: "1.1.1.1"})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.BGPCommunity(callCtx, &pb.BGPCommunityRequest{
 			RouterId:  1,
 			Community: &pb.BGPCommunity{Asn: 65000, Value: 100},
-		}))
+		})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.BGPLargeCommunity(callCtx, &pb.BGPLargeCommunityRequest{
 			RouterId: 1,
 			Community: &pb.BGPLargeCommunity{
 				GlobalAdmin: 65000,
 				LocalData1:  100,
 				LocalData2:  200,
 			},
-		}))
+		})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.BGPASPath(ctx, connect.NewRequest(&pb.BGPASPathRequest{RouterId: 1, Pattern: "203038"}))
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.BGPASPath(callCtx, &pb.BGPASPathRequest{RouterId: 1, Pattern: "203038"})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
 	verifyCacheHit(t, func() (string, string, error) {
-		resp, err := srv.BGPPeerRoutes(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+		callCtx, info := connect.NewClientContext(ctx)
+		resp, err := cli.BGPPeerRoutes(callCtx, &pb.BGPPeerRoutesRequest{
 			RouterId:  1,
 			PeerIp:    "192.0.2.1",
 			PeerName:  "peer_1",
 			QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
-		}))
+		})
 		if err != nil {
 			return "", "", err
 		}
-		return string(resp.Msg.Result), resp.Header().Get("X-Cache"), nil
+		return string(resp.Result), info.ResponseHeader().Get("X-Cache"), nil
 	})
 
-	_, err = srv.BGPSummary(ctx, connect.NewRequest(&pb.BGPSummaryRequest{RouterId: 3}))
+	_, err = cli.BGPSummary(ctx, &pb.BGPSummaryRequest{RouterId: 3})
 	if err != nil {
 		t.Errorf("BGPSummary SSH failed: %v", err)
 	}
-	_, err = srv.BGPRoute(ctx, connect.NewRequest(&pb.BGPRouteRequest{RouterId: 3, Target: "1.1.1.1"}))
+	_, err = cli.BGPRoute(ctx, &pb.BGPRouteRequest{RouterId: 3, Target: "1.1.1.1"})
 	if err != nil {
 		t.Errorf("BGPRoute SSH failed: %v", err)
 	}
-	_, err = srv.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+	_, err = cli.BGPCommunity(ctx, &pb.BGPCommunityRequest{
 		RouterId:  3,
 		Community: &pb.BGPCommunity{Asn: 65000, Value: 100},
-	}))
+	})
 	if err != nil {
 		t.Errorf("BGPCommunity SSH failed: %v", err)
 	}
-	_, err = srv.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+	_, err = cli.BGPLargeCommunity(ctx, &pb.BGPLargeCommunityRequest{
 		RouterId:  3,
 		Community: &pb.BGPLargeCommunity{GlobalAdmin: 65000, LocalData1: 100, LocalData2: 100},
-	}))
+	})
 	if err != nil {
 		t.Errorf("BGPLargeCommunity SSH failed: %v", err)
 	}
-	_, err = srv.BGPASPath(ctx, connect.NewRequest(&pb.BGPASPathRequest{RouterId: 3, Pattern: "203038"}))
+	_, err = cli.BGPASPath(ctx, &pb.BGPASPathRequest{RouterId: 3, Pattern: "203038"})
 	if err != nil {
 		t.Errorf("BGPASPath SSH failed: %v", err)
 	}
-	_, err = srv.BGPPeerRoutes(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+	_, err = cli.BGPPeerRoutes(ctx, &pb.BGPPeerRoutesRequest{
 		RouterId:  3,
 		PeerIp:    "1.1.1.1",
 		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
-	}))
+	})
 	if err != nil {
 		t.Errorf("BGPPeerRoutes SSH failed: %v", err)
 	}
 
-	_, err = srv.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+	_, err = cli.BGPCommunity(ctx, &pb.BGPCommunityRequest{
 		RouterId:  1,
 		Community: &pb.BGPCommunity{Asn: 100000, Value: 100},
-	}))
+	})
 	if err == nil {
 		t.Errorf("expected error for malformed community")
 	}
 
-	_, err = srv.BGPPeerRoutes(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+	_, err = cli.BGPPeerRoutes(ctx, &pb.BGPPeerRoutesRequest{
 		RouterId: 1,
 		PeerIp:   "invalid-peer-ip",
-	}))
+	})
 	if err == nil {
 		t.Errorf("expected error for malformed peer IP")
 	}
 
-	_, err = srv.BGPASPath(ctx, connect.NewRequest(&pb.BGPASPathRequest{RouterId: 1, Pattern: "invalid-char-!"}))
+	_, err = cli.BGPASPath(ctx, &pb.BGPASPathRequest{RouterId: 1, Pattern: "invalid-char-!"})
 	if err == nil {
 		t.Errorf("expected error for malformed ASPath pattern")
 	}
 
-	_, err = srv.Ping(ctx, connect.NewRequest(&pb.PingRequest{RouterId: 99, Target: "1.1.1.1"}))
+	_, err = cli.Ping(ctx, &pb.PingRequest{RouterId: 99, Target: "1.1.1.1"})
 	if err == nil {
 		t.Errorf("expected error for non-existent router ID")
 	}
 
-	_, err = srv.Ping(ctx, connect.NewRequest(&pb.PingRequest{RouterId: 1, Target: "invalid-target-ip"}))
+	_, err = cli.Ping(ctx, &pb.PingRequest{RouterId: 1, Target: "invalid-target-ip"})
 	if err == nil {
 		t.Errorf("expected error for invalid target on Ping")
 	}
 
-	_, err = srv.Traceroute(ctx, connect.NewRequest(&pb.TracerouteRequest{RouterId: 1, Target: "invalid-target-ip"}))
+	_, err = cli.Traceroute(ctx, &pb.TracerouteRequest{RouterId: 1, Target: "invalid-target-ip"})
 	if err == nil {
 		t.Errorf("expected error for invalid target on Traceroute")
 	}
 
-	_, err = srv.BGPRoute(ctx, connect.NewRequest(&pb.BGPRouteRequest{RouterId: 1, Target: "invalid-target-ip"}))
+	_, err = cli.BGPRoute(ctx, &pb.BGPRouteRequest{RouterId: 1, Target: "invalid-target-ip"})
 	if err == nil {
 		t.Errorf("expected error for invalid target on BGPRoute")
 	}
@@ -515,38 +530,38 @@ func TestLookingGlassService(t *testing.T) {
 		}
 	}
 
-	_, err = srv.Ping(ctx, connect.NewRequest(&pb.PingRequest{RouterId: 2, Target: "1.1.1.1"}))
+	_, err = cli.Ping(ctx, &pb.PingRequest{RouterId: 2, Target: "1.1.1.1"})
 	assertExecFailure(err)
 
-	_, err = srv.Traceroute(ctx, connect.NewRequest(&pb.TracerouteRequest{RouterId: 2, Target: "1.1.1.1"}))
+	_, err = cli.Traceroute(ctx, &pb.TracerouteRequest{RouterId: 2, Target: "1.1.1.1"})
 	assertExecFailure(err)
 
-	_, err = srv.BGPSummary(ctx, connect.NewRequest(&pb.BGPSummaryRequest{RouterId: 2}))
+	_, err = cli.BGPSummary(ctx, &pb.BGPSummaryRequest{RouterId: 2})
 	assertExecFailure(err)
 
-	_, err = srv.BGPRoute(ctx, connect.NewRequest(&pb.BGPRouteRequest{RouterId: 2, Target: "1.1.1.1"}))
+	_, err = cli.BGPRoute(ctx, &pb.BGPRouteRequest{RouterId: 2, Target: "1.1.1.1"})
 	assertExecFailure(err)
 
-	_, err = srv.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+	_, err = cli.BGPCommunity(ctx, &pb.BGPCommunityRequest{
 		RouterId:  2,
 		Community: &pb.BGPCommunity{Asn: 65000, Value: 100},
-	}))
+	})
 	assertExecFailure(err)
 
-	_, err = srv.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+	_, err = cli.BGPLargeCommunity(ctx, &pb.BGPLargeCommunityRequest{
 		RouterId:  2,
 		Community: &pb.BGPLargeCommunity{GlobalAdmin: 65000, LocalData1: 100, LocalData2: 100},
-	}))
+	})
 	assertExecFailure(err)
 
-	_, err = srv.BGPASPath(ctx, connect.NewRequest(&pb.BGPASPathRequest{RouterId: 2, Pattern: "203038"}))
+	_, err = cli.BGPASPath(ctx, &pb.BGPASPathRequest{RouterId: 2, Pattern: "203038"})
 	assertExecFailure(err)
 
-	_, err = srv.BGPPeerRoutes(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+	_, err = cli.BGPPeerRoutes(ctx, &pb.BGPPeerRoutesRequest{
 		RouterId:  2,
 		PeerIp:    "1.1.1.1",
 		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
-	}))
+	})
 	assertExecFailure(err)
 
 	assertPoolExhausted := func(err error) {
@@ -558,58 +573,58 @@ func TestLookingGlassService(t *testing.T) {
 		}
 	}
 
-	_, err = srv.Ping(ctx, connect.NewRequest(&pb.PingRequest{RouterId: 4, Target: "1.1.1.1"}))
+	_, err = cli.Ping(ctx, &pb.PingRequest{RouterId: 4, Target: "1.1.1.1"})
 	assertPoolExhausted(err)
 
-	_, err = srv.Traceroute(ctx, connect.NewRequest(&pb.TracerouteRequest{RouterId: 4, Target: "1.1.1.1"}))
+	_, err = cli.Traceroute(ctx, &pb.TracerouteRequest{RouterId: 4, Target: "1.1.1.1"})
 	assertPoolExhausted(err)
 
-	_, err = srv.BGPSummary(ctx, connect.NewRequest(&pb.BGPSummaryRequest{RouterId: 4}))
+	_, err = cli.BGPSummary(ctx, &pb.BGPSummaryRequest{RouterId: 4})
 	assertPoolExhausted(err)
 
-	_, err = srv.BGPRoute(ctx, connect.NewRequest(&pb.BGPRouteRequest{RouterId: 4, Target: "1.1.1.1"}))
+	_, err = cli.BGPRoute(ctx, &pb.BGPRouteRequest{RouterId: 4, Target: "1.1.1.1"})
 	assertPoolExhausted(err)
 
-	_, err = srv.BGPCommunity(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+	_, err = cli.BGPCommunity(ctx, &pb.BGPCommunityRequest{
 		RouterId:  4,
 		Community: &pb.BGPCommunity{Asn: 65000, Value: 100},
-	}))
+	})
 	assertPoolExhausted(err)
 
-	_, err = srv.BGPLargeCommunity(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+	_, err = cli.BGPLargeCommunity(ctx, &pb.BGPLargeCommunityRequest{
 		RouterId:  4,
 		Community: &pb.BGPLargeCommunity{GlobalAdmin: 65000, LocalData1: 100, LocalData2: 100},
-	}))
+	})
 	assertPoolExhausted(err)
 
-	_, err = srv.BGPASPath(ctx, connect.NewRequest(&pb.BGPASPathRequest{RouterId: 4, Pattern: "203038"}))
+	_, err = cli.BGPASPath(ctx, &pb.BGPASPathRequest{RouterId: 4, Pattern: "203038"})
 	assertPoolExhausted(err)
 
-	_, err = srv.BGPPeerRoutes(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+	_, err = cli.BGPPeerRoutes(ctx, &pb.BGPPeerRoutesRequest{
 		RouterId:  4,
 		PeerIp:    "1.1.1.1",
 		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
-	}))
+	})
 	assertPoolExhausted(err)
 
 	// Test that querying for REJECTED routes on a BMP-active router returns successfully with empty routes and never falls back to SSH
-	respRejected, err := srv.BGPPeerRoutes(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+	respRejected, err := cli.BGPPeerRoutes(ctx, &pb.BGPPeerRoutesRequest{
 		RouterId:  1,
 		PeerIp:    "192.0.2.1",
 		PeerName:  "peer_1",
 		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_REJECTED,
-	}))
+	})
 	if err != nil {
 		t.Errorf("expected success for REJECTED routes under BMP, got error: %v", err)
-	} else if len(respRejected.Msg.Parsed.Paths) != 0 {
-		t.Errorf("expected 0 rejected routes under BMP, got %d", len(respRejected.Msg.Parsed.Paths))
+	} else if len(respRejected.Parsed.Paths) != 0 {
+		t.Errorf("expected 0 rejected routes under BMP, got %d", len(respRejected.Parsed.Paths))
 	}
 
-	_, err = srv.GetRouters(ctx, connect.NewRequest(&pb.GetRoutersRequest{Limit: 0, PageToken: 0}))
+	_, err = cli.GetRouters(ctx, &pb.GetRoutersRequest{Limit: 0, PageToken: 0})
 	if err != nil {
 		t.Errorf("expected success on invalid limit/page GetRouters, got %v", err)
 	}
-	_, err = srv.GetRouters(ctx, connect.NewRequest(&pb.GetRoutersRequest{Limit: 10, PageToken: 99}))
+	_, err = cli.GetRouters(ctx, &pb.GetRoutersRequest{Limit: 10, PageToken: 99})
 	if err != nil {
 		t.Errorf("expected success on page token out of bounds GetRouters, got %v", err)
 	}

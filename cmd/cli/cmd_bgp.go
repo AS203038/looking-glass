@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"connectrpc.com/connect"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"github.com/spf13/cobra"
 )
@@ -46,13 +45,13 @@ func newBGPSummaryCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPSummaryRequest{
+			resp, err := callWithRetry(ctx, &pb.BGPSummaryRequest{
 				RouterId: routerID,
-			}), client.BGPSummary)
+			}, client.BGPSummary)
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			var parsed any
 			if msg.GetParsed() != nil {
 				parsed = msg.GetParsed()
@@ -101,16 +100,16 @@ func newBGPPeerRoutesCmd() *cobra.Command {
 				return fmt.Errorf("unsupported query type: %s (must be received, accepted, rejected, or advertised)", qType)
 			}
 
-			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPPeerRoutesRequest{
+			resp, err := callWithRetry(ctx, &pb.BGPPeerRoutesRequest{
 				RouterId:  routerID,
 				PeerIp:    args[2],
 				PeerName:  peerName,
 				QueryType: qt,
-			}), client.BGPPeerRoutes)
+			}, client.BGPPeerRoutes)
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			var parsed any
 			if msg.GetParsed() != nil {
 				parsed = msg.GetParsed()
@@ -147,14 +146,14 @@ func newBGPRouteCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPRouteRequest{
+			resp, err := callWithRetry(ctx, &pb.BGPRouteRequest{
 				RouterId: routerID,
 				Target:   args[2],
-			}), client.BGPRoute)
+			}, client.BGPRoute)
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			var parsed any
 			if msg.GetParsed() != nil {
 				parsed = msg.GetParsed()
@@ -208,17 +207,17 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("invalid community value %q: %w", parts[1], err)
 				}
-				resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPCommunityRequest{
+				resp, err := callWithRetry(ctx, &pb.BGPCommunityRequest{
 					RouterId: routerID,
 					Community: &pb.BGPCommunity{
 						Asn:   int32(asn),
 						Value: int32(val),
 					},
-				}), client.BGPCommunity)
+				}, client.BGPCommunity)
 				if err != nil {
 					return err
 				}
-				msg := resp.Msg
+				msg := resp
 				var parsed any
 				if msg.GetParsed() != nil {
 					parsed = msg.GetParsed()
@@ -240,18 +239,18 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("invalid large-community local2 %q: %w", parts[2], err)
 				}
-				resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPLargeCommunityRequest{
+				resp, err := callWithRetry(ctx, &pb.BGPLargeCommunityRequest{
 					RouterId: routerID,
 					Community: &pb.BGPLargeCommunity{
 						GlobalAdmin: uint32(global),
 						LocalData1:  uint32(local1),
 						LocalData2:  uint32(local2),
 					},
-				}), client.BGPLargeCommunity)
+				}, client.BGPLargeCommunity)
 				if err != nil {
 					return err
 				}
-				msg := resp.Msg
+				msg := resp
 				var parsed any
 				if msg.GetParsed() != nil {
 					parsed = msg.GetParsed()
@@ -291,14 +290,14 @@ func newBGPASPathCmd() *cobra.Command {
 				return err
 			}
 
-			resp, err := callWithRetry(ctx, connect.NewRequest(&pb.BGPASPathRequest{
+			resp, err := callWithRetry(ctx, &pb.BGPASPathRequest{
 				RouterId: routerID,
 				Pattern:  args[2],
-			}), client.BGPASPath)
+			}, client.BGPASPath)
 			if err != nil {
 				return err
 			}
-			msg := resp.Msg
+			msg := resp
 			var parsed any
 			if msg.GetParsed() != nil {
 				parsed = msg.GetParsed()

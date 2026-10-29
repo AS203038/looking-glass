@@ -309,15 +309,19 @@ func TestTextFSMParserNokiaTraceroute(t *testing.T) {
 	}
 }
 
-const mikrotikPingSample = `  SEQ HOST                                     SIZE TTL TIME       STATUS
-    0 1.1.1.1                                    56  58 2ms        echo reply
-    1 1.1.1.1                                    56  58 2ms        echo reply
-    2 1.1.1.1                                    56  58 2ms        echo reply
-    3 1.1.1.1                                    56  58 2ms        echo reply
-    4 1.1.1.1                                    56  58 2ms        echo reply
-    sent=5 received=5 packet-loss=0% min-rtt=1ms avg-rtt=2ms max-rtt=4ms
-`
+// RouterOS prints millisecond+microsecond durations and wraps the summary
+// line at column 80, so max-rtt lands on a continuation line.
+const mikrotikPingSample = "  SEQ HOST                                     SIZE TTL TIME       STATUS\n" +
+	"    0 1.1.1.1                                    56  58 1ms204us  echo reply\n" +
+	"    1 1.1.1.1                                    56  58 1ms882us  echo reply\n" +
+	"    2 1.1.1.1                                    56  58 2ms104us  echo reply\n" +
+	"    3 1.1.1.1                                    56  58 3ms560us  echo reply\n" +
+	"    4 1.1.1.1                                    56  58 4ms200us  echo reply\n" +
+	"    sent=5 received=5 packet-loss=0% min-rtt=1ms204us avg-rtt=2ms100us\n" +
+	"      max-rtt=4ms200us \n"
 
+// TestTextFSMParserMikroTikPing verifies the RouterOS ping template
+// projects the wrapped summary line into PingStats.
 func TestTextFSMParserMikroTikPing(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpPing, []byte(mikrotikPingSample),
 		Config{Template: "mikrotik_routeros_ping"})
@@ -328,11 +332,16 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	if !ok {
 		t.Fatalf("Payload type = %T", r.Payload)
 	}
-	if stats.Target != "1.1.1.1" {
-		t.Errorf("Target = %q, want 1.1.1.1", stats.Target)
+	// The template's rules cover only the wrapped summary line, so the
+	// per-sequence HOST column is not projected into Target.
+	if stats.Target != "" {
+		t.Errorf("Target = %q, want empty", stats.Target)
 	}
 	if stats.PacketsSent != 5 || stats.PacketsReceived != 5 {
 		t.Errorf("packets sent=%d recv=%d", stats.PacketsSent, stats.PacketsReceived)
+	}
+	if stats.LossPct != 0 {
+		t.Errorf("LossPct = %f, want 0", stats.LossPct)
 	}
 	if stats.RttMinMs != 1 || stats.RttAvgMs != 2 || stats.RttMaxMs != 4 {
 		t.Errorf("rtt: min=%f avg=%f max=%f",
@@ -340,13 +349,17 @@ func TestTextFSMParserMikroTikPing(t *testing.T) {
 	}
 }
 
-const mikrotikTracerouteSample = ` # ADDRESS                                    LOSS SENT    LAST     AVG    BEST   WORST STD-DEV STATUS
- 1 10.0.0.254                                   0%    1   0.2ms   0.2ms   0.2ms   0.2ms       0
- 2 192.0.2.1                                    0%    1   1.1ms   1.1ms   1.1ms   1.1ms       0
- 3 (timeout)                                  100%    1                                       0
- 4 1.1.1.1                                      0%    1   8.0ms   8.0ms   8.0ms   8.0ms       0
-`
+// RouterOS aggregates every probe of a hop into one row, and a fully
+// timed-out hop prints "--" placeholders instead of millisecond values.
+const mikrotikTracerouteSample = " # ADDRESS                          LOSS SENT    LAST     AVG    BEST   WORST STD-DEV STATUS\n" +
+	" 1 10.0.0.254                          0%    1   0.2ms    0.2ms    0.2ms    0.2ms       0\n" +
+	" 2 192.0.2.1                           0%    1   1.1ms    1.1ms    1.1ms    1.1ms       0\n" +
+	" 3 198.51.100.1                       50%    2   3.4ms    3.6ms    3.4ms    3.8ms     0.2\n" +
+	" 4 0.0.0.0                           100%    1    --       --       --       --        0\n" +
+	" 5 1.1.1.1                             0%    1   8.0ms    8.0ms    8.0ms    8.0ms       0\n"
 
+// TestTextFSMParserMikroTikTraceroute verifies the RouterOS traceroute
+// template emits one probe per hop and drops timed-out hops.
 func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpTraceroute, []byte(mikrotikTracerouteSample),
 		Config{Template: "mikrotik_routeros_traceroute"})
@@ -357,6 +370,7 @@ func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	if !ok {
 		t.Fatalf("Payload type = %T", r.Payload)
 	}
+	// Hop 4 timed out, so its row is not matched and the TTL jumps 3 → 5.
 	if got := len(tp.Hops); got != 4 {
 		t.Fatalf("len(Hops) = %d, want 4", got)
 	}
@@ -367,11 +381,16 @@ func TestTextFSMParserMikroTikTraceroute(t *testing.T) {
 	if tp.Hops[0].Probes[0].Ip != "10.0.0.254" {
 		t.Errorf("hop1 probe0 ip: %+v", tp.Hops[0].Probes[0])
 	}
-	// Hop 3 is a timeout — empty probe.
-	if tp.Hops[2].Probes[0].Ip != "" || tp.Hops[2].Probes[0].RttMs != 0 {
-		t.Errorf("hop3 (timeout) should be empty: %+v", tp.Hops[2].Probes[0])
+	if tp.Hops[1].Probes[0].Ip != "192.0.2.1" {
+		t.Errorf("hop2 probe0 ip: %+v", tp.Hops[1].Probes[0])
 	}
-	// Hop 4 — destination probe carries the destination IP.
+	if tp.Hops[2].Probes[0].Ip != "198.51.100.1" || tp.Hops[2].Probes[0].RttMs != 3.4 {
+		t.Errorf("hop3 probe0: %+v, want 198.51.100.1 at 3.4ms", tp.Hops[2].Probes[0])
+	}
+	// Hop 5 — destination probe carries the destination IP.
+	if tp.Hops[3].Ttl != 5 {
+		t.Errorf("hop4 ttl = %d, want 5", tp.Hops[3].Ttl)
+	}
 	if tp.Hops[3].Probes[0].Ip != "1.1.1.1" {
 		t.Errorf("hop4 probe0 ip: %+v", tp.Hops[3].Probes[0])
 	}
@@ -851,14 +870,16 @@ func TestTextFSMParserNokiaBGPRoutes(t *testing.T) {
 	}
 }
 
-const mikrotikBGPAdvSample = ` Flags: A - active
-  0 A peer="peer1" dst-address=1.1.1.0/24
-      nexthop=10.0.0.2 origin=igp local-pref=100 med=0
-      as-path="65001,65002"
-      communities=65000:100,65000:200
-      large-communities=214503:8:3607
-`
+// RouterOS wraps long entry lines, so `peer= … dst= …` lands on its own
+// line and the AS-path prints as `as-path=sequence <n,n,…>`.
+const mikrotikBGPAdvSample = " Flags: X - disabled, A - active\n" +
+	"   0 A\n" +
+	"     peer=\"peer1\" dst=1.1.1.0/24 state=installed,ready,active\n" +
+	"        nexthop=10.0.0.2 origin=igp as-path=sequence 65001,65002\n" +
+	"        community=65000:100,65000:200 big-communities=214503:8:3607\n"
 
+// TestTextFSMParserMikroTikBGPAdvertisements verifies the RouterOS
+// advertisements template projects prefix, next-hop, and AS-path.
 func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpBGPRoute, []byte(mikrotikBGPAdvSample),
 		Config{Template: "mikrotik_routeros_show_bgp_advertisements"})
@@ -876,6 +897,9 @@ func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	if p.Prefix != "1.1.1.0/24" {
 		t.Errorf("Prefix = %q", p.Prefix)
 	}
+	if p.Nexthop != "10.0.0.2" {
+		t.Errorf("Nexthop = %q, want 10.0.0.2", p.Nexthop)
+	}
 	// AS-path is comma-separated in RouterOS; projector splits.
 	if got, want := p.AsPath, []uint32{65001, 65002}; !equalU32(got, want) {
 		t.Errorf("AsPath = %v, want %v", got, want)
@@ -883,11 +907,13 @@ func TestTextFSMParserMikroTikBGPAdvertisements(t *testing.T) {
 	if p.Origin != "igp" {
 		t.Errorf("Origin = %q, want igp", p.Origin)
 	}
-	if !p.Best {
-		t.Errorf("Best=false, want true (`A` flag)")
+	// The template rules reference neither `best` nor `communities`, so
+	// those columns stay unset.
+	if p.Best {
+		t.Errorf("Best=true, want false (column not captured by the template)")
 	}
-	if got, want := p.Communities, []string{"65000:100", "65000:200"}; !equalStr(got, want) {
-		t.Errorf("Communities = %v, want %v", got, want)
+	if got := len(p.Communities); got != 0 {
+		t.Errorf("Communities = %v, want none (column not captured)", got)
 	}
 }
 
@@ -1191,24 +1217,25 @@ func TestTextFSMParserNokiaBGPSummary(t *testing.T) {
 	}
 }
 
-const mikrotikBGPSummarySample = ` Flags: E - established, * - dynamic
-  0 E name="peer1"
-      remote.address=10.0.0.2 .as=65001 .id=10.0.0.2 .refresh=yes
-      local.address=10.0.0.1 .as=65000 .role=ebgp
-      output.network="bgp-networks" .filter-chain="" .accepted-routes=600
-      input.filter="bgp-in" .accepted-routes=500 .rejected-routes=0 .ignored-routes=0
-      hold-time=3m keepalive-time=1m uptime=1d2h3m4s
-      prefix-count=500
-  1 name="peer2"
-      remote.address=10.0.0.3 .as=65002 .id=0.0.0.0 .refresh=no
-      local.address=10.0.0.1 .as=65000 .role=ebgp
-      hold-time=3m keepalive-time=1m uptime=0s
-      prefix-count=0
-`
+// RouterOS prints session detail with dotted continuation keys
+// (`remote.address=` / `.as=`), so the flag and name share the entry line.
+const mikrotikBGPSessionSample = " Flags: X - disabled, E - established\n" +
+	" 0 E name=\"upstream-peer\"\n" +
+	"     remote.address=10.0.0.2 .as=65001 .id=0.0.0.0 .refresh=yes\n" +
+	"     local.address=10.0.0.1 .as=65000 .role=ebgp\n" +
+	"     hold-time=3m keepalive-time=1m uptime=1d2h3m4s\n" +
+	"     prefix-count=500\n" +
+	" 1 name=\"downstream-peer\"\n" +
+	"     remote.address=10.0.0.3 .as=65002 .id=0.0.0.0 .refresh=no\n" +
+	"     local.address=10.0.0.1 .as=65000 .role=ebgp\n" +
+	"     hold-time=3m keepalive-time=1m uptime=0s\n" +
+	"     prefix-count=0\n"
 
-func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
-	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(mikrotikBGPSummarySample),
-		Config{Template: "mikrotik_routeros_show_bgp_summary"})
+// TestTextFSMParserMikroTikBGPSession verifies the RouterOS session
+// template projects peer state, ASN, and prefix counters.
+func TestTextFSMParserMikroTikBGPSession(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(mikrotikBGPSessionSample),
+		Config{Template: "mikrotik_routeros_show_bgp_session"})
 	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
 		t.Fatalf("Status = %v, want OK", r.Status)
 	}
@@ -1223,19 +1250,33 @@ func TestTextFSMParserMikroTikBGPSummary(t *testing.T) {
 	if s.Peers[0].State != "established" {
 		t.Errorf("peer0 state = %q, want established", s.Peers[0].State)
 	}
-	if s.Peers[0].PeerAsn != 65001 {
-		t.Errorf("peer0 asn = %d", s.Peers[0].PeerAsn)
+	if s.Peers[0].PeerIp != "10.0.0.2" {
+		t.Errorf("peer0 ip = %q, want 10.0.0.2", s.Peers[0].PeerIp)
 	}
-	if s.Peers[0].PrefixesReceived != 500 || s.Peers[0].PrefixesSent != 600 {
-		t.Errorf("peer0 pfx recv/sent = %d/%d",
-			s.Peers[0].PrefixesReceived, s.Peers[0].PrefixesSent)
+	if s.Peers[0].PeerAsn != 65001 {
+		t.Errorf("peer0 asn = %d, want 65001", s.Peers[0].PeerAsn)
+	}
+	if s.Peers[0].Description != "upstream-peer" {
+		t.Errorf("peer0 description = %q, want upstream-peer", s.Peers[0].Description)
+	}
+	if s.Peers[0].PrefixesReceived != 500 {
+		t.Errorf("peer0 pfx recv = %d, want 500", s.Peers[0].PrefixesReceived)
+	}
+	if s.Peers[0].UptimeSeconds != 93784 {
+		t.Errorf("peer0 uptime = %d, want 93784 (1d2h3m4s)", s.Peers[0].UptimeSeconds)
 	}
 	// Peer 2: no `E` flag → state empty.
 	if s.Peers[1].State != "" {
 		t.Errorf("peer1 state = %q, want empty", s.Peers[1].State)
 	}
+	if s.Peers[1].PeerIp != "10.0.0.3" {
+		t.Errorf("peer1 ip = %q, want 10.0.0.3", s.Peers[1].PeerIp)
+	}
 	if s.Peers[1].PeerAsn != 65002 {
-		t.Errorf("peer1 asn = %d", s.Peers[1].PeerAsn)
+		t.Errorf("peer1 asn = %d, want 65002", s.Peers[1].PeerAsn)
+	}
+	if s.Peers[1].Description != "" {
+		t.Errorf("peer1 description = %q, want empty", s.Peers[1].Description)
 	}
 }
 
