@@ -37,6 +37,7 @@ devices:
     username: "lg"                    # required for SSH login
     password: "secret"                # optional (use ssh_key instead)
     ssh_key:  "/run/secrets/lg-key"   # optional, takes precedence if set
+    ssh_cert: "/run/secrets/lg-key-cert.pub" # optional OpenSSH certificate for ssh_key
     source4:  "192.0.2.1"             # required for IPv4 ping/traceroute
     source6:  "2001:db8::1"           # required for IPv6 ping/traceroute
     vrf:      "default"               # required (use "default" / "main" / "Base" if you don't run VRFs)
@@ -54,6 +55,7 @@ devices:
 | `username`  | string | —           | SSH login.                                                                                                                                     |
 | `password`  | string | `""`        | Always added as an SSH auth method. Ignored at handshake time when the router prefers public-key auth.                                         |
 | `ssh_key`   | string | `""`        | Filesystem path to a PEM-encoded private key. Read at every connection. When set, it's appended to the auth methods.                          |
+| `ssh_cert`  | string | `""`        | Filesystem path to an OpenSSH user certificate (`*-cert.pub`) for `ssh_key`. Read at every connection and offered before the plain key. Requires `ssh_key`: without it, the server does not start. A certificate for another key fails the connection with an authentication error. |
 | `source4`   | IPNet  | `127.0.0.1` | IPv4 source address bound on ping/traceroute. Used as `{{.Cfg.Source4.IP}}` in templates.                                                      |
 | `source6`   | IPNet  | `::1`       | IPv6 source address bound on ping/traceroute.                                                                                                  |
 | `vrf`       | string | `""`        | Routing-instance name interpolated as `{{.Cfg.VRF}}`. **Every bundled template threads this through every operation.** Use the platform default (`default` for IOS/EOS/FRR, `main` for RouterOS, `Base` for SR OS, `inet` for JunOS) if you don't run VRFs. |
@@ -66,6 +68,7 @@ Credentials are stored in plain text in the config file. The recommended deploym
 * Restrict the file's permissions (`chmod 0600` and a dedicated user/group).
 * In Kubernetes, project the file in from a `Secret` (not a `ConfigMap`).
 * Use SSH keys (`ssh_key:`) over passwords where possible, and put the key in a `Secret` too.
+* For short-lived credentials, let an SSH CA sign the key and set `ssh_cert:` to the certificate file. Looking Glass reads the key and the certificate at every new connection, so a renewal that replaces the file in place needs no restart. Pooled idle connections keep the certificate from their handshake.
 * Bind a per-router, read-only account on the router. Looking Glass never issues configuration commands, but defence in depth is cheap.
 
 ## `grpc` (HTTP/2 listener)

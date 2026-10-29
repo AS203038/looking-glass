@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -197,8 +198,9 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 
 // SSHExec opens an SSH connection to the configured router and runs each
 // command sequentially, returning the per-command stdout strings in order.
-// Authentication methods offered: publickey (when SSHKey is set), password
-// and keyboard-interactive (both when Password is set). Failures are
+// Authentication methods offered: publickey (when SSHKey is set, with the
+// SSHCert certificate offered before the plain key when SSHCert is set),
+// password and keyboard-interactive (both when Password is set). Failures are
 // returned as the coarse [errs] sentinels; detailed diagnostics are written
 // to the server log.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
@@ -222,7 +224,16 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 				slog.Any("err", err))
 			return nil, errs.AuthFailed
 		}
-		auths = append(auths, ssh.PublicKeys(key))
+		signers := []ssh.Signer{key}
+		if router.SSHCert != "" {
+			certSigner, err := loadCertSigner(router, key)
+			if err != nil {
+				return nil, err
+			}
+			signers = []ssh.Signer{certSigner, key}
+			methods = append(methods, "publickey-cert")
+		}
+		auths = append(auths, ssh.PublicKeys(signers...))
 		methods = append(methods, "publickey")
 	}
 	if router.Password != "" {
@@ -284,6 +295,77 @@ func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+// loadCertSigner reads the OpenSSH certificate at router.SSHCert and binds it
+// to key. The file is read at every call, so a renewed certificate is used on
+// the next connection.
+func loadCertSigner(router *RouterConfig, key ssh.Signer) (ssh.Signer, error) {
+	c, err := os.ReadFile(router.SSHCert)
+	if err != nil {
+		sshLogAt(slog.LevelError, "read ssh cert failed", router,
+			slog.String("cert", router.SSHCert),
+			slog.Any("err", err))
+		return nil, errs.AuthFailed
+	}
+	pub, _, _, _, err := ssh.ParseAuthorizedKey(c)
+	if err != nil {
+		sshLogAt(slog.LevelError, "parse ssh cert failed", router,
+			slog.String("cert", router.SSHCert),
+			slog.Any("err", err))
+		return nil, errs.AuthFailed
+	}
+	cert, ok := pub.(*ssh.Certificate)
+	if !ok {
+		sshLogAt(slog.LevelError, "ssh cert file holds a plain public key, not a certificate", router,
+			slog.String("cert", router.SSHCert),
+			slog.String("key_type", pub.Type()))
+		return nil, errs.AuthFailed
+	}
+	if cert.CertType != ssh.UserCert {
+		sshLogAt(slog.LevelError, "ssh cert is not a user certificate", router,
+			slog.String("cert", router.SSHCert),
+			slog.Uint64("cert_type", uint64(cert.CertType)))
+		return nil, errs.AuthFailed
+	}
+	signer, err := ssh.NewCertSigner(cert, key)
+	if err != nil {
+		sshLogAt(slog.LevelError, "ssh cert does not match ssh key", router,
+			slog.String("cert", router.SSHCert),
+			slog.String("key", router.SSHKey),
+			slog.Any("err", err))
+		return nil, errs.AuthFailed
+	}
+	sshLogAt(slog.LevelDebug, "ssh cert loaded", router,
+		slog.String("cert", router.SSHCert),
+		slog.String("key_id", cert.KeyId),
+		slog.Uint64("serial", cert.Serial),
+		certTimeAttr("valid_before", cert.ValidBefore))
+	// The server rejects a cert outside its validity window with a generic auth error, so name the cause here.
+	now := time.Now().Unix()
+	if cert.ValidAfter > math.MaxInt64 || now < int64(cert.ValidAfter) {
+		sshLogAt(slog.LevelWarn, "ssh cert not yet valid", router,
+			slog.String("cert", router.SSHCert),
+			certTimeAttr("valid_after", cert.ValidAfter))
+	}
+	if cert.ValidBefore <= math.MaxInt64 && now >= int64(cert.ValidBefore) {
+		sshLogAt(slog.LevelWarn, "ssh cert expired", router,
+			slog.String("cert", router.SSHCert),
+			certTimeAttr("valid_before", cert.ValidBefore))
+	}
+	return signer, nil
+}
+
+// certTimeAttr renders an unsigned certificate time as a log attribute.
+func certTimeAttr(key string, v uint64) slog.Attr {
+	switch {
+	case v == ssh.CertTimeInfinity:
+		return slog.String(key, "forever")
+	case v > math.MaxInt64:
+		return slog.Uint64(key, v)
+	default:
+		return slog.Time(key, time.Unix(int64(v), 0).UTC())
+	}
 }
 
 // truncate shortens s to at most n bytes, appending an ellipsis marker

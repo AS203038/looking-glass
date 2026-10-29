@@ -6,6 +6,7 @@ devices:                                                                  # List
       username: "rouser"                                                  #   username
       password: "password123"                                             #   password (optional) or
       ssh_key: "/path/to/ssh_key"                                         #   SSH private key path (optional)
+      ssh_cert: "/path/to/ssh_key-cert.pub"                               #   OpenSSH certificate for ssh_key (optional, requires ssh_key)
       source4: "192.168.1.1"                                              #   IPv4 source, such as your rt's loopback (required)
       source6: "2001:db8::1"                                              #   IPv6 source, such as your rt's loopback (required)
       vrf: "vrf1"                                                         #   VRF name, most platforms use 'default' if no VRF is used (required)
