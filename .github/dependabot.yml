@@ -1,15 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/protobuf"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 1
-    groups:
-      npm:
-        patterns:
-          - "*"
+  # protobuf is a member of the webui pnpm workspace: this entry updates it together with webui/pnpm-lock.yaml.
   - package-ecosystem: "npm"
     directory: "/webui"
     schedule:
