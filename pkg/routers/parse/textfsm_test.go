@@ -1703,6 +1703,80 @@ func TestTextFSMParserNokiaBGPSummary(t *testing.T) {
 	}
 }
 
+// nokiaBGPSummaryRealSample has the SR OS header, descriptions, dynamic peers, an idle reason and several families on one peer.
+const nokiaBGPSummaryRealSample = `===============================================================================
+ BGP Router ID:192.0.2.7       AS:64500       Local AS:64501
+===============================================================================
+BGP Admin State         : Up          BGP Oper State              : Up
+Total Peer Groups       : 3           Total Peers                 : 5
+
+===============================================================================
+BGP Summary
+===============================================================================
+Legend : D - Dynamic Neighbor
+===============================================================================
+Neighbor
+Description
+                   AS PktRcvd InQ  Up/Down   State|Rcv/Act/Sent (Addr Family)
+                      PktSent OutQ
+-------------------------------------------------------------------------------
+198.51.100.2
+AS64510 - IPv4 - IX Location A
+                64510       0    0 60d00h10m Connect
+                            0    0
+198.51.100.33
+AS64511 - IPv4 - IX Location A
+                64511       0    0 06d09h16m Idle (Shutdown)
+                            0    0
+198.51.100.201(D)
+                64512  157901    0 01d04h15m 992882/173/1317407 (IPv4)
+                       856004    0
+192.0.2.172
+                64500   28760    0 08d16h22m 0/0/0 (IPv4)
+                        25210    0           15/0/4 (VpnIPv4)
+                                             8/0/3 (VpnIPv6)
+                                             0/0/0 (FlowVpnIPv4)
+2001:db8::31(D)
+                64500  400734    0 08h20m22s 0/0/14 (IPv6)
+                       409853    0
+`
+
+func TestTextFSMParserNokiaBGPSummaryReal(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(nokiaBGPSummaryRealSample),
+		Config{Template: "nokia_sros_show_bgp_summary"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	s := r.Payload.(*pb.BGPSummaryParsed)
+	if s.LocalAsn != 64500 || s.RouterId != "192.0.2.7" {
+		t.Errorf("local asn %d, router id %q, want 64500, 192.0.2.7", s.LocalAsn, s.RouterId)
+	}
+	type row struct {
+		ip, af, state   string
+		asn             uint32
+		uptime          uint64
+		recv, act, sent uint64
+	}
+	want := []row{
+		{"198.51.100.2", "", "connect", 64510, 60*86400 + 10*60, 0, 0, 0},
+		{"198.51.100.33", "", "idle (shutdown)", 64511, 6*86400 + 9*3600 + 16*60, 0, 0, 0},
+		{"198.51.100.201", "IPv4", "established", 64512, 86400 + 4*3600 + 15*60, 992882, 173, 1317407},
+		{"192.0.2.172", "IPv4", "established", 64500, 8*86400 + 16*3600 + 22*60, 0, 0, 0},
+		{"192.0.2.172", "VpnIPv4", "established", 64500, 8*86400 + 16*3600 + 22*60, 15, 0, 4},
+		{"192.0.2.172", "VpnIPv6", "established", 64500, 8*86400 + 16*3600 + 22*60, 8, 0, 3},
+		{"192.0.2.172", "FlowVpnIPv4", "established", 64500, 8*86400 + 16*3600 + 22*60, 0, 0, 0},
+		{"2001:db8::31", "IPv6", "established", 64500, 8*3600 + 20*60 + 22, 0, 0, 14},
+	}
+	var got []row
+	for _, p := range s.Peers {
+		got = append(got, row{p.PeerIp, p.AddressFamily, p.State, p.PeerAsn, p.UptimeSeconds,
+			p.PrefixesReceived, p.PrefixesAccepted, p.PrefixesSent})
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("peers:\n got %+v\nwant %+v", got, want)
+	}
+}
+
 const mikrotikBGPSummarySample = ` Flags: E - ESTABLISHED
  0 E name="peer1" instance=bgp-instance-1 remote.address=10.0.0.2
      .as=65001 .id=10.0.0.2 .capabilities=mp,rr,gr,as4,err .afi=ipv4

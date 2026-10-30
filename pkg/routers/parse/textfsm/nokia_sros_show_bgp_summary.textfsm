@@ -1,23 +1,30 @@
 Value Filldown local_asn (\d+)
 Value Filldown router_id ([0-9a-fA-F:.]+)
-Value Required peer_ip ([0-9a-fA-F:.]+)
-Value peer_asn (\d+)
-Value uptime (\S+)
-Value state (\S+)
+Value Filldown,Required peer_ip ([0-9a-fA-F:.]+)
+Value Filldown peer_asn (\d+)
+Value Filldown uptime (\S+)
+Value state (\S+(?:\s+\([^)]*\))?)
 Value prefixes_received (\d+)
 Value prefixes_accepted (\d+)
 Value prefixes_sent (\d+)
 Value address_family (\S+)
 
 Start
+  ^\s*BGP\s+Router\s+ID:${router_id}\s+AS:${local_asn}\b
   ^BGP\s+Summary
   ^Neighbor\s*$$ -> Peers
   ^-+\s*$$ -> Peers
 
+# An established peer gets one record per family, other peers one record for the state.
 Peers
-  ^${peer_ip}\s*$$
+  ^${peer_ip}(?:\(D\))?\s*$$
   ^\s+${peer_asn}\s+\d+\s+\d+\s+${uptime}\s+${prefixes_received}/${prefixes_accepted}/${prefixes_sent}\s+\(${address_family}\)\s*$$ -> Record
   ^\s+${peer_asn}\s+\d+\s+\d+\s+${uptime}\s+${state}\s*$$ -> Record
+  ^\s+\d+\s+\d+\s+${prefixes_received}/${prefixes_accepted}/${prefixes_sent}\s+\(${address_family}\)\s*$$ -> Record
+  ^\s+${prefixes_received}/${prefixes_accepted}/${prefixes_sent}\s+\(${address_family}\)\s*$$ -> Record
   ^\s+\d+\s+\d+\s*$$
   ^-+\s*$$
   ^\s*$$ -> Start
+
+# No record at the end of input: after the last peer only Filldown values are left.
+EOF
