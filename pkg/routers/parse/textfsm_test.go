@@ -1195,6 +1195,13 @@ func TestTextFSMParserConcurrent(t *testing.T) {
 	want := make([]Result, len(inputs))
 	for i, in := range inputs {
 		want[i] = TextFSMParser{}.Parse(OpBGPSummary, []byte(in), cfg)
+		s, ok := want[i].Payload.(*pb.BGPSummaryParsed)
+		if want[i].Status != pb.ParseStatus_PARSE_STATUS_OK || !ok || len(s.Peers) != 3 {
+			t.Fatalf("serial input %d: status %v, payload %v, want OK with 3 peers", i, want[i].Status, want[i].Payload)
+		}
+	}
+	if proto.Equal(want[0].Payload, want[1].Payload) {
+		t.Fatal("serial results are equal, want a different result per input")
 	}
 	var wg sync.WaitGroup
 	for g := range 8 {
