@@ -6,7 +6,8 @@ COPY protobuf/buf.yaml protobuf/buf.gen.yaml ./
 COPY protobuf/lookingglass ./lookingglass
 RUN buf generate
 
-FROM --platform=$BUILDPLATFORM node:alpine AS node-builder
+# CI reads the Node version from this line (.github/actions/setup-node).
+FROM --platform=$BUILDPLATFORM node:24-alpine AS node-builder
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN npm install -g pnpm
