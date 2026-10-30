@@ -495,6 +495,68 @@ const nokiaTracerouteSample = `traceroute to 1.1.1.1, 30 hops max, 40 byte packe
  3  * * *
 `
 
+// nokiaTracerouteMDSamples are in the MD-CLI format: a source address, a lost probe as "0.0.0.0  *" and an IPv6 hop.
+var nokiaTracerouteMDSamples = []struct {
+	name, out, target, source string
+	hops                      []string
+}{
+	{
+		name: "ipv4",
+		out: `traceroute to 203.0.113.9 from 192.0.2.7, 30 hops max, 40 byte packets
+  1  192.0.2.1 (192.0.2.1)    0.538 ms  0.682 ms  0.514 ms 
+  2  0.0.0.0  *  
+  2  198.51.100.1 (198.51.100.1)    0.552 ms  0.453 ms
+  3  0.0.0.0  * * *  
+`,
+		target: "203.0.113.9",
+		source: "192.0.2.7",
+		hops: []string{
+			"1: 192.0.2.1/0.538 /0.682 /0.514",
+			"2: /0 198.51.100.1/0.552 /0.453",
+			"3: /0",
+		},
+	},
+	{
+		name: "ipv6",
+		out: `traceroute to 2001:db8::9 from 2001:db8::7, 30 hops max, 60 byte packets
+  1  2001:db8::1 (2001:db8::1)    0.546 ms  0.519 ms  0.668 ms 
+  2  2001:db8::9 (2001:db8::9)    0.612 ms  0.526 ms  0.499 ms
+`,
+		target: "2001:db8::9",
+		source: "2001:db8::7",
+		hops: []string{
+			"1: 2001:db8::1/0.546 /0.519 /0.668",
+			"2: 2001:db8::9/0.612 /0.526 /0.499",
+		},
+	},
+}
+
+func TestTextFSMParserNokiaTracerouteMD(t *testing.T) {
+	for _, tc := range nokiaTracerouteMDSamples {
+		t.Run(tc.name, func(t *testing.T) {
+			r := TextFSMParser{}.Parse(OpTraceroute, []byte(tc.out), Config{Template: "nokia_sros_traceroute"})
+			if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+				t.Fatalf("Status = %v, want OK", r.Status)
+			}
+			tp := r.Payload.(*pb.TracerouteParsed)
+			if tp.Target != tc.target || tp.Source != tc.source {
+				t.Errorf("target %q source %q, want %q %q", tp.Target, tp.Source, tc.target, tc.source)
+			}
+			var got []string
+			for _, h := range tp.Hops {
+				var probes []string
+				for _, p := range h.Probes {
+					probes = append(probes, fmt.Sprintf("%s/%g", p.Ip, p.RttMs))
+				}
+				got = append(got, fmt.Sprintf("%d: %s", h.Ttl, strings.Join(probes, " ")))
+			}
+			if !slices.Equal(got, tc.hops) {
+				t.Errorf("hops:\n got %q\nwant %q", got, tc.hops)
+			}
+		})
+	}
+}
+
 func TestTextFSMParserNokiaTraceroute(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpTraceroute, []byte(nokiaTracerouteSample),
 		Config{Template: "nokia_sros_traceroute"})

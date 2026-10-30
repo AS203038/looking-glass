@@ -1,18 +1,22 @@
 Value Filldown target ([^,\s]+)
+Value Filldown source ([0-9a-fA-F:.]+)
 Value Required ttl (\d+)
 Value ip1 ([0-9a-fA-F:.]+)
-Value hostname1 ([\w.\-]+)
+Value hostname1 ([\w.:\-]+)
 Value rtt_ms1 (\d+(?:\.\d+)?)
 Value ip2 ([0-9a-fA-F:.]+)
 Value rtt_ms2 (\d+(?:\.\d+)?)
 Value ip3 ([0-9a-fA-F:.]+)
 Value rtt_ms3 (\d+(?:\.\d+)?)
 
+# MD-CLI prints the source address and a lost probe as "0.0.0.0  *"; it can then repeat the TTL for the other probes.
 Start
-  ^traceroute\s+to\s+${target},
+  ^traceroute\s+to\s+${target}(?:\s+from\s+${source})?,
   ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+${rtt_ms3}\s+ms -> Record
   ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+${rtt_ms3}\s+ms -> Record
   ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+\* -> Record
   ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+\* -> Record
   ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+\*\s+\* -> Record
-  ^\s*${ttl}\s+\*\s+\*\s+\* -> Record
+  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s*$$ -> Record
+  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s*$$ -> Record
+  ^\s*${ttl}\s+(?:0\.0\.0\.0\s+)?\*(?:\s+\*)*\s*$$ -> Record
