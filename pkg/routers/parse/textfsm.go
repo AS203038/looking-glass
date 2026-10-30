@@ -510,7 +510,8 @@ func tfsmBGPSummaryResult(records []map[string]interface{}) Result {
 				state = "established"
 			}
 		}
-		if state == "" && (pfxRecv > 0 || pfxAcc > 0 || pfxSent > 0) {
+		// A family line exists only for an established session, also with zero prefixes.
+		if state == "" && (pfxRecv > 0 || pfxAcc > 0 || pfxSent > 0 || recString(rec, "address_family") != "") {
 			state = "established"
 		}
 		switch state {
