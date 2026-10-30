@@ -29,10 +29,21 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "weekly"
     groups:
       github-actions:
+        patterns:
+          - "*"
+  # The node-builder image also sets the Node version of CI (.github/actions/setup-node).
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker:
         patterns:
           - "*"

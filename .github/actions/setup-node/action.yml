@@ -1,0 +1,24 @@
+name: Set up Node from the Dockerfile
+description: >-
+  Installs the Node.js version of the node-builder stage in the Dockerfile, so that
+  one Dependabot docker update changes the image and CI together.
+runs:
+  using: composite
+  steps:
+    - name: Read the Node version from the Dockerfile
+      id: version
+      shell: bash
+      run: |
+        version=$(sed -n 's/^FROM .*node:\([0-9][0-9.]*\)-alpine AS node-builder$/\1/p' Dockerfile)
+        if [ -z "$version" ]; then
+          echo "::error file=Dockerfile::the node-builder stage does not use a node:<version>-alpine image"
+          exit 1
+        fi
+        echo "node=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Set up Node
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ steps.version.outputs.node }}
+        cache: 'pnpm'
+        cache-dependency-path: webui/pnpm-lock.yaml
