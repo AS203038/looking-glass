@@ -9,7 +9,9 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"golang.org/x/crypto/ssh"
@@ -350,6 +352,64 @@ func TestTruncate(t *testing.T) {
 		got := truncate(tc.in, tc.n)
 		if got != tc.expected {
 			t.Errorf("truncate(%q, %d) = %q, want %q", tc.in, tc.n, got, tc.expected)
+		}
+	}
+}
+
+// TestSSHExecHandshakeTimeout verifies that a device that accepts TCP but never
+// completes the SSH handshake fails the request with errs.ConnectionFailed and
+// frees the pool slot.
+func TestSSHExecHandshakeTimeout(t *testing.T) {
+	old := sshDialTimeout
+	sshDialTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { sshDialTimeout = old })
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mu sync.Mutex
+	var held []net.Conn
+	t.Cleanup(func() {
+		listener.Close()
+		mu.Lock()
+		defer mu.Unlock()
+		for _, c := range held {
+			c.Close()
+		}
+	})
+	go func() {
+		for {
+			c, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			held = append(held, c)
+			mu.Unlock()
+		}
+	}()
+	addr := listener.Addr().String()
+
+	for _, tc := range []struct {
+		name     string
+		poolSize int
+	}{{"unpooled", 0}, {"pooled", 1}} {
+		router := &RouterConfig{Name: "stall-" + tc.name + "@" + addr, Hostname: addr, Username: "test", Password: "x", SSHPoolSize: tc.poolSize}
+		for i := range 2 {
+			done := make(chan error, 1)
+			go func() {
+				_, err := SSHExec(router, []string{"show version"})
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if !errors.Is(err, errs.ConnectionFailed) {
+					t.Errorf("%s request %d: err = %v, want errs.ConnectionFailed", tc.name, i, err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatalf("%s request %d: SSHExec did not return", tc.name, i)
+			}
 		}
 	}
 }
