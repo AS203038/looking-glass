@@ -33,7 +33,7 @@ devices:
   - name: "rt1.sto1.example"          # required, free text
     type: "frrouting"                 # required, must match a template
     location: "Stockholm, Sweden"     # optional, used to group in WebUI
-    hostname: "10.0.0.1:22"           # required, host[:port]
+    hostname: "10.0.0.1:22"           # required, host:port
     username: "lg"                    # required for SSH login
     password: "secret"                # optional (use ssh_key instead)
     ssh_key:  "/run/secrets/lg-key"   # optional, takes precedence if set
@@ -41,7 +41,7 @@ devices:
     source4:  "192.0.2.1"             # required for IPv4 ping/traceroute
     source6:  "2001:db8::1"           # required for IPv6 ping/traceroute
     vrf:      "default"               # required (use "default" / "main" / "Base" if you don't run VRFs)
-    ssh_pool_size: 5                  # optional maximum idle connections to pool for this device (0 disables pooling)
+    ssh_pool_size: 5                  # optional maximum open connections to this device, idle ones are pooled (0 disables pooling)
 ```
 
 ### Field semantics
@@ -51,15 +51,15 @@ devices:
 | `name`      | string | —           | Shown in the picker and CLI. No syntax restrictions.                                                                                           |
 | `type`      | string | —           | Must equal the `name:` field of a loaded router template. Unknown types log an error and the device is skipped (server still starts).          |
 | `location`  | string | `""`        | Free-form site label. Routers sharing a `location` are grouped in the WebUI picker; missing/empty becomes "Other".                             |
-| `hostname`  | string | —           | SSH endpoint. `host[:port]`. No `port` defaults to 22 from `ssh.Dial`. Devices without this are dropped at validation.                          |
-| `username`  | string | —           | SSH login.                                                                                                                                     |
+| `hostname`  | string | —           | SSH endpoint in `host:port` form. The port is required: use `:22` for SSH exec, or the NETCONF port (usually `:830`) for a template with `transport: netconf`. Devices without this are dropped at validation. |
+| `username`  | string | —           | SSH login. For a template with `transport: netconf`, the user needs NETCONF access on the device.                                             |
 | `password`  | string | `""`        | Always added as an SSH auth method. Ignored at handshake time when the router prefers public-key auth.                                         |
 | `ssh_key`   | string | `""`        | Filesystem path to a PEM-encoded private key. Read at every connection. When set, it's appended to the auth methods.                          |
 | `ssh_cert`  | string | `""`        | Filesystem path to an OpenSSH user certificate (`*-cert.pub`) for `ssh_key`. Read at every connection and offered before the plain key. Requires `ssh_key`: without it, the server does not start. A certificate for another key fails the connection with an authentication error. |
 | `source4`   | IPNet  | `127.0.0.1` | IPv4 source address bound on ping/traceroute. Used as `{{.Cfg.Source4.IP}}` in templates.                                                      |
 | `source6`   | IPNet  | `::1`       | IPv6 source address bound on ping/traceroute.                                                                                                  |
 | `vrf`       | string | `""`        | Routing-instance name interpolated as `{{.Cfg.VRF}}`. **Every bundled template threads this through every operation.** Use the platform default (`default` for IOS/EOS/FRR, `main` for RouterOS, `Base` for SR OS, `inet` for JunOS) if you don't run VRFs. |
-| `ssh_pool_size` | int | `0`        | Maximum idle SSH connections kept open in the pool for this device. Setting it `> 0` enables transparent, self-healing connection pooling. |
+| `ssh_pool_size` | int | `0`        | Maximum number of open SSH connections to this device. `0` means no limit and no pooling. With a value `> 0`, SSH exec keeps idle connections open and uses them again. When all connections are in use, a request fails at once with a `resource_exhausted` error, and the health check marks the device unhealthy unless BMP is active for it. A NETCONF template never uses a connection again, see [Connection and sessions](router-templates.md#connection-and-sessions). |
 
 ### A note on credentials
 
@@ -238,6 +238,7 @@ Each component emits events at the levels below. Setting `level: debug` globally
 | `rpc`        | `rpc start` (per handler entry).                                                              | `rpc ok` (INFO per success: op, router, duration, parser kind/status); `rpc failed` (WARN). |
 | `health`     | `healthcheck tick` (per minute) / `healthcheck probe ok` / `healthcheck probe failed` (per router). | State transitions only: `router healthy` (INFO) / `router unhealthy` (WARN). |
 | `ssh`        | `ssh dial start` / `ssh dial ok` / `ssh exec start` / `ssh exec ok` / `ssh client close`.    | `dial failed` / `new session failed` / `command failed` (ERROR).             |
+| `netconf`    | `netconf session open` / `netconf rpc start` / `netconf rpc ok`, and all records of the NETCONF client library. | `netconf subsystem failed` / `netconf hello failed` / `netconf rpc-error` / `netconf rpc failed` / `netconf reply has no output element` (ERROR). |
 | `routers`    | `router bound` per device.                                                                    | `router catalogue built` summary (INFO); `router type not found` (ERROR).    |
 | `yaml`       | —                                                                                             | `router registered` per template; `unknown parser kind` (WARN); load failures (ERROR + exit). |
 | `tpl`        | `tpl render` per rendered command (with the final rendered string).                          | `operation not defined for router` (WARN); `parse failed` / `execute failed` (ERROR). |
@@ -262,6 +263,8 @@ The server uses distinct exit codes for distinct startup failures so the cause i
 |   23 | `pkg/routers/yaml.go::init`         | Embedded template directory unreadable.                |
 |   24 | `pkg/routers/yaml.go::init`         | Embedded template file unreadable.                     |
 |   25 | `pkg/routers/yaml.go::init`         | Embedded template file unparseable.                    |
+|   26 | `pkg/routers/yaml.go::init`         | YAML file in `ROUTER_DIR` has an invalid `transport` or `netconf` block. |
+|   27 | `pkg/routers/yaml.go::init`         | Embedded template file has an invalid `transport` or `netconf` block. |
 
 ## `security.txt` (optional)
 
@@ -354,7 +357,7 @@ security.txt:
 In case it saves you time grepping:
 
 * SSH **host-key verification** is currently `InsecureIgnoreHostKey`. There is no `known_hosts` mode yet.
-* SSH **connections are pooled** if `ssh_pool_size` is configured on the device to a value greater than `0`. When configured, idle SSH connections are cached up to that size, checked out exclusively per request, and automatically validated/reestablished if stale.
+* SSH **connections are pooled** if `ssh_pool_size` is configured on the device to a value greater than `0`. When configured, at most that many SSH connections are open at a time. Each request checks out one connection exclusively. SSH exec keeps idle connections open for the next request and validates or reestablishes them if stale. NETCONF uses `ssh_pool_size` only as a limit on open connections and closes each connection after the request.
 * The **health check interval** is hardcoded to 60 seconds (see `pkg/http/grpc/grpc.go:healthcheck`).
 * The **WebUI router-list refresh** is hardcoded to 5 minutes (see `webui/src/lib/stores/routers.ts`).
 * Build-time **`-ldflags "-X .../utils.release=…"`** is the only way to set the version string shown in `GetInfo` / WebUI footer / ETag / Sentry release. The Makefile and Dockerfile both handle this automatically.

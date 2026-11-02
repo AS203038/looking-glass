@@ -10,7 +10,7 @@ devices:                                                                  # List
       source4: "192.168.1.1"                                              #   IPv4 source, such as your rt's loopback (required)
       source6: "2001:db8::1"                                              #   IPv6 source, such as your rt's loopback (required)
       vrf: "vrf1"                                                         #   VRF name, most platforms use 'default' if no VRF is used (required)
-      ssh_pool_size: 5                                                    #   maximum idle SSH connections to pool for this device, 0 disables pooling (optional)
+      ssh_pool_size: 5                                                    #   maximum open SSH connections to this device, idle ones are pooled, 0 disables pooling (optional)
 
 grpc:                                                                     # gRPC Server Settings
     enabled: true                                                         #   Enable or disable GRPC endpoints
@@ -28,6 +28,7 @@ logging:                                                                  # Logg
     source: false                                                         #   add file:line annotations to each record
     components:                                                           #   optional per-component level overrides
         ssh: info                                                         #     ssh: SSH client (publickey/password/keyboard-interactive)
+        netconf: info                                                     #     netconf: NETCONF sessions and RPCs (templates with transport: netconf)
         http: info                                                        #     http: listener / TLS / Sentry / Redis wiring
         httpaccess: info                                                  #     httpaccess: per-request structured access log
         cache: info                                                       #     cache: Redis response cache middleware
