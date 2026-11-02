@@ -19,7 +19,7 @@ type Router interface {
 }
 ```
 
-For YAML templates the implementation is shared: `pkg/routers/Yaml` loads the YAML, exposes the same six methods, and returns the rendered command list. Execution (SSH, output capture) is handled once in `pkg/utils.SSHExec` — the template only declares the strings to run.
+For YAML templates the implementation is shared: `pkg/routers/Yaml` loads the YAML, exposes the same six methods, and returns the rendered command list. Execution (SSH, output capture) is handled once in `pkg/utils.SSHExec` — the template only declares the strings to run. A template with `transport: netconf` runs the same strings through `pkg/utils.NetconfExec` instead (see [Transport](#transport)).
 
 A request like "ping 1.1.1.1 from router 3" therefore flows:
 
@@ -41,6 +41,12 @@ PingResponse.Result = stdout
 
 ```yaml
 name: my_vendor_v1            # required, must be unique in the registry
+
+transport: ssh                # optional: ssh (default) or netconf, see "Transport"
+# netconf:                    # required with transport: netconf, not allowed with ssh
+#     rpc: <xml>              # RPC body; {{.Command}} is the XML-escaped command
+#     output: <element>       # local name of the reply elements that hold the output
+#     error: <element>        # optional: local name of the reply elements that hold a command error
 
 ping:                         # optional but recommended
     any:                      # IP-family-agnostic; used if family-specific is empty
@@ -111,7 +117,7 @@ Practical reference:
 | Expression                | Type     | Value                                                                 | Where it applies                          |
 | ------------------------- | -------- | --------------------------------------------------------------------- | ----------------------------------------- |
 | `{{.Cfg.Name}}`           | string   | Device display name from `config.yaml`                                | Anywhere                                  |
-| `{{.Cfg.Hostname}}`       | string   | SSH endpoint (`host[:port]`)                                          | Anywhere (rare; usually not needed)       |
+| `{{.Cfg.Hostname}}`       | string   | SSH endpoint (`host:port`)                                            | Anywhere (rare; usually not needed)       |
 | `{{.Cfg.Username}}`       | string   | SSH login                                                             | Anywhere (rare)                           |
 | `{{.Cfg.VRF}}`            | string   | Routing-instance label                                                | **Every operation** — see [VRF](#vrf-handling) |
 | `{{.Cfg.Location}}`       | string   | Free-form location                                                    | Anywhere (rare)                           |
@@ -232,12 +238,12 @@ After rendering, command execution failures (SSH dial, auth, exec non-zero, …)
 
 Templates are loaded from two sources in this order:
 
-1. **`$ROUTER_DIR`** (if set, at process start). Every `*.yml` / `*.yaml` file is parsed and registered. A name clash here is a panic; a name clash with an embedded template is fine and silently wins.
+1. **`$ROUTER_DIR`** (if set, at process start). Every `*.yml` / `*.yaml` file is parsed and registered. A name clash here stops the process; a name clash with an embedded template is fine and silently wins.
 2. **Embedded bundle** — `pkg/routers/*.yml`, compiled into the binary. Each is registered only if no template under its name has been loaded yet; otherwise a warning is logged and the bundled copy is skipped.
 
 So if you want to override the bundled `cisco_ios` template, drop your replacement at `$ROUTER_DIR/cisco_ios.yml`. If you want to add a new vendor that nobody else has implemented, drop it at `$ROUTER_DIR/myvendor.yml`.
 
-Any parse error in either source **panics at startup**. Validate your template (`yamllint`, `kubectl apply --dry-run=client` on a ConfigMap, etc.) before deploying it.
+Any parse error in either source, or an invalid `transport` or `netconf` block (see [Transport](#transport)), **stops the process at startup**: it logs the error and exits with a non-zero code (see [Process exit codes](./configuration.md#process-exit-codes)). Validate your template (`yamllint`, `kubectl apply --dry-run=client` on a ConfigMap, etc.) before deploying it.
 
 ## Parsers (structured output)
 
@@ -373,6 +379,74 @@ bgp:
 
 Both commands run in separate SSH sessions (over the same TCP connection) and the outputs are joined with `\n` in the order listed. If any command fails, the whole operation fails — there is no partial-success path.
 
+## Transport
+
+By default every command runs over SSH exec: one SSH session per command, and its stdout is the output. Some platforms do not allow this. A template can run its commands over NETCONF (RFC 6241) instead:
+
+```yaml
+name: my_sros_mdcli
+transport: netconf
+netconf:
+  rpc: '<action xmlns="urn:ietf:params:xml:ns:yang:1"><global-operations xmlns="urn:nokia.com:sros:ns:yang:sr:oper-global"><md-cli-raw-command><md-cli-input-line>{{.Command}}</md-cli-input-line></md-cli-raw-command></global-operations></action>'
+  output: md-cli-output-block
+  error: error-message
+bgp:
+  summary:
+    - show router {{.Cfg.VRF}} bgp summary
+```
+
+The command lists are rendered as for SSH exec. Then, for each command:
+
+1. `netconf.rpc` is rendered with `text/template`. `{{.Command}}` is the rendered command. The server XML-escapes it, so do not escape it in the template.
+2. The result is sent as the body of one `<rpc>`.
+3. The text of all reply elements whose local name is `netconf.output` is joined, in document order. Namespaces and prefixes are ignored. This text is the command output. Parsers get it in the same way as SSH exec output.
+4. When `netconf.error` is set and the reply has text in elements with that local name, the text is added after the output on a new line, as the device CLI shows it.
+
+| Key              | Required          | Notes                                                                                       |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------- |
+| `transport`      | no                | `ssh` (default) or `netconf`.                                                               |
+| `netconf.rpc`    | with `netconf`    | RPC body as a Go template. Its only template action is `{{.Command}}`, without functions, pipelines or variables. Must render exactly one well-formed XML element. Only whitespace, comments and processing instructions can be around it. Must use `{{.Command}}` in element text. It must not use it in a comment or CDATA. It must not have an XML declaration (`<?xml ...?>`), because the body goes inside `<rpc>`. |
+| `netconf.output` | with `netconf`    | Local name of the reply elements that hold the command output, without a prefix.           |
+| `netconf.error`  | no                | Local name of the reply elements that hold an error of a command that ran, without a prefix. Must differ from `netconf.output`. |
+
+### Connection and sessions
+
+* The device `hostname` must point at the NETCONF port, usually `host:830`. The server opens the SSH subsystem `netconf` (RFC 6242) there and supports base:1.0 and base:1.1 framing.
+* `username`, `password`, `ssh_key` and `ssh_pool_size` work as for SSH exec. The user needs NETCONF access on the device.
+* Each request opens a new SSH connection and a NETCONF session (hello exchange), sends one RPC per command in order, then closes the session and the connection. No connection is reused, because SR OS drops it after `close-session`. `ssh_pool_size` only limits the number of open connections. When all of them are in use, a request fails at once with a `resource_exhausted` error, and the health check marks the device unhealthy unless BMP is active for it. Set `ssh_pool_size` to at least the number of parallel requests you expect, or to `0` for no limit.
+* The NETCONF subsystem request and the session setup have a timeout of 2 minutes. Inside it, the hello exchange has a timeout of 30 seconds. Each RPC has a timeout of 2 minutes, which includes the read of the reply. The `close-session` RPC has a timeout of 10 seconds.
+* The health check opens and closes a NETCONF session. A device whose SSH port answers but whose NETCONF does not is marked unhealthy, unless BMP is active for it.
+
+### Errors
+
+* An `<rpc-error>` reply fails the operation with `errs.ExecFailed`. The `error-tag` and `error-message` are logged on the `netconf` component.
+* A reply without a `netconf.output` element fails with `errs.ExecFailed`. Check the element name.
+* Text in a `netconf.error` element does not fail the operation. It is added after the output and logged as `netconf command error`. SR OS uses this for a command that it stops, for example `MINOR: CLI #2005: ... BGP routing daemon is busy`, with the partial output in `md-cli-output-block`.
+* The SSH connection fails as for SSH exec: an unreachable device with `errs.ConnectionFailed`, a router without credentials with `errs.AuthFailed`.
+* A failed NETCONF subsystem request or hello, an RPC timeout, or a transport error during an RPC fails with `errs.ExecFailed`.
+* A `close-session` that fails or times out does not fail the operation. It is logged at debug level on the `netconf` component.
+
+### Examples
+
+Nokia SR OS, MD-CLI commands through the `md-cli-raw-command` action:
+
+```yaml
+transport: netconf
+netconf:
+  rpc: '<action xmlns="urn:ietf:params:xml:ns:yang:1"><global-operations xmlns="urn:nokia.com:sros:ns:yang:sr:oper-global"><md-cli-raw-command><md-cli-input-line>{{.Command}}</md-cli-input-line></md-cli-raw-command></global-operations></action>'
+  output: md-cli-output-block
+  error: error-message
+```
+
+Juniper Junos, text output of a CLI command. Junos does not apply CLI pipes such as `| match` in this RPC, so the reply holds the full output:
+
+```yaml
+transport: netconf
+netconf:
+  rpc: '<command format="text">{{.Command}}</command>'
+  output: output
+```
+
 ## Security considerations
 
 The template body is operator-controlled, so the threat model is **not** "untrusted user injects shell metacharacters". But it is:
@@ -447,6 +521,10 @@ We welcome contributions of a proper test harness — see [development.md](./dev
 | Output looks empty but command should produce data | Did you forget to include the family-specific line? Check `_tpl` family selection rules.    |
 | `template: x: function "foo" not defined`          | Used a sprig-style function that `text/template` doesn't ship; stick to built-ins.          |
 | Quotes broken on JunOS / Nokia                     | Wrap regex operands in `"…"` literally in the template — see `juniper_junos.yml`.            |
+| `invalid router file` with exit code 26            | Bad `transport` or `netconf` block. The log line names the problem.                         |
+| `invalid builtin file` with exit code 27           | The same for an embedded template in `pkg/routers/`.                                        |
+| NETCONF router unhealthy, SSH login works          | `hostname` points at the SSH port, not the NETCONF port (usually 830), or the user has no NETCONF access. |
+| `netconf reply has no output element` in the log   | `netconf.output` does not match the element name in the reply.                              |
 
 ## Reference: shipped templates
 

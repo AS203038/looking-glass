@@ -115,6 +115,7 @@ The bundled templates live alongside the Go source as `*.yml` files and are embe
 * `ipnet.go` — IP / CIDR parsing + family detection. The `IPFamily` constants (`ipv4` / `ipv6`) are lower-case because they're interpolated verbatim into vendor commands.
 * `sanitize.go` — `SanitizeASPathRegex`: tight allow-list for AS-path regex (digits and underscores only, ≤30 chars, optional `$` anchor). Prevents both command injection and ReDoS.
 * `ssh.go` — `SSHExec(cfg, cmds)`: one TCP+SSH per call, runs each command in its own session, captures stdout, logs stderr on failure (truncated to 512 bytes), returns sentinel errors.
+* `netconf.go`: `NetconfExec(cfg, spec, cmds)` runs the commands of templates with `transport: netconf`. Uses the same SSH auth and pool as `SSHExec`, opens one NETCONF session per call, sends one RPC per command and returns the text of the configured reply elements. See [router-templates.md § Transport](./router-templates.md#transport).
 * `tls.go` — self-signed cert generation (`GenerateSelfSignedPair`) for `grpc.tls.self_signed: true`.
 * `Version()` — lazily computed `<release>+<unix-nanos-hex>` used as the ETag, Sentry release, and `GetInfo` reply.
 

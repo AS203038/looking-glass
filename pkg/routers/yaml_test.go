@@ -10,6 +10,7 @@ import (
 
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"github.com/AS203038/looking-glass/pkg/utils"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // TestYamlRendering verifies that YAML command templates render correctly for both IPv4 and IPv6.
@@ -574,6 +575,143 @@ func TestLoadBuiltinParseErrorSubprocess(t *testing.T) {
 	if errors.As(err, &exitErr) {
 		if exitErr.ExitCode() != 25 {
 			t.Errorf("expected exit code 25, got %d", exitErr.ExitCode())
+		}
+	} else {
+		t.Errorf("expected exit error, got %v", err)
+	}
+}
+
+// TestYamlTransport verifies the transport and netconf template checks.
+func TestYamlTransport(t *testing.T) {
+	const srosRPC = `'<action xmlns="urn:ietf:params:xml:ns:yang:1"><global-operations xmlns="urn:nokia.com:sros:ns:yang:sr:oper-global"><md-cli-raw-command><md-cli-input-line>{{.Command}}</md-cli-input-line></md-cli-raw-command></global-operations></action>'`
+	cases := []struct {
+		name        string
+		body        string
+		wantErr     string
+		wantNetconf bool
+		wantErrElem string
+	}{
+		{"exec default", "name: t\n", "", false, ""},
+		{"exec explicit", "name: t\ntransport: ssh\n", "", false, ""},
+		{"netconf", "name: t\ntransport: netconf\nnetconf:\n  rpc: " + srosRPC + "\n  output: md-cli-output-block\n", "", true, ""},
+		{"netconf with error", "name: t\ntransport: netconf\nnetconf:\n  rpc: " + srosRPC + "\n  output: md-cli-output-block\n  error: error-message\n", "", true, "error-message"},
+		{"netconf error is the output", "name: t\ntransport: netconf\nnetconf:\n  rpc: " + srosRPC + "\n  output: output\n  error: output\n", "netconf.error must name another element", false, ""},
+		{"netconf error without transport", "name: t\nnetconf:\n  error: error-message\n", "transport: netconf", false, ""},
+		{"unknown transport", "name: t\ntransport: telnet\n", `unknown transport "telnet"`, false, ""},
+		{"netconf without rpc", "name: t\ntransport: netconf\nnetconf:\n  output: output\n", "netconf.rpc is required", false, ""},
+		{"netconf without output", "name: t\ntransport: netconf\nnetconf:\n  rpc: " + srosRPC + "\n", "netconf.output is required", false, ""},
+		{"netconf prefixed output", "name: t\ntransport: netconf\nnetconf:\n  rpc: " + srosRPC + "\n  output: sros:md-cli-output-block\n", "netconf.output must be an XML local name", false, ""},
+		{"netconf error with a space", "name: t\ntransport: netconf\nnetconf:\n  rpc: " + srosRPC + "\n  output: md-cli-output-block\n  error: error message\n", "netconf.error must be an XML local name", false, ""},
+		{"netconf bad xml", "name: t\ntransport: netconf\nnetconf:\n  rpc: '<command>{{.Command}}</cmd>'\n  output: output\n", "well-formed", false, ""},
+		{"netconf block without transport", "name: t\nnetconf:\n  rpc: " + srosRPC + "\n  output: output\n", "transport: netconf", false, ""},
+		{"empty netconf block without transport", "name: t\nnetconf: {}\n", "transport: netconf", false, ""},
+		{"empty netconf block with ssh", "name: t\ntransport: ssh\nnetconf: {}\n", "transport: netconf", false, ""},
+		{"netconf transport without a block", "name: t\ntransport: netconf\n", "netconf.rpc is required", false, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			y := &Yaml{Path: "t.yml"}
+			if err := yaml.Unmarshal([]byte(tc.body), &y.Template); err != nil {
+				t.Fatal(err)
+			}
+			err := y.compile()
+			if tc.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+					t.Fatalf("err = %v, want it to contain %q", err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("compile: %v", err)
+			}
+			if got := y.Netconf() != nil; got != tc.wantNetconf {
+				t.Errorf("Netconf() set = %v, want %v", got, tc.wantNetconf)
+			}
+			if tc.wantNetconf && y.Netconf().Error != tc.wantErrElem {
+				t.Errorf("Netconf().Error = %q, want %q", y.Netconf().Error, tc.wantErrElem)
+			}
+		})
+	}
+}
+
+// TestBuiltinTemplatesUseSSH verifies that every bundled template keeps the
+// SSH exec transport.
+// TestBuiltinTemplatesUseSSH reads the embedded files, not _routers, which also holds ROUTER_DIR templates.
+func TestBuiltinTemplatesUseSSH(t *testing.T) {
+	files, err := compiledRoutersFS.ReadDir(".")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("read embedded templates: %d files, %v", len(files), err)
+	}
+	for _, file := range files {
+		data, err := compiledRoutersFS.ReadFile(file.Name())
+		if err != nil {
+			t.Fatalf("%s: %v", file.Name(), err)
+		}
+		y := &Yaml{Path: file.Name()}
+		if err := yaml.Unmarshal(data, &y.Template); err != nil {
+			t.Fatalf("%s: %v", file.Name(), err)
+		}
+		if err := y.compile(); err != nil {
+			t.Fatalf("%s: %v", file.Name(), err)
+		}
+		var nr utils.NetconfRouter = y
+		if nr.Netconf() != nil {
+			t.Errorf("%s: bundled template uses NETCONF", file.Name())
+		}
+	}
+}
+
+// TestLoadCustomDirInvalidSubprocess verifies that an invalid transport
+// stops the process at load time.
+func TestLoadCustomDirInvalidSubprocess(t *testing.T) {
+	if os.Getenv("RUN_DIR_INVALID_TEST") == "1" {
+		tmpDir, err := os.MkdirTemp("", "lg-router-dir-invalid-")
+		if err != nil {
+			os.Exit(99)
+		}
+		defer os.RemoveAll(tmpDir)
+		os.WriteFile(tmpDir+"/invalid.yml", []byte("name: invalid_transport\ntransport: netconf\n"), 0644)
+		loadCustomDir(tmpDir)
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestLoadCustomDirInvalidSubprocess")
+	cmd.Env = append(os.Environ(), "RUN_DIR_INVALID_TEST=1")
+	err := cmd.Run()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		if exitErr.ExitCode() != 26 {
+			t.Errorf("expected exit code 26, got %d", exitErr.ExitCode())
+		}
+	} else {
+		t.Errorf("expected exit error, got %v", err)
+	}
+}
+
+type mockInvalidFS struct{}
+
+func (mockInvalidFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	return []fs.DirEntry{mockDirEntry{name: "invalid.yml"}}, nil
+}
+
+func (mockInvalidFS) ReadFile(name string) ([]byte, error) {
+	return []byte("name: invalid_builtin\ntransport: telnet\n"), nil
+}
+
+// TestLoadBuiltinInvalidSubprocess verifies that an invalid bundled template
+// stops the process at load time.
+func TestLoadBuiltinInvalidSubprocess(t *testing.T) {
+	if os.Getenv("RUN_BUILTIN_INVALID_TEST") == "1" {
+		compiledRoutersFS = mockInvalidFS{}
+		loadBuiltin()
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestLoadBuiltinInvalidSubprocess")
+	cmd.Env = append(os.Environ(), "RUN_BUILTIN_INVALID_TEST=1")
+	err := cmd.Run()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		if exitErr.ExitCode() != 27 {
+			t.Errorf("expected exit code 27, got %d", exitErr.ExitCode())
 		}
 	} else {
 		t.Errorf("expected exit error, got %v", err)

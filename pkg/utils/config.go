@@ -64,7 +64,7 @@ type BMPConfig struct {
 type RouterConfig struct {
 	// Name is the human-readable identifier shown in the UI.
 	Name string `yaml:"name"`
-	// Hostname is the SSH target ("host" or "host:port").
+	// Hostname is the SSH target ("host:port"). The port is required.
 	Hostname string `yaml:"hostname"`
 	// Username is the SSH login.
 	Username string `yaml:"username"`
@@ -84,7 +84,7 @@ type RouterConfig struct {
 	Source6 *IPNet `yaml:"source6"`
 	// Type is the registered router-template name.
 	Type string `yaml:"type"`
-	// SSHPoolSize is the maximum number of idle SSH connections kept in the pool for this device.
+	// SSHPoolSize is the maximum number of open SSH connections to this device. A value <= 0 disables pooling.
 	SSHPoolSize int `yaml:"ssh_pool_size"`
 }
 

@@ -23,6 +23,13 @@ type Router interface {
 	BGPPeerRoutes(*RouterConfig, string, string, string) ([]string, error)
 }
 
+// NetconfRouter is implemented by a [Router] that can run its commands over
+// NETCONF instead of SSH exec.
+type NetconfRouter interface {
+	// Netconf returns the NETCONF settings, or nil to use SSH exec.
+	Netconf() *NetconfSpec
+}
+
 // RouterInstance binds a [Router] implementation to its per-device
 // [RouterConfig] and a shared [HealthCheck] record.
 type RouterInstance struct {
@@ -42,10 +49,22 @@ type HealthCheck struct {
 	Healthy bool
 }
 
-// Healthcheck runs a no-op SSH session against the router and updates the
-// [HealthCheck] record with the timestamp and outcome.
+// exec runs cmd over the transport of the router's template: NETCONF when
+// the template implements [NetconfRouter] with settings, SSH exec otherwise.
+func (rt *RouterInstance) exec(cmd []string) ([]string, error) {
+	if nr, ok := rt.Router.(NetconfRouter); ok {
+		if spec := nr.Netconf(); spec != nil {
+			return NetconfExec(rt.Config, spec, cmd)
+		}
+	}
+	return SSHExec(rt.Config, cmd)
+}
+
+// Healthcheck connects to the router without running a command and updates
+// the [HealthCheck] record with the timestamp and outcome. For a NETCONF
+// router it also opens and closes a NETCONF session.
 func (rt *RouterInstance) Healthcheck() error {
-	_, err := SSHExec(rt.Config, []string{})
+	_, err := rt.exec([]string{})
 	rt.HealthCheck.Checked = time.Now()
 	if err == nil {
 		rt.HealthCheck.Healthy = true
@@ -61,7 +80,7 @@ func (rt *RouterInstance) Ping(param *IPNet) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // Traceroute renders and executes the traceroute command sequence.
@@ -70,7 +89,7 @@ func (rt *RouterInstance) Traceroute(param *IPNet) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // BGPSummary renders and executes the neighbour-summary command sequence.
@@ -79,7 +98,7 @@ func (rt *RouterInstance) BGPSummary() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // BGPRoute renders and executes the BGP-route lookup command sequence.
@@ -88,7 +107,7 @@ func (rt *RouterInstance) BGPRoute(param *IPNet) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // BGPCommunity renders and executes the standard-community lookup command sequence.
@@ -97,7 +116,7 @@ func (rt *RouterInstance) BGPCommunity(param string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // BGPLargeCommunity renders and executes the large-community lookup command sequence.
@@ -106,7 +125,7 @@ func (rt *RouterInstance) BGPLargeCommunity(param string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // BGPASPath renders and executes the AS-path regex lookup command sequence.
@@ -115,7 +134,7 @@ func (rt *RouterInstance) BGPASPath(param string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // BGPPeerRoutes renders and executes the peer session route lookup command sequence.
@@ -124,7 +143,7 @@ func (rt *RouterInstance) BGPPeerRoutes(peerIP, peerName, queryType string) ([]s
 	if err != nil {
 		return nil, err
 	}
-	return SSHExec(rt.Config, cmd)
+	return rt.exec(cmd)
 }
 
 // RouterMap is the in-memory catalogue of every configured router.

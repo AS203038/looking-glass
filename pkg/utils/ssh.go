@@ -54,12 +54,12 @@ func isAlive(client *ssh.Client) bool {
 }
 
 // Checkout returns an idle connection that is still alive, or dials a new one.
-// newConfig runs only for a new connection: an idle connection keeps the
-// credentials of its original handshake.
-func (p *sshPool) Checkout(router *RouterConfig, newConfig func() (*ssh.ClientConfig, error)) (*ssh.Client, error) {
+// When reuse is false, it always dials. newConfig runs only for a new
+// connection: an idle connection keeps the credentials of its original handshake.
+func (p *sshPool) Checkout(router *RouterConfig, reuse bool, newConfig func() (*ssh.ClientConfig, error)) (*ssh.Client, error) {
 	for {
 		p.mu.Lock()
-		if len(p.conns) > 0 {
+		if reuse && len(p.conns) > 0 {
 			idx := len(p.conns) - 1
 			client := p.conns[idx]
 			p.conns = p.conns[:idx]
@@ -247,15 +247,17 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 // returned as the coarse [errs] sentinels; detailed diagnostics are written
 // to the server log.
 func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
-	return withSSHClient(router, len(cmd), func(client *ssh.Client) ([]string, error) {
+	return withSSHClient(router, len(cmd), true, func(client *ssh.Client) ([]string, error) {
 		return execOnClient(client, router, cmd)
 	})
 }
 
 // withSSHClient authenticates to the router and calls run with a connected
-// client. The client comes from the router's pool and goes back to it, or is
-// dialed for this call only when pooling is off. commands is only logged.
-func withSSHClient(router *RouterConfig, commands int, run func(*ssh.Client) ([]string, error)) ([]string, error) {
+// client. The client comes from the router's pool, or is dialed for this call
+// only when pooling is off. When reuse is false, the client is new and is
+// closed after run, and the pool only limits the open connections. commands is
+// only logged.
+func withSSHClient(router *RouterConfig, commands int, reuse bool, run func(*ssh.Client) ([]string, error)) ([]string, error) {
 	if !router.HasSSHCredentials() {
 		return nil, errs.AuthFailed
 	}
@@ -287,7 +289,7 @@ func withSSHClient(router *RouterConfig, commands int, run func(*ssh.Client) ([]
 
 	// Pooled Execution Path
 	pool := getPool(router)
-	client, err := pool.Checkout(router, func() (*ssh.ClientConfig, error) {
+	client, err := pool.Checkout(router, reuse, func() (*ssh.ClientConfig, error) {
 		config, _, err := sshClientConfig(router)
 		return config, err
 	})
@@ -300,7 +302,7 @@ func withSSHClient(router *RouterConfig, commands int, run func(*ssh.Client) ([]
 	}
 
 	ret, err := run(client)
-	pool.Recycle(client, router, err == nil)
+	pool.Recycle(client, router, err == nil && reuse)
 	if err != nil {
 		return nil, err
 	}

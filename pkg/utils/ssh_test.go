@@ -114,7 +114,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	}
 
 	// 1. Checkout on empty pool
-	client1, err := pool.Checkout(router, newConfig)
+	client1, err := pool.Checkout(router, true, newConfig)
 	if err != nil {
 		t.Fatalf("failed to checkout client1: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	pool.Recycle(client1, router, true)
 
 	// 2. Checkout on non-empty pool (reused)
-	client2, err := pool.Checkout(router, newConfig)
+	client2, err := pool.Checkout(router, true, newConfig)
 	if err != nil {
 		t.Fatalf("failed to checkout client2: %v", err)
 	}
@@ -137,13 +137,13 @@ func TestSSHPoolAndExec(t *testing.T) {
 	}
 
 	// 3. Checkout a second connection concurrently (pool maxSize is 2)
-	client3, err := pool.Checkout(router, newConfig)
+	client3, err := pool.Checkout(router, true, newConfig)
 	if err != nil {
 		t.Fatalf("failed to checkout client3: %v", err)
 	}
 
 	// 4. Try to checkout a third connection (should fail-fast immediately because maxSize is 2)
-	client4, err := pool.Checkout(router, newConfig)
+	client4, err := pool.Checkout(router, true, newConfig)
 	if err == nil {
 		client4.Close()
 		t.Errorf("expected fail-fast error on third checkout when pool is fully utilized")
@@ -163,7 +163,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	pool.Recycle(clientExtra, router, true)
 
 	// Add a dead connection to the pool to test dead-connection checkout filtering (isAlive = false)
-	clientDead, err := pool.Checkout(router, newConfig)
+	clientDead, err := pool.Checkout(router, true, newConfig)
 	if err != nil {
 		t.Fatalf("checkout failed: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	pool.mu.Unlock()
 
 	// Checkout should detect clientDead, discard it, and dial/return a new alive connection!
-	clientAlive, err := pool.Checkout(router, newConfig)
+	clientAlive, err := pool.Checkout(router, true, newConfig)
 	if err != nil {
 		t.Fatalf("checkout failed: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	pool.Recycle(clientAlive, router, true)
 
 	// Recycle with success=false (discard failed connection)
-	clientFail, err := pool.Checkout(router, newConfig)
+	clientFail, err := pool.Checkout(router, true, newConfig)
 	if err != nil {
 		t.Fatalf("checkout failed: %v", err)
 	}

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -31,6 +33,14 @@ const (
 	exitBuiltinDirRead    = 23
 	exitBuiltinReadFile   = 24
 	exitBuiltinParse      = 25
+	exitRouterDirInvalid  = 26
+	exitBuiltinInvalid    = 27
+)
+
+// Transports a template can select with `transport:`.
+const (
+	transportSSH     = "ssh"
+	transportNetconf = "netconf"
 )
 
 // tplAttrs builds the slog attributes describing a single render attempt.
@@ -79,10 +89,23 @@ type parserSpec struct {
 type Yaml struct {
 	// Path is the source filename, used only for log messages.
 	Path string
+	// netconf is set by compile when the template selects the netconf transport.
+	netconf *utils.NetconfSpec
 	// Template holds the unmarshalled template body.
 	Template struct {
 		// Name is the unique template identifier.
 		Name string `yaml:"name"`
+		// Transport selects how commands reach the device: "ssh" (default) or "netconf".
+		Transport string `yaml:"transport"`
+		// Netconf configures the netconf transport. It is nil when the template has no netconf block.
+		Netconf *struct {
+			// RPC is the RPC body template; {{.Command}} is the XML-escaped command.
+			RPC string `yaml:"rpc"`
+			// Output is the local name of the reply elements that hold the command output.
+			Output string `yaml:"output"`
+			// Error is the local name of the reply elements whose text is added to the output as a command error.
+			Error string `yaml:"error"`
+		} `yaml:"netconf"`
 		// Ping holds the ping command sequences, keyed by IP family.
 		Ping struct {
 			Any  []string `yaml:"any"`
@@ -174,6 +197,13 @@ func loadCustomDir(rd string) {
 				slog.String("path", y.Path))
 			continue
 		}
+		if err := y.compile(); err != nil {
+			yamlLog.Error("invalid router file",
+				slog.String("dir", rd),
+				slog.String("path", y.Path),
+				slog.Any("err", err))
+			os.Exit(exitRouterDirInvalid)
+		}
 		register(y.Template.Name, y)
 		yamlLog.Info("router registered",
 			slog.String("router", y.Template.Name),
@@ -203,6 +233,12 @@ func loadBuiltin() {
 				slog.Any("err", err))
 			os.Exit(exitBuiltinParse)
 		}
+		if err := y.compile(); err != nil {
+			yamlLog.Error("invalid builtin file",
+				slog.String("path", y.Path),
+				slog.Any("err", err))
+			os.Exit(exitBuiltinInvalid)
+		}
 		if _, ok := _routers[y.Template.Name]; !ok {
 			register(y.Template.Name, y)
 			yamlLog.Info("router registered",
@@ -214,6 +250,37 @@ func loadBuiltin() {
 				slog.String("source", "builtin:"+y.Path))
 		}
 	}
+}
+
+// compile checks the transport settings and prepares the NETCONF RPC
+// template when the template selects the netconf transport.
+func (rt *Yaml) compile() error {
+	nc := rt.Template.Netconf
+	switch rt.Template.Transport {
+	case "", transportSSH:
+		if nc != nil {
+			return errors.New("netconf block requires transport: netconf")
+		}
+		return nil
+	case transportNetconf:
+		if nc == nil {
+			return errors.New("netconf.rpc is required")
+		}
+		spec, err := utils.NewNetconfSpec(nc.RPC, nc.Output, nc.Error)
+		if err != nil {
+			return err
+		}
+		rt.netconf = spec
+		return nil
+	default:
+		return fmt.Errorf("unknown transport %q (want %q or %q)",
+			rt.Template.Transport, transportSSH, transportNetconf)
+	}
+}
+
+// Netconf returns the NETCONF settings, or nil when the template uses SSH exec.
+func (rt *Yaml) Netconf() *utils.NetconfSpec {
+	return rt.netconf
 }
 
 // _tpl renders the command sequence for the named operation against data.
