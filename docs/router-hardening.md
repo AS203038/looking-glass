@@ -229,7 +229,7 @@ system {
     login {
         class lg-readonly {
             permissions [ network ];
-            allow-commands "^(show route protocol bgp|show bgp summary|ping|traceroute)( |$)";
+            allow-commands "^(show route (protocol|receive-protocol|advertising-protocol) bgp|show bgp summary|ping|traceroute)( |$)";
             deny-commands "^(configure|edit|set|delete|clear|file|request|start|restart|test|monitor|op|load|save|copy)( |$)";
         }
         user lookingglass {
