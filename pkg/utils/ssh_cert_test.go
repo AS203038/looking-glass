@@ -358,6 +358,45 @@ func TestSSHExecPooledReuseSkipsCertFile(t *testing.T) {
 	}
 }
 
+// TestSSHExecPoolIsPerConnectionIdentity verifies that a device with the same
+// name but another username or hostname does not get an idle connection of
+// the first device.
+func TestSSHExecPoolIsPerConnectionIdentity(t *testing.T) {
+	e := newCertTestEnv(t)
+	writeTestCert(t, e.certPath, e.ca, e.key.PublicKey(), 1, ssh.CertTimeInfinity)
+	first := e.router(e.certPath)
+	first.Name = "shared-name"
+	first.SSHPoolSize = 1
+	t.Cleanup(ClosePools)
+
+	otherUser := *first
+	otherUser.Username = "other-user"
+
+	closed, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherHost := *first
+	otherHost.Hostname = closed.Addr().String()
+	closed.Close()
+
+	for _, tc := range []struct {
+		name   string
+		router *RouterConfig
+		want   error
+	}{
+		{"other username", &otherUser, errs.ConnectionFailed},
+		{"other hostname", &otherHost, errs.ConnectionFailed},
+	} {
+		if _, err := SSHExec(first, []string{"show version"}); err != nil {
+			t.Fatalf("%s: first device: %v", tc.name, err)
+		}
+		if _, err := SSHExec(tc.router, []string{"show version"}); !errors.Is(err, tc.want) {
+			t.Errorf("%s: expected %v, got %v", tc.name, tc.want, err)
+		}
+	}
+}
+
 func TestParseConfigSSHCertRequiresKey(t *testing.T) {
 	dir := t.TempDir()
 	parse := func(device string) (*Config, error) {

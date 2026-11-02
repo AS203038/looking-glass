@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"math"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -14,6 +15,9 @@ import (
 	"github.com/AS203038/looking-glass/pkg/logging"
 	"golang.org/x/crypto/ssh"
 )
+
+// sshDialTimeout bounds the TCP connect and the SSH handshake of a new connection.
+var sshDialTimeout = 30 * time.Second
 
 // sshLog is the component-tagged logger for SSH-related events.
 var sshLog = logging.Component("ssh")
@@ -90,7 +94,7 @@ func (p *sshPool) Checkout(router *RouterConfig, newConfig func() (*ssh.ClientCo
 			return nil, err
 		}
 		sshLogAt(slog.LevelDebug, "ssh pool slot acquired, dialing new connection", router)
-		client, err := ssh.Dial("tcp", router.Hostname, config)
+		client, err := dialSSH(router, config)
 		if err != nil {
 			p.mu.Lock()
 			p.numOpen--
@@ -99,6 +103,28 @@ func (p *sshPool) Checkout(router *RouterConfig, newConfig func() (*ssh.ClientCo
 		}
 		return client, nil
 	}
+}
+
+// dialSSH connects to router and completes the SSH handshake within
+// sshDialTimeout. ssh.ClientConfig.Timeout bounds only the TCP connect.
+func dialSSH(router *RouterConfig, config *ssh.ClientConfig) (*ssh.Client, error) {
+	conn, err := net.DialTimeout("tcp", router.Hostname, sshDialTimeout)
+	if err != nil {
+		return nil, err
+	}
+	if err := conn.SetDeadline(time.Now().Add(sshDialTimeout)); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	c, chans, reqs, err := ssh.NewClientConn(conn, router.Hostname, config)
+	if err != nil {
+		return nil, err
+	}
+	if err := conn.SetDeadline(time.Time{}); err != nil {
+		c.Close()
+		return nil, err
+	}
+	return ssh.NewClient(c, chans, reqs), nil
 }
 
 func (p *sshPool) Recycle(client *ssh.Client, router *RouterConfig, success bool) {
@@ -128,21 +154,28 @@ func (p *sshPool) Recycle(client *ssh.Client, router *RouterConfig, success bool
 	}
 }
 
+// poolKey is the connection identity of a device. Device names need not be
+// unique, and an idle connection keeps the credentials of its handshake.
+type poolKey struct {
+	name, hostname, username, password, sshKey, sshCert string
+}
+
 var (
 	poolsMu sync.Mutex
-	pools   = make(map[string]*sshPool)
+	pools   = make(map[poolKey]*sshPool)
 )
 
 func getPool(router *RouterConfig) *sshPool {
 	poolsMu.Lock()
 	defer poolsMu.Unlock()
 
-	pool, ok := pools[router.Name]
+	key := poolKey{router.Name, router.Hostname, router.Username, router.Password, router.SSHKey, router.SSHCert}
+	pool, ok := pools[key]
 	if !ok {
 		pool = &sshPool{
 			maxSize: router.SSHPoolSize,
 		}
-		pools[router.Name] = pool
+		pools[key] = pool
 	}
 	return pool
 }
@@ -152,7 +185,7 @@ func ClosePools() {
 	poolsMu.Lock()
 	defer poolsMu.Unlock()
 
-	for name, pool := range pools {
+	for key, pool := range pools {
 		pool.mu.Lock()
 		closedCount := 0
 		for _, client := range pool.conns {
@@ -160,7 +193,7 @@ func ClosePools() {
 			closedCount++
 			pool.numOpen--
 		}
-		sshLog.Debug("closed ssh pool", slog.String("router", name), slog.Int("closed_conns", closedCount))
+		sshLog.Debug("closed ssh pool", slog.String("router", key.name), slog.Int("closed_conns", closedCount))
 		pool.conns = nil
 		pool.mu.Unlock()
 	}
@@ -236,7 +269,7 @@ func withSSHClient(router *RouterConfig, commands int, run func(*ssh.Client) ([]
 			slog.Any("auth_methods", methods),
 			slog.Int("commands", commands))
 		dialStart := time.Now()
-		client, err := ssh.Dial("tcp", router.Hostname, config)
+		client, err := dialSSH(router, config)
 		if err != nil {
 			sshLogAt(slog.LevelError, "dial failed", router,
 				slog.Duration("duration", time.Since(dialStart)),
