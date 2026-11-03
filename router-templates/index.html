@@ -741,6 +741,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transport">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connection-and-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection and sessions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security-considerations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1270,6 +1320,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transport">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connection-and-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection and sessions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security-considerations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1375,7 +1475,7 @@
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nx">BGPASPath</span><span class="w">         </span><span class="p">(</span><span class="o">*</span><span class="nx">RouterConfig</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="cm">/*regex*/</span><span class="p">)</span><span class="w">  </span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>For YAML templates the implementation is shared: <code>pkg/routers/Yaml</code> loads the YAML, exposes the same six methods, and returns the rendered command list. Execution (SSH, output capture) is handled once in <code>pkg/utils.SSHExec</code> — the template only declares the strings to run.</p>
+<p>For YAML templates the implementation is shared: <code>pkg/routers/Yaml</code> loads the YAML, exposes the same six methods, and returns the rendered command list. Execution (SSH, output capture) is handled once in <code>pkg/utils.SSHExec</code> — the template only declares the strings to run. A template with <code>transport: netconf</code> runs the same strings through <code>pkg/utils.NetconfExec</code> instead (see <a href="#transport">Transport</a>).</p>
 <p>A request like "ping 1.1.1.1 from router 3" therefore flows:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>gRPC handler
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>   ↓
@@ -1392,38 +1492,44 @@
 <h2 id="file-layout">File layout<a class="headerlink" href="#file-layout" title="Permanent link">&para;</a></h2>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_vendor_v1</span><span class="w">            </span><span class="c1"># required, must be unique in the registry</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">ping</span><span class="p">:</span><span class="w">                         </span><span class="c1"># optional but recommended</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">any</span><span class="p">:</span><span class="w">                      </span><span class="c1"># IP-family-agnostic; used if family-specific is empty</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span><span class="w">                     </span><span class="c1"># used for IPv4 operands</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span><span class="w">               </span><span class="c1"># multiple commands run sequentially, output concatenated</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nt">traceroute</span><span class="p">:</span><span class="w">                   </span><span class="c1"># same shape as ping</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nt">any</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="nt">bgp</span><span class="p">:</span><span class="w">                          </span><span class="c1"># BGP operations</span>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="nt">route</span><span class="p">:</span><span class="w">                    </span><span class="c1"># bgp.route — operand: prefix/address (IPNet)</span>
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="nt">community</span><span class="p">:</span><span class="w">                </span><span class="c1"># bgp.community — operand: ASN:VALUE (string)</span>
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="nt">largecommunity</span><span class="p">:</span><span class="w">           </span><span class="c1"># bgp.largecommunity — operand: G:L1:L2 (string)</span>
-</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">aspath</span><span class="p">:</span><span class="w">                   </span><span class="c1"># bgp.aspath — operand: sanitised regex (string)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh</span><span class="w">                </span><span class="c1"># optional: ssh (default) or netconf, see "Transport"</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># netconf:                    # required with transport: netconf, not allowed with ssh</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1">#     rpc: &lt;xml&gt;              # RPC body; {{.Command}} is the XML-escaped command</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">#     output: &lt;element&gt;       # local name of the reply elements that hold the output</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">#     error: &lt;element&gt;        # optional: local name of the reply elements that hold a command error</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nt">ping</span><span class="p">:</span><span class="w">                         </span><span class="c1"># optional but recommended</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">any</span><span class="p">:</span><span class="w">                      </span><span class="c1"># IP-family-agnostic; used if family-specific is empty</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span><span class="w">                     </span><span class="c1"># used for IPv4 operands</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span><span class="w">               </span><span class="c1"># multiple commands run sequentially, output concatenated</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="nt">traceroute</span><span class="p">:</span><span class="w">                   </span><span class="c1"># same shape as ping</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="nt">any</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="nt">ipv4</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">    </span><span class="nt">ipv6</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="nt">bgp</span><span class="p">:</span><span class="w">                          </span><span class="c1"># BGP operations</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">route</span><span class="p">:</span><span class="w">                    </span><span class="c1"># bgp.route — operand: prefix/address (IPNet)</span>
 </span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">peer_routes</span><span class="p">:</span><span class="w">              </span><span class="c1"># bgp.peer_routes — per-peer session routing lookup</span>
-</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">        </span><span class="nt">received</span><span class="p">:</span>
-</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">        </span><span class="nt">accepted</span><span class="p">:</span>
-</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">        </span><span class="nt">rejected</span><span class="p">:</span>
-</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
-</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">        </span><span class="nt">advertised</span><span class="p">:</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">community</span><span class="p">:</span><span class="w">                </span><span class="c1"># bgp.community — operand: ASN:VALUE (string)</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">    </span><span class="nt">largecommunity</span><span class="p">:</span><span class="w">           </span><span class="c1"># bgp.largecommunity — operand: G:L1:L2 (string)</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">    </span><span class="nt">aspath</span><span class="p">:</span><span class="w">                   </span><span class="c1"># bgp.aspath — operand: sanitised regex (string)</span>
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">    </span><span class="nt">peer_routes</span><span class="p">:</span><span class="w">              </span><span class="c1"># bgp.peer_routes — per-peer session routing lookup</span>
+</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">        </span><span class="nt">received</span><span class="p">:</span>
 </span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">        </span><span class="nt">accepted</span><span class="p">:</span>
+</span><span id="__span-2-36"><a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-37"><a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="w">        </span><span class="nt">rejected</span><span class="p">:</span>
+</span><span id="__span-2-38"><a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
+</span><span id="__span-2-39"><a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="w">        </span><span class="nt">advertised</span><span class="p">:</span>
+</span><span id="__span-2-40"><a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;cmd&gt;</span>
 </span></code></pre></div>
 <p>Notes:</p>
 <ul>
@@ -1470,7 +1576,7 @@
 <tr>
 <td><code>{{.Cfg.Hostname}}</code></td>
 <td>string</td>
-<td>SSH endpoint (<code>host[:port]</code>)</td>
+<td>SSH endpoint (<code>host:port</code>)</td>
 <td>Anywhere (rare; usually not needed)</td>
 </tr>
 <tr>
@@ -1651,11 +1757,11 @@
 <h2 id="loading-rules">Loading rules<a class="headerlink" href="#loading-rules" title="Permanent link">&para;</a></h2>
 <p>Templates are loaded from two sources in this order:</p>
 <ol>
-<li><strong><code>$ROUTER_DIR</code></strong> (if set, at process start). Every <code>*.yml</code> / <code>*.yaml</code> file is parsed and registered. A name clash here is a panic; a name clash with an embedded template is fine and silently wins.</li>
+<li><strong><code>$ROUTER_DIR</code></strong> (if set, at process start). Every <code>*.yml</code> / <code>*.yaml</code> file is parsed and registered. A name clash here stops the process; a name clash with an embedded template is fine and silently wins.</li>
 <li><strong>Embedded bundle</strong> — <code>pkg/routers/*.yml</code>, compiled into the binary. Each is registered only if no template under its name has been loaded yet; otherwise a warning is logged and the bundled copy is skipped.</li>
 </ol>
 <p>So if you want to override the bundled <code>cisco_ios</code> template, drop your replacement at <code>$ROUTER_DIR/cisco_ios.yml</code>. If you want to add a new vendor that nobody else has implemented, drop it at <code>$ROUTER_DIR/myvendor.yml</code>.</p>
-<p>Any parse error in either source <strong>panics at startup</strong>. Validate your template (<code>yamllint</code>, <code>kubectl apply --dry-run=client</code> on a ConfigMap, etc.) before deploying it.</p>
+<p>Any parse error in either source, or an invalid <code>transport</code> or <code>netconf</code> block (see <a href="#transport">Transport</a>), <strong>stops the process at startup</strong>: it logs the error and exits with a non-zero code (see <a href="../configuration/#process-exit-codes">Process exit codes</a>). Validate your template (<code>yamllint</code>, <code>kubectl apply --dry-run=client</code> on a ConfigMap, etc.) before deploying it.</p>
 <h2 id="parsers-structured-output">Parsers (structured output)<a class="headerlink" href="#parsers-structured-output" title="Permanent link">&para;</a></h2>
 <p>Beyond <code>name</code>, <code>ping</code>, <code>traceroute</code> and the <code>bgp</code> block, a template can declare an optional <code>parsers:</code> map that turns vendor command output into the typed <code>parsed</code> payload on each gRPC response (see <a href="../api/#structured-output">api.md § Structured output</a> for the wire shape). Templates that omit <code>parsers:</code> keep working exactly as before — the response simply has no structured view.</p>
 <p>The map is keyed by operation name and each entry declares the parser to run plus, optionally, an asset name:</p>
@@ -1782,6 +1888,87 @@
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">show bgp vrf {{.Cfg.VRF}} ipv6 unicast community {{.Community}}</span>
 </span></code></pre></div>
 <p>Both commands run in separate SSH sessions (over the same TCP connection) and the outputs are joined with <code>\n</code> in the order listed. If any command fails, the whole operation fails — there is no partial-success path.</p>
+<h2 id="transport">Transport<a class="headerlink" href="#transport" title="Permanent link">&para;</a></h2>
+<p>By default every command runs over SSH exec: one SSH session per command, and its stdout is the output. Some platforms do not allow this. A template can run its commands over NETCONF (RFC 6241) instead:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_sros_mdcli</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">netconf</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nt">netconf</span><span class="p">:</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">rpc</span><span class="p">:</span><span class="w"> </span><span class="s">'&lt;action</span><span class="nv"> </span><span class="s">xmlns="urn:ietf:params:xml:ns:yang:1"&gt;&lt;global-operations</span><span class="nv"> </span><span class="s">xmlns="urn:nokia.com:sros:ns:yang:sr:oper-global"&gt;&lt;md-cli-raw-command&gt;&lt;md-cli-input-line&gt;{{.Command}}&lt;/md-cli-input-line&gt;&lt;/md-cli-raw-command&gt;&lt;/global-operations&gt;&lt;/action&gt;'</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">md-cli-output-block</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nt">error</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error-message</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nt">bgp</span><span class="p">:</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="nt">summary</span><span class="p">:</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">show router {{.Cfg.VRF}} bgp summary</span>
+</span></code></pre></div>
+<p>The command lists are rendered as for SSH exec. Then, for each command:</p>
+<ol>
+<li><code>netconf.rpc</code> is rendered with <code>text/template</code>. <code>{{.Command}}</code> is the rendered command. The server XML-escapes it, so do not escape it in the template.</li>
+<li>The result is sent as the body of one <code>&lt;rpc&gt;</code>.</li>
+<li>The text of all reply elements whose local name is <code>netconf.output</code> is joined, in document order. Namespaces and prefixes are ignored. This text is the command output. Parsers get it in the same way as SSH exec output.</li>
+<li>When <code>netconf.error</code> is set and the reply has text in elements with that local name, the text is added after the output on a new line, as the device CLI shows it.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>transport</code></td>
+<td>no</td>
+<td><code>ssh</code> (default) or <code>netconf</code>.</td>
+</tr>
+<tr>
+<td><code>netconf.rpc</code></td>
+<td>with <code>netconf</code></td>
+<td>RPC body as a Go template. Its only template action is <code>{{.Command}}</code>, without functions, pipelines or variables. Must render exactly one well-formed XML element. Only whitespace, comments and processing instructions can be around it. Must use <code>{{.Command}}</code> in element text. It must not use it in a comment or CDATA. It must not have an XML declaration (<code>&lt;?xml ...?&gt;</code>), because the body goes inside <code>&lt;rpc&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>netconf.output</code></td>
+<td>with <code>netconf</code></td>
+<td>Local name of the reply elements that hold the command output, without a prefix.</td>
+</tr>
+<tr>
+<td><code>netconf.error</code></td>
+<td>no</td>
+<td>Local name of the reply elements that hold an error of a command that ran, without a prefix. Must differ from <code>netconf.output</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="connection-and-sessions">Connection and sessions<a class="headerlink" href="#connection-and-sessions" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The device <code>hostname</code> must point at the NETCONF port, usually <code>host:830</code>. The server opens the SSH subsystem <code>netconf</code> (RFC 6242) there and supports base:1.0 and base:1.1 framing.</li>
+<li><code>username</code>, <code>password</code>, <code>ssh_key</code> and <code>ssh_pool_size</code> work as for SSH exec. The user needs NETCONF access on the device.</li>
+<li>Each request opens a new SSH connection and a NETCONF session (hello exchange), sends one RPC per command in order, then closes the session and the connection. No connection is reused, because SR OS drops it after <code>close-session</code>. <code>ssh_pool_size</code> only limits the number of open connections. When all of them are in use, a request fails at once with a <code>resource_exhausted</code> error, and the health check marks the device unhealthy unless BMP is active for it. Set <code>ssh_pool_size</code> to at least the number of parallel requests you expect, or to <code>0</code> for no limit.</li>
+<li>The NETCONF subsystem request and the session setup have a timeout of 2 minutes. Inside it, the hello exchange has a timeout of 30 seconds. Each RPC has a timeout of 2 minutes, which includes the read of the reply. The <code>close-session</code> RPC has a timeout of 10 seconds.</li>
+<li>The health check opens and closes a NETCONF session. A device whose SSH port answers but whose NETCONF does not is marked unhealthy, unless BMP is active for it.</li>
+</ul>
+<h3 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h3>
+<ul>
+<li>An <code>&lt;rpc-error&gt;</code> reply fails the operation with <code>errs.ExecFailed</code>. The <code>error-tag</code> and <code>error-message</code> are logged on the <code>netconf</code> component.</li>
+<li>A reply without a <code>netconf.output</code> element fails with <code>errs.ExecFailed</code>. Check the element name.</li>
+<li>Text in a <code>netconf.error</code> element does not fail the operation. It is added after the output and logged as <code>netconf command error</code>. SR OS uses this for a command that it stops, for example <code>MINOR: CLI #2005: ... BGP routing daemon is busy</code>, with the partial output in <code>md-cli-output-block</code>.</li>
+<li>The SSH connection fails as for SSH exec: an unreachable device with <code>errs.ConnectionFailed</code>, a router without credentials with <code>errs.AuthFailed</code>.</li>
+<li>A failed NETCONF subsystem request or hello, an RPC timeout, or a transport error during an RPC fails with <code>errs.ExecFailed</code>.</li>
+<li>A <code>close-session</code> that fails or times out does not fail the operation. It is logged at debug level on the <code>netconf</code> component.</li>
+</ul>
+<h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
+<p>Nokia SR OS, MD-CLI commands through the <code>md-cli-raw-command</code> action:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">netconf</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nt">netconf</span><span class="p">:</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">rpc</span><span class="p">:</span><span class="w"> </span><span class="s">'&lt;action</span><span class="nv"> </span><span class="s">xmlns="urn:ietf:params:xml:ns:yang:1"&gt;&lt;global-operations</span><span class="nv"> </span><span class="s">xmlns="urn:nokia.com:sros:ns:yang:sr:oper-global"&gt;&lt;md-cli-raw-command&gt;&lt;md-cli-input-line&gt;{{.Command}}&lt;/md-cli-input-line&gt;&lt;/md-cli-raw-command&gt;&lt;/global-operations&gt;&lt;/action&gt;'</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">md-cli-output-block</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">error</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error-message</span>
+</span></code></pre></div>
+<p>Juniper Junos, text output of a CLI command. Junos does not apply CLI pipes such as <code>| match</code> in this RPC, so the reply holds the full output:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">netconf</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nt">netconf</span><span class="p">:</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">rpc</span><span class="p">:</span><span class="w"> </span><span class="s">'&lt;command</span><span class="nv"> </span><span class="s">format="text"&gt;{{.Command}}&lt;/command&gt;'</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">output</span>
+</span></code></pre></div>
 <h2 id="security-considerations">Security considerations<a class="headerlink" href="#security-considerations" title="Permanent link">&para;</a></h2>
 <p>The template body is operator-controlled, so the threat model is <strong>not</strong> "untrusted user injects shell metacharacters". But it is:</p>
 <ul>
@@ -1825,13 +2012,13 @@
 <p>There is no automated test harness for vendor templates yet. The practical workflow is:</p>
 <ol>
 <li><strong>Render in isolation.</strong> A short Go snippet:
-   <div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nx">y</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">routers</span><span class="p">.</span><span class="nx">Yaml</span><span class="p">{</span><span class="nx">Path</span><span class="p">:</span><span class="w"> </span><span class="s">"x"</span><span class="p">}</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nx">yaml</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">file</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">y</span><span class="p">.</span><span class="nx">Template</span><span class="p">)</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nx">cmds</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">y</span><span class="p">.</span><span class="nx">Ping</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">utils</span><span class="p">.</span><span class="nx">RouterConfig</span><span class="p">{</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nx">Source4</span><span class="p">:</span><span class="w"> </span><span class="nx">must</span><span class="p">(</span><span class="nx">utils</span><span class="p">.</span><span class="nx">NewIPNET</span><span class="p">(</span><span class="s">"192.0.2.1"</span><span class="p">)),</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nx">VRF</span><span class="p">:</span><span class="w">     </span><span class="s">"default"</span><span class="p">,</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">},</span><span class="w"> </span><span class="nx">must</span><span class="p">(</span><span class="nx">utils</span><span class="p">.</span><span class="nx">NewIPNET</span><span class="p">(</span><span class="s">"1.1.1.1"</span><span class="p">)))</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">cmds</span><span class="p">)</span>
+   <div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nx">y</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">routers</span><span class="p">.</span><span class="nx">Yaml</span><span class="p">{</span><span class="nx">Path</span><span class="p">:</span><span class="w"> </span><span class="s">"x"</span><span class="p">}</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="nx">yaml</span><span class="p">.</span><span class="nx">Unmarshal</span><span class="p">(</span><span class="nx">file</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">y</span><span class="p">.</span><span class="nx">Template</span><span class="p">)</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="nx">cmds</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">y</span><span class="p">.</span><span class="nx">Ping</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">utils</span><span class="p">.</span><span class="nx">RouterConfig</span><span class="p">{</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nx">Source4</span><span class="p">:</span><span class="w"> </span><span class="nx">must</span><span class="p">(</span><span class="nx">utils</span><span class="p">.</span><span class="nx">NewIPNET</span><span class="p">(</span><span class="s">"192.0.2.1"</span><span class="p">)),</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="nx">VRF</span><span class="p">:</span><span class="w">     </span><span class="s">"default"</span><span class="p">,</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="p">},</span><span class="w"> </span><span class="nx">must</span><span class="p">(</span><span class="nx">utils</span><span class="p">.</span><span class="nx">NewIPNET</span><span class="p">(</span><span class="s">"1.1.1.1"</span><span class="p">)))</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">cmds</span><span class="p">)</span>
 </span></code></pre></div></li>
 <li><strong>Smoke against the device.</strong> Copy the rendered command to your SSH session and verify the router accepts and produces useful output.</li>
 <li><strong>Add a test device</strong> in <code>config.yaml</code> and run the server with <code>ROUTER_DIR</code> pointing at your work-in-progress template. Use <code>lg-cli ping http://localhost:8080 1 1.1.1.1</code> to exercise it end-to-end.</li>
@@ -1873,6 +2060,22 @@
 <tr>
 <td>Quotes broken on JunOS / Nokia</td>
 <td>Wrap regex operands in <code>"…"</code> literally in the template — see <code>juniper_junos.yml</code>.</td>
+</tr>
+<tr>
+<td><code>invalid router file</code> with exit code 26</td>
+<td>Bad <code>transport</code> or <code>netconf</code> block. The log line names the problem.</td>
+</tr>
+<tr>
+<td><code>invalid builtin file</code> with exit code 27</td>
+<td>The same for an embedded template in <code>pkg/routers/</code>.</td>
+</tr>
+<tr>
+<td>NETCONF router unhealthy, SSH login works</td>
+<td><code>hostname</code> points at the SSH port, not the NETCONF port (usually 830), or the user has no NETCONF access.</td>
+</tr>
+<tr>
+<td><code>netconf reply has no output element</code> in the log</td>
+<td><code>netconf.output</code> does not match the element name in the reply.</td>
 </tr>
 </tbody>
 </table>

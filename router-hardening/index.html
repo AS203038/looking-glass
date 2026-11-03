@@ -1699,7 +1699,7 @@
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    login {
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        class lg-readonly {
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>            permissions [ network ];
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>            allow-commands "^(show route protocol bgp|show bgp summary|ping|traceroute)( |$)";
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>            allow-commands "^(show route (protocol|receive-protocol|advertising-protocol) bgp|show bgp summary|ping|traceroute)( |$)";
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>            deny-commands "^(configure|edit|set|delete|clear|file|request|start|restart|test|monitor|op|load|save|copy)( |$)";
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        }
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>        user lookingglass {
@@ -1723,7 +1723,7 @@
 <ul>
 <li><code>permissions [ network ]</code> is the JunOS permission flag that grants <code>ping</code> and <code>traceroute</code>. Don't omit it or both diagnostics will fail even though <code>allow-commands</code> lists them.</li>
 <li><code>allow-commands</code> and <code>deny-commands</code> are evaluated as regexes. Anchor with <code>^</code> and use word-boundary patterns like <code>( |$)</code> to avoid accidentally matching longer commands.</li>
-<li>If you need RPC-over-NETCONF for other automation, add <code>permissions [ network admin-control ]</code> — but that broadens the blast radius. The LG does not use NETCONF; keep it off if the LG is your only consumer for this user.</li>
+<li>Only a template with <code>transport: netconf</code> (see <a href="../router-templates/#transport">router-templates.md § Transport</a>) needs NETCONF access: <code>set system services netconf ssh</code>. The class above is enough. Junos checks each NETCONF request against <code>allow-commands</code> and <code>deny-commands</code>, as for a CLI command: a <code>&lt;command&gt;</code> RPC by its text, and an RPC such as <code>&lt;get-bgp-summary-information/&gt;</code> by its CLI command (<code>show bgp summary</code>). <code>&lt;get-configuration/&gt;</code> returns an empty configuration, because the class has no <code>view-configuration</code>. Do not add <code>admin-control</code>: it lets the user configure the <code>[edit system]</code> hierarchy, and NETCONF does not need it. Tested on Junos 21.2R3. The bundled templates do not use NETCONF, so keep the service off if the LG is its only user.</li>
 </ul>
 <hr />
 <h2 id="nokia-sr-os-classic-cli">Nokia SR OS (classic CLI)<a class="headerlink" href="#nokia-sr-os-classic-cli" title="Permanent link">&para;</a></h2>

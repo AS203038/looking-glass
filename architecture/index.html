@@ -1183,6 +1183,7 @@
 <li><code>ipnet.go</code> — IP / CIDR parsing + family detection. The <code>IPFamily</code> constants (<code>ipv4</code> / <code>ipv6</code>) are lower-case because they're interpolated verbatim into vendor commands.</li>
 <li><code>sanitize.go</code> — <code>SanitizeASPathRegex</code>: tight allow-list for AS-path regex (digits and underscores only, ≤30 chars, optional <code>$</code> anchor). Prevents both command injection and ReDoS.</li>
 <li><code>ssh.go</code> — <code>SSHExec(cfg, cmds)</code>: one TCP+SSH per call, runs each command in its own session, captures stdout, logs stderr on failure (truncated to 512 bytes), returns sentinel errors.</li>
+<li><code>netconf.go</code>: <code>NetconfExec(cfg, spec, cmds)</code> runs the commands of templates with <code>transport: netconf</code>. Uses the same SSH auth and pool as <code>SSHExec</code>, opens one NETCONF session per call, sends one RPC per command and returns the text of the configured reply elements. See <a href="../router-templates/#transport">router-templates.md § Transport</a>.</li>
 <li><code>tls.go</code> — self-signed cert generation (<code>GenerateSelfSignedPair</code>) for <code>grpc.tls.self_signed: true</code>.</li>
 <li><code>Version()</code> — lazily computed <code>&lt;release&gt;+&lt;unix-nanos-hex&gt;</code> used as the ETag, Sentry release, and <code>GetInfo</code> reply.</li>
 </ul>
