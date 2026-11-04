@@ -529,6 +529,22 @@ var nokiaTracerouteMDSamples = []struct {
 			"2: 2001:db8::9/0.612 /0.526 /0.499",
 		},
 	},
+	{
+		name: "annotations",
+		out: `traceroute to 203.0.113.123 from 192.0.2.7, 30 hops max, 40 byte packets
+  1  0.0.0.0  * * *  
+  2  0.0.0.0  * *  
+  2  192.0.2.1 (192.0.2.1)    863 ms !H
+  3  198.51.100.1 (198.51.100.1)    0.571 ms !N  0.547 ms !N  0.532 ms !N
+`,
+		target: "203.0.113.123",
+		source: "192.0.2.7",
+		hops: []string{
+			"1: /0",
+			"2: /0 192.0.2.1/863",
+			"3: 198.51.100.1/0.571 /0.547 /0.532",
+		},
+	},
 }
 
 func TestTextFSMParserNokiaTracerouteMD(t *testing.T) {
