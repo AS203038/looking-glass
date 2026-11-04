@@ -136,7 +136,7 @@ The service stays at `v0` — we treat it as field-additive indefinitely. Removi
 ## Testing
 
 ```bash
-make test            # Runs Go standard tests and all fuzzers sequentially
+make test            # Runs Go standard tests, all fuzzers sequentially and the webui tests
 make test-fuzz       # Runs all Go fuzzers sequentially
 make test-cover      # Runs Go standard tests with coverage
 ```
@@ -155,8 +155,11 @@ There aren't many tests today; this is a known shortcoming and contributions are
 ```bash
 make check-webui     # svelte-check (TypeScript + Svelte)
 make lint-webui      # prettier + eslint
+make test-webui      # vitest component tests (jsdom)
 make format-webui    # prettier in-place
 ```
+
+Keep a component test next to the component (`Foo.svelte` → `Foo.test.ts`). Mount the component with `@testing-library/svelte` and give it real protobuf messages made with `fromJson`.
 
 `pnpm check` returns `0 errors, 0 warnings` on a clean tree. The build itself (`make build-webui`) is the final source of truth: if adapter-static can't render the routes, the tree is broken.
 

@@ -66,6 +66,9 @@ jobs:
           make lint-webui
           make check-webui
 
+      - name: Run WebUI Tests
+        run: make test-webui
+
   test:
     name: Run Tests & Fuzzers
     runs-on: ubuntu-latest
