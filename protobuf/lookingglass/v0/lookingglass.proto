@@ -461,6 +461,7 @@ message BGPPeerRoutesRequest {
   int64 router_id = 1;
 
   // peer_ip is the IP address of the peer session. Optional when name is used.
+  // A link-local IPv6 peer can have its interface after "%", for example "fe80::1%et-0/0/1:0.0".
   string peer_ip = 2;
 
   // peer_name is the administrative name of the peer session. Optional when IP is used.
