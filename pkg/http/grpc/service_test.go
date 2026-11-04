@@ -15,6 +15,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connectinprocess"
 	"github.com/AS203038/looking-glass/pkg/errs"
+	"github.com/AS203038/looking-glass/pkg/routers"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"github.com/AS203038/looking-glass/protobuf/lookingglass/v0/lookingglassconnect"
@@ -626,5 +627,186 @@ func TestLookingGlassService(t *testing.T) {
 	_, err = cli.GetRouters(ctx, &pb.GetRoutersRequest{Limit: 10, PageToken: 99})
 	if err != nil {
 		t.Errorf("expected success on page token out of bounds GetRouters, got %v", err)
+	}
+}
+
+// startExecRecorder starts an SSH server that answers each exec request and sends its command to cmds.
+func startExecRecorder(t *testing.T, cmds chan<- string) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("host key: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(key)
+	if err != nil {
+		t.Fatalf("signer: %v", err)
+	}
+	config := &ssh.ServerConfig{NoClientAuth: true}
+	config.AddHostKey(signer)
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				_, chans, reqs, err := ssh.NewServerConn(conn, config)
+				if err != nil {
+					return
+				}
+				go ssh.DiscardRequests(reqs)
+				for newChan := range chans {
+					ch, chReqs, err := newChan.Accept()
+					if err != nil {
+						continue
+					}
+					go func() {
+						defer ch.Close()
+						for req := range chReqs {
+							req.Reply(true, nil)
+							if req.Type == "exec" {
+								var payload struct{ Command string }
+								_ = ssh.Unmarshal(req.Payload, &payload)
+								cmds <- payload.Command
+								ch.Write([]byte("output\n"))
+								ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+								return
+							}
+						}
+					}()
+				}
+			}()
+		}
+	}()
+	return ln.Addr().String()
+}
+
+// startRESPRecorder starts a Redis stand-in that sends each request to reqs. BMP is active for routers named bmp-*, with no routes.
+func startRESPRecorder(t *testing.T, reqs chan<- string) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				buf := make([]byte, 4096)
+				for {
+					n, err := c.Read(buf)
+					if err != nil {
+						return
+					}
+					req := strings.ToLower(string(buf[:n]))
+					reqs <- req
+					switch {
+					case strings.Contains(req, "hello"):
+						c.Write([]byte("-ERR unknown command\r\n"))
+					case strings.Contains(req, "setinfo"):
+						c.Write([]byte("+OK\r\n+OK\r\n"))
+					case strings.Contains(req, "hlen") && strings.Contains(req, "bmp-"):
+						c.Write([]byte(":1\r\n"))
+					case strings.Contains(req, "hlen"):
+						c.Write([]byte(":0\r\n"))
+					case strings.Contains(req, "hgetall"):
+						c.Write([]byte("*0\r\n"))
+					case strings.Contains(req, "get"):
+						c.Write([]byte("$-1\r\n"))
+					default:
+						c.Write([]byte("+OK\r\n"))
+					}
+				}
+			}(conn)
+		}
+	}()
+	return ln.Addr().String()
+}
+
+// A link-local peer from a Junos BGP summary keeps its interface up to the router command. BMP keys the peer by its address only.
+func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
+	cmds := make(chan string, 8)
+	reqs := make(chan string, 256)
+	client := redis.NewClient(&redis.Options{Addr: startRESPRecorder(t, reqs), Protocol: 2})
+	defer client.Close()
+	SetRedis(client)
+	SetRPCCache(client, time.Minute)
+	defer SetRedis(nil)
+	defer SetRPCCache(nil, 0)
+
+	addr := startExecRecorder(t, cmds)
+	router := func(name string) *utils.RouterInstance {
+		return &utils.RouterInstance{
+			Config:      &utils.RouterConfig{Name: name, Hostname: addr, Username: "test"},
+			Router:      routers.Get("juniper_junos"),
+			HealthCheck: &utils.HealthCheck{Healthy: true},
+		}
+	}
+	server := connect.NewServer()
+	lookingglassconnect.RegisterLookingGlassServiceHandler(server,
+		NewLookingGlassService(context.Background(), utils.RouterMap{router("ssh-router"), router("bmp-router")}))
+	cli := lookingglassconnect.NewLookingGlassServiceClient(connect.NewClient(connectinprocess.New(server)))
+	ask := func(routerID int64, peer string) error {
+		_, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+			RouterId: routerID, PeerIp: peer, QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
+		})
+		return err
+	}
+	const scoped = "fe80::5a86:70ff:fe78:e0d5%et-0/0/1:0.0"
+
+	for _, peer := range []string{scoped, "192.0.2.1"} {
+		if err := ask(1, peer); err != nil {
+			t.Fatalf("BGPPeerRoutes(%q): %v", peer, err)
+		}
+		select {
+		case got := <-cmds:
+			if want := "show route receive-protocol bgp " + peer; got != want {
+				t.Errorf("command %q, want %q", got, want)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("no router command for %q", peer)
+		}
+	}
+
+	// The interface goes unquoted into the router command, and only a link-local address has one.
+	for _, peer := range []string{
+		"fe80::1%et-0/0/1;show configuration",
+		"fe80::1%et 0",
+		`fe80::1%"x"`,
+		"fe80::1%",
+		"2001:db8::1%et-0/0/1:0.0",
+		"192.0.2.1%eth0",
+	} {
+		if err := ask(1, peer); !errors.Is(err, errs.IPInvalid) {
+			t.Errorf("BGPPeerRoutes(%q) = %v, want %v", peer, err, errs.IPInvalid)
+		}
+	}
+	select {
+	case got := <-cmds:
+		t.Errorf("router got command %q for a rejected peer", got)
+	default:
+	}
+
+	if err := ask(2, scoped); err != nil {
+		t.Fatalf("BGPPeerRoutes(%q) on a BMP router: %v", scoped, err)
+	}
+	ribKey := "\r\nlg:bmp:rib:bmp-router:fe80::5a86:70ff:fe78:e0d5\r\n"
+	for found := false; !found; {
+		select {
+		case req := <-reqs:
+			found = strings.Contains(req, "hgetall") && strings.Contains(req, ribKey)
+		default:
+			t.Fatalf("BMP lookup did not use the key %q", strings.TrimSpace(ribKey))
+		}
 	}
 }

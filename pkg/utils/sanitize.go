@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"net/netip"
 	"regexp"
 	"strconv"
 
@@ -74,4 +75,20 @@ func SanitizeBGPPeerName(name string) (string, error) {
 		return "", errs.PeerNameMalformed
 	}
 	return name, nil
+}
+
+// sanePeerZoneRegex matches the interface of a link-local peer, for example "et-0/0/1:0.0". The router command gets it unquoted.
+var sanePeerZoneRegex = regexp.MustCompile(`^[a-zA-Z0-9._:/-]{1,64}$`)
+
+// SanitizePeerIP validates a BGP peer address. Only an IPv6 link-local address can have an interface, as in "fe80::1%et-0/0/1:0.0".
+// Returns [errs.IPInvalid] on failure.
+func SanitizePeerIP(ip string) (netip.Addr, error) {
+	a, err := netip.ParseAddr(ip)
+	if err != nil {
+		return netip.Addr{}, errs.IPInvalid
+	}
+	if z := a.Zone(); z != "" && (!a.IsLinkLocalUnicast() || !sanePeerZoneRegex.MatchString(z)) {
+		return netip.Addr{}, errs.IPInvalid
+	}
+	return a, nil
 }
