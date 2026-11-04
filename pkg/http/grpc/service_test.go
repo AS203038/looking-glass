@@ -314,8 +314,7 @@ func TestLookingGlassService(t *testing.T) {
 
 	rts := utils.RouterMap{ri, riFailed, riSSH, riExhausted}
 	srv := NewLookingGlassService(context.Background(), rts)
-	server := connect.NewServer()
-	lookingglassconnect.RegisterLookingGlassServiceHandler(server, srv)
+	server := newServer(srv)
 	cli := lookingglassconnect.NewLookingGlassServiceClient(
 		connect.NewClient(connectinprocess.New(server)),
 	)
