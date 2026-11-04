@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -479,11 +478,16 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *pb.BGPPeer
 			return nil, err
 		}
 	}
+	var bmpPeerIP string
 	if peerIP != "" {
-		if net.ParseIP(peerIP) == nil {
-			logRPCError(tag, "sanitize_peer_ip", errs.IPInvalid)
-			return nil, errs.IPInvalid
+		addr, err := utils.SanitizePeerIP(peerIP)
+		if err != nil {
+			logRPCError(tag, "sanitize_peer_ip", err)
+			return nil, err
 		}
+		peerIP = addr.String()
+		// BMP keys a peer by its address only: a link-local peer has no interface there.
+		bmpPeerIP = addr.WithZone("").String()
 	}
 
 	qTypeStr := ""
@@ -522,7 +526,7 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *pb.BGPPeer
 
 	// Try BMP first
 	if bmp.IsBMPActive(ctx, rpcCacheClient, ri.Config.Name) {
-		resolvedIP := peerIP
+		resolvedIP := bmpPeerIP
 		if resolvedIP == "" && peerName != "" {
 			peers, err := bmp.GetBMPPeers(ctx, rpcCacheClient, ri.Config.Name)
 			if err == nil {
