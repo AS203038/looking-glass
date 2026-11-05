@@ -733,7 +733,7 @@ func startRESPRecorder(t *testing.T, reqs chan<- string) string {
 	return ln.Addr().String()
 }
 
-// A link-local peer from a Junos BGP summary keeps its interface up to the router command. BMP keys the peer by its address only.
+// A link-local peer from a Junos BGP summary keeps its interface up to the router command, also on a BMP router.
 func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
 	cmds := make(chan string, 8)
 	reqs := make(chan string, 256)
@@ -797,10 +797,38 @@ func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
 	default:
 	}
 
+	// BMP has no interface in its key, so it cannot select the peer: a scoped peer goes to the router.
+	for len(reqs) > 0 {
+		<-reqs
+	}
 	if err := ask(2, scoped); err != nil {
 		t.Fatalf("BGPPeerRoutes(%q) on a BMP router: %v", scoped, err)
 	}
-	ribKey := "\r\nlg:bmp:rib:bmp-router:fe80::5a86:70ff:fe78:e0d5\r\n"
+	select {
+	case got := <-cmds:
+		if want := "show route receive-protocol bgp " + scoped; got != want {
+			t.Errorf("command %q, want %q", got, want)
+		}
+	case <-time.After(10 * time.Second):
+		t.Errorf("no router command for %q on a BMP router", scoped)
+	}
+	for len(reqs) > 0 {
+		if req := <-reqs; strings.Contains(req, "hgetall") {
+			t.Errorf("BMP lookup for a scoped peer: %q", req)
+		}
+	}
+
+	// A peer without an interface stays on BMP.
+	const unscoped = "fe80::5a86:70ff:fe78:e0d5"
+	if err := ask(2, unscoped); err != nil {
+		t.Fatalf("BGPPeerRoutes(%q) on a BMP router: %v", unscoped, err)
+	}
+	select {
+	case got := <-cmds:
+		t.Errorf("router got command %q for a peer on BMP", got)
+	default:
+	}
+	ribKey := "\r\nlg:bmp:rib:bmp-router:" + unscoped + "\r\n"
 	for found := false; !found; {
 		select {
 		case req := <-reqs:
