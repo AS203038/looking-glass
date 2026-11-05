@@ -24,29 +24,49 @@
 	}
 
 	interface DiffPeer {
+		key: string;
 		ip: string;
+		family: string;
 		old?: Pb.BGPPeer;
 		new?: Pb.BGPPeer;
 		status: 'added' | 'removed' | 'changed' | 'unchanged';
 	}
 
 	const rows = $derived.by(() => {
+		// A peer can have one record per address family: compare each family with its own counterpart.
+		const keyOf = (p: Pb.BGPPeer) => `${p.peerIp}|${p.addressFamily}`;
+		const differ = (a: Pb.BGPPeer, b: Pb.BGPPeer) =>
+			a.state !== b.state || a.prefixesReceived !== b.prefixesReceived;
 		const map = new Map<string, DiffPeer>();
 		for (const p of oldSummary.peers || []) {
-			map.set(p.peerIp, { ip: p.peerIp, old: p, status: 'removed' });
+			const key = keyOf(p);
+			map.set(key, { key, ip: p.peerIp, family: p.addressFamily, old: p, status: 'removed' });
 		}
 		for (const p of newSummary.peers || []) {
-			if (map.has(p.peerIp)) {
-				const existing = map.get(p.peerIp)!;
+			const key = keyOf(p);
+			if (map.has(key)) {
+				const existing = map.get(key)!;
 				existing.new = p;
-				const changed =
-					existing.old!.state !== p.state || existing.old!.prefixesReceived !== p.prefixesReceived;
-				existing.status = changed ? 'changed' : 'unchanged';
+				existing.status = differ(existing.old!, p) ? 'changed' : 'unchanged';
 			} else {
-				map.set(p.peerIp, { ip: p.peerIp, new: p, status: 'added' });
+				map.set(key, { key, ip: p.peerIp, family: p.addressFamily, new: p, status: 'added' });
 			}
 		}
-		return Array.from(map.values()).sort((a, b) => a.ip.localeCompare(b.ip));
+		const all = Array.from(map.values());
+		// A peer that went down or came up has one record without a family: compare it with each family record of the peer.
+		const paired = new Set<DiffPeer>();
+		for (const lone of all.filter(
+			(r) => !r.family && (r.status === 'added' || r.status === 'removed')
+		)) {
+			const other = lone.status === 'added' ? 'removed' : 'added';
+			for (const r of all.filter((r) => r.ip === lone.ip && r.family && r.status === other)) {
+				if (lone.new) r.new = lone.new;
+				else r.old = lone.old;
+				r.status = differ(r.old!, r.new!) ? 'changed' : 'unchanged';
+				paired.add(lone);
+			}
+		}
+		return all.filter((r) => !paired.has(r)).sort((a, b) => a.ip.localeCompare(b.ip));
 	});
 </script>
 
@@ -64,7 +84,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each rows as r (r.ip)}
+			{#each rows as r (r.key)}
 				<tr
 					class="border-t"
 					style="border-color: var(--color-border); background-color: {r.status === 'added'
@@ -83,6 +103,7 @@
 					</td>
 					<td class="px-3 py-1.5 whitespace-nowrap">
 						{r.ip}
+						{#if r.family}<span style="color: var(--color-fg-subtle);">{r.family}</span>{/if}
 						<span style="color: var(--color-fg-subtle);">AS{r.new?.peerAsn || r.old?.peerAsn}</span>
 					</td>
 					<td class="px-3 py-1.5">
