@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -49,17 +50,51 @@ func (h debugHandler) WithGroup(name string) slog.Handler {
 	return debugHandler{h.Handler.WithGroup(name)}
 }
 
-// onceCloseTransport lets the session's receive loop and Session.Close both
-// close the transport; the library calls Close from both goroutines.
-type onceCloseTransport struct {
+// netconfTransport lets the session's receive loop and Session.Close both close the transport, and
+// never closes during a write: the library does both at once, and ssh.Channel does not synchronize CloseWrite with Write.
+type netconfTransport struct {
 	*ncssh.Transport
-	once sync.Once
-	err  error
+	// writeMu is held from MsgWriter until the writer closes, and during Close. A closed client ends a stalled write.
+	writeMu sync.Mutex
+	closed  bool
+	once    sync.Once
+	err     error
 }
 
-func (t *onceCloseTransport) Close() error {
-	t.once.Do(func() { t.err = t.Transport.Close() })
+func (t *netconfTransport) Close() error {
+	t.once.Do(func() {
+		t.writeMu.Lock()
+		defer t.writeMu.Unlock()
+		t.closed = true
+		t.err = t.Transport.Close()
+	})
 	return t.err
+}
+
+// MsgWriter returns a writer that holds off Close until it closes. It fails after Close.
+func (t *netconfTransport) MsgWriter() (io.WriteCloser, error) {
+	t.writeMu.Lock()
+	if t.closed {
+		t.writeMu.Unlock()
+		return nil, net.ErrClosed
+	}
+	w, err := t.Transport.MsgWriter()
+	if err != nil {
+		t.writeMu.Unlock()
+		return nil, err
+	}
+	return &netconfMsgWriter{WriteCloser: w, unlock: t.writeMu.Unlock}, nil
+}
+
+// netconfMsgWriter releases the write lock of its transport when it closes.
+type netconfMsgWriter struct {
+	io.WriteCloser
+	unlock func()
+}
+
+func (w *netconfMsgWriter) Close() error {
+	defer w.unlock()
+	return w.WriteCloser.Close()
 }
 
 // netconfLogAt emits a structured record at lvl for a NETCONF event.
@@ -313,36 +348,36 @@ func (o *netconfOutput) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 
 // netconfOnClient opens a NETCONF session on client, runs one RPC per
 // command in order and closes the session.
-func netconfOnClient(client *ssh.Client, router *RouterConfig, spec *NetconfSpec, cmd []string) ([]string, error) {
+func netconfOnClient(ctx context.Context, client *ssh.Client, router *RouterConfig, spec *NetconfSpec, cmd []string) ([]string, error) {
 	start := time.Now()
-	dl := &netconfDeadlines{client: client}
-	// The subsystem request has no context. The library's hello timeout closes the transport during a write, a data race.
+	dl := &netconfDeadlines{ctx: ctx, client: client}
+	// The subsystem request has no context, so one deadline covers it and the hello.
 	_, setupDone := dl.start(netconfSetupTimeout)
 	tr, err := ncssh.NewTransport(client)
 	if err != nil {
 		setupDone()
-		netconfLogAt(slog.LevelError, "netconf subsystem failed", router, slog.Any("err", err))
+		netconfLogAt(execLogLevel(ctx), "netconf subsystem failed", router, slog.Any("err", err))
 		return nil, dl.failure(err)
 	}
-	sess, err := netconf.NewSession(&onceCloseTransport{Transport: tr}, netconf.WithLogger(netconfLibLog), netconf.WithHelloTimeout(0))
+	sess, err := netconf.NewSession(&netconfTransport{Transport: tr}, netconf.WithLogger(netconfLibLog), netconf.WithHelloTimeout(0))
 	setupDone()
 	if err != nil {
-		netconfLogAt(slog.LevelError, "netconf hello failed", router, slog.Any("err", err))
+		netconfLogAt(execLogLevel(ctx), "netconf hello failed", router, slog.Any("err", err))
 		return nil, dl.failure(err)
 	}
 	netconfLogAt(slog.LevelDebug, "netconf session open", router,
 		slog.Uint64("session_id", sess.SessionID()),
 		slog.Duration("duration", time.Since(start)))
 	defer func() {
-		ctx, done := dl.start(netconfCloseTimeout)
+		closeCtx, done := dl.start(netconfCloseTimeout)
 		defer done()
-		if dl.expired.Load() {
-			// The library skips a send with a canceled context: a write to the closed client races its transport close.
+		if dl.clientClosed.Load() {
+			// A closed client cannot answer: the library skips the send and the wait for a canceled context.
 			var cancel context.CancelFunc
-			ctx, cancel = context.WithCancel(ctx)
+			closeCtx, cancel = context.WithCancel(closeCtx)
 			cancel()
 		}
-		if err := sess.Close(ctx); err != nil {
+		if err := sess.Close(closeCtx); err != nil {
 			netconfLogAt(slog.LevelDebug, "netconf session close failed", router, slog.Any("err", err))
 		}
 	}()
@@ -358,21 +393,23 @@ func netconfOnClient(client *ssh.Client, router *RouterConfig, spec *NetconfSpec
 	return ret, nil
 }
 
-// netconfDeadlines closes client when a deadline ends. The library reads the
-// rest of a reply without its context, so only a closed client ends a stalled reply.
+// netconfDeadlines closes client when a deadline or the caller's context ends. The
+// library reads the rest of a reply without its context, so only a closed client ends a stalled reply.
 type netconfDeadlines struct {
+	// ctx is the caller's context.
+	ctx    context.Context
 	client *ssh.Client
-	// expired is set when a deadline closed the client.
-	expired atomic.Bool
+	// clientClosed is set when a deadline or ctx closed the client.
+	clientClosed atomic.Bool
 }
 
-// start returns a context that ends after d. Call done once to stop the
-// deadline; when the deadline ended, done waits until the client is closed.
+// start returns a context that ends after d or with n.ctx. Call done once to stop
+// the deadline; when the context ended, done waits until the client is closed.
 func (n *netconfDeadlines) start(d time.Duration) (ctx context.Context, done func()) {
-	ctx, cancel := context.WithTimeout(context.Background(), d)
+	ctx, cancel := context.WithTimeout(n.ctx, d)
 	closed := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
-		n.expired.Store(true)
+		n.clientClosed.Store(true)
 		n.client.Close()
 		close(closed)
 	})
@@ -384,9 +421,13 @@ func (n *netconfDeadlines) start(d time.Duration) (ctx context.Context, done fun
 	}
 }
 
-// failure returns errs.ExecTimeout when err is a context deadline or a deadline closed the client, else errs.ExecFailed.
+// failure returns the error of ctx when the caller's context ended, errs.ExecTimeout when err is a
+// context deadline or a deadline closed the client, else errs.ExecFailed.
 func (n *netconfDeadlines) failure(err error) error {
-	if errors.Is(err, context.DeadlineExceeded) || n.expired.Load() {
+	if n.ctx.Err() != nil {
+		return callerError(n.ctx)
+	}
+	if errors.Is(err, context.DeadlineExceeded) || n.clientClosed.Load() {
 		return errs.ExecTimeout
 	}
 	return errs.ExecFailed
@@ -394,12 +435,12 @@ func (n *netconfDeadlines) failure(err error) error {
 
 // netconfCommand runs one command and returns the text of its output elements.
 func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterConfig, spec *NetconfSpec, i int, c string) (string, error) {
-	// An RPC can succeed while its deadline closes the client: a write now would race the transport close.
-	if dl.expired.Load() {
-		netconfLogAt(slog.LevelError, "netconf client closed by an earlier deadline", router,
+	// An RPC can succeed while its deadline closes the client: the next RPC would report a transport error, not the deadline.
+	if dl.clientClosed.Load() || dl.ctx.Err() != nil {
+		netconfLogAt(execLogLevel(dl.ctx), "netconf client closed before the rpc", router,
 			slog.Int("cmd_index", i),
 			slog.String("cmd", c))
-		return "", errs.ExecTimeout
+		return "", dl.failure(nil)
 	}
 	netconfLogAt(slog.LevelDebug, "netconf rpc start", router,
 		slog.Int("cmd_index", i),
@@ -429,7 +470,7 @@ func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterC
 		}
 		return "", errs.ExecFailed
 	case err != nil:
-		netconfLogAt(slog.LevelError, "netconf rpc failed", router,
+		netconfLogAt(execLogLevel(dl.ctx), "netconf rpc failed", router,
 			slog.Int("cmd_index", i),
 			slog.String("cmd", c),
 			slog.Duration("duration", time.Since(rpcStart)),
@@ -466,9 +507,10 @@ func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterC
 // same authentication as [SSHExec]. The pool limits the open connections,
 // but no connection is reused: SR OS drops it after close-session. The
 // device hostname must point at the NETCONF port (usually 830). Failures
-// are returned as the coarse [errs] sentinels.
-func NetconfExec(router *RouterConfig, spec *NetconfSpec, cmd []string) ([]string, error) {
+// are returned as the coarse [errs] sentinels. When ctx ends, the connection
+// closes and the request ends with [errs.ExecCanceled] or [errs.ExecTimeout].
+func NetconfExec(ctx context.Context, router *RouterConfig, spec *NetconfSpec, cmd []string) ([]string, error) {
 	return withSSHClient(router, len(cmd), false, func(client *ssh.Client) ([]string, error) {
-		return netconfOnClient(client, router, spec, cmd)
+		return netconfOnClient(ctx, client, router, spec, cmd)
 	})
 }

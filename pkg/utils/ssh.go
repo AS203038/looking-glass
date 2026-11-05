@@ -19,6 +19,9 @@ import (
 // sshDialTimeout bounds the TCP connect and the SSH handshake of a new connection.
 var sshDialTimeout = 30 * time.Second
 
+// sshKeepaliveTimeout bounds the wait for the answer to a keepalive.
+var sshKeepaliveTimeout = 10 * time.Second
+
 // sshLog is the component-tagged logger for SSH-related events.
 var sshLog = logging.Component("ssh")
 
@@ -48,9 +51,20 @@ type sshPool struct {
 	numOpen int
 }
 
+// isAlive reports whether client answers a keepalive within sshKeepaliveTimeout.
+// A caller closes a client that is not alive, which ends the request goroutine.
 func isAlive(client *ssh.Client) bool {
-	_, _, err := client.SendRequest("keepalive@openssh.com", true, nil)
-	return err == nil
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := client.SendRequest("keepalive@openssh.com", true, nil)
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		return err == nil
+	case <-time.After(sshKeepaliveTimeout):
+		return false
+	}
 }
 
 // Checkout returns an idle connection that is still alive, or dials a new one.
@@ -201,7 +215,7 @@ func ClosePools() {
 
 // execOnClient runs the command sequence sequentially over newly instantiated
 // sessions on the provided active client connection.
-func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]string, error) {
+func execOnClient(ctx context.Context, client *ssh.Client, router *RouterConfig, cmd []string) ([]string, error) {
 	ret := make([]string, len(cmd))
 	for i, c := range cmd {
 		sshLogAt(slog.LevelDebug, "ssh exec start", router,
@@ -210,7 +224,7 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 		execStart := time.Now()
 		session, err := client.NewSession()
 		if err != nil {
-			sshLogAt(slog.LevelError, "new session failed", router,
+			sshLogAt(execLogLevel(ctx), "new session failed", router,
 				slog.Int("cmd_index", i),
 				slog.String("cmd", c),
 				slog.Any("err", err))
@@ -220,7 +234,7 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 		session.Stderr = &stderr
 		output, err := session.Output(c)
 		if err != nil {
-			sshLogAt(slog.LevelError, "command failed", router,
+			sshLogAt(execLogLevel(ctx), "command failed", router,
 				slog.Int("cmd_index", i),
 				slog.String("cmd", c),
 				slog.Duration("duration", time.Since(execStart)),
@@ -245,11 +259,33 @@ func execOnClient(client *ssh.Client, router *RouterConfig, cmd []string) ([]str
 // SSHCert certificate offered before the plain key when SSHCert is set),
 // password and keyboard-interactive (both when Password is set). Failures are
 // returned as the coarse [errs] sentinels; detailed diagnostics are written
-// to the server log.
-func SSHExec(router *RouterConfig, cmd []string) ([]string, error) {
+// to the server log. When ctx ends, the connection closes and the request ends
+// with [errs.ExecCanceled] or [errs.ExecTimeout].
+func SSHExec(ctx context.Context, router *RouterConfig, cmd []string) ([]string, error) {
 	return withSSHClient(router, len(cmd), true, func(client *ssh.Client) ([]string, error) {
-		return execOnClient(client, router, cmd)
+		stop := context.AfterFunc(ctx, func() { client.Close() })
+		ret, err := execOnClient(ctx, client, router, cmd)
+		if !stop() {
+			return nil, callerError(ctx)
+		}
+		return ret, err
 	})
+}
+
+// callerError returns the sentinel for the end of the caller's context ctx.
+func callerError(ctx context.Context) error {
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return errs.ExecCanceled
+	}
+	return errs.ExecTimeout
+}
+
+// execLogLevel returns the level of a failure log: a caller that went away is not a router failure.
+func execLogLevel(ctx context.Context) slog.Level {
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return slog.LevelInfo
+	}
+	return slog.LevelError
 }
 
 // withSSHClient authenticates to the router and calls run with a connected

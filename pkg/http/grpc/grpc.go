@@ -81,7 +81,7 @@ func healthcheck(ctx context.Context, rts utils.RouterMap) {
 func probeLocal(ctx context.Context, r *utils.RouterInstance) (bool, error) {
 	r.HealthCheck.Checked = time.Now()
 	if r.Config.HasSSHCredentials() {
-		probeErr := r.Healthcheck()
+		probeErr := r.Healthcheck(ctx)
 		healthy := probeErr == nil
 		if !healthy && bmp.IsBMPActive(ctx, healthRedis, r.Config.Name) {
 			r.HealthCheck.Healthy = true
