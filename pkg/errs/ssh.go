@@ -15,3 +15,6 @@ var ConnectionFailed = errors.New("connection error")
 
 // PoolExhausted is returned when the SSH connection pool is fully utilized and has no available slots.
 var PoolExhausted = errors.New("ssh pool exhausted")
+
+// ExecTimeout is returned when the router does not answer a command within the transport time limit.
+var ExecTimeout = errors.New("router did not answer in time")

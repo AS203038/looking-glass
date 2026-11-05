@@ -414,7 +414,7 @@ The command lists are rendered as for SSH exec. Then, for each command:
 * The device `hostname` must point at the NETCONF port, usually `host:830`. The server opens the SSH subsystem `netconf` (RFC 6242) there and supports base:1.0 and base:1.1 framing.
 * `username`, `password`, `ssh_key` and `ssh_pool_size` work as for SSH exec. The user needs NETCONF access on the device.
 * Each request opens a new SSH connection and a NETCONF session (hello exchange), sends one RPC per command in order, then closes the session and the connection. No connection is reused, because SR OS drops it after `close-session`. `ssh_pool_size` only limits the number of open connections. When all of them are in use, a request fails at once with a `resource_exhausted` error, and the health check marks the device unhealthy unless BMP is active for it. Set `ssh_pool_size` to at least the number of parallel requests you expect, or to `0` for no limit.
-* The NETCONF subsystem request and the session setup have a timeout of 2 minutes. Inside it, the hello exchange has a timeout of 30 seconds. Each RPC has a timeout of 2 minutes, which includes the read of the reply. The `close-session` RPC has a timeout of 10 seconds.
+* The NETCONF subsystem request and the hello exchange have a timeout of 30 seconds. Each RPC has a timeout of 10 minutes, which includes the read of the reply. The device sends the reply only when the command is done: an SR OS traceroute with all probes lost takes 30 hops × 3 probes × 5 seconds = 7.5 minutes. The `close-session` RPC has a timeout of 10 seconds. A request can run several commands, and each RPC has its own timeout. A reverse proxy in front of the server must allow a response time that covers the whole request: the SSH connection setup (30 seconds), the NETCONF setup (30 seconds), 10 minutes for each command and the `close-session` RPC (10 seconds).
 * The health check opens and closes a NETCONF session. A device whose SSH port answers but whose NETCONF does not is marked unhealthy, unless BMP is active for it.
 
 ### Errors
@@ -423,7 +423,7 @@ The command lists are rendered as for SSH exec. Then, for each command:
 * A reply without a `netconf.output` element fails with `errs.ExecFailed`. Check the element name.
 * Text in a `netconf.error` element does not fail the operation. It is added after the output and logged as `netconf command error`. SR OS uses this for a command that it stops, for example `MINOR: CLI #2005: ... BGP routing daemon is busy`, with the partial output in `md-cli-output-block`.
 * The SSH connection fails as for SSH exec: an unreachable device with `errs.ConnectionFailed`, a router without credentials with `errs.AuthFailed`.
-* A failed NETCONF subsystem request or hello, an RPC timeout, or a transport error during an RPC fails with `errs.ExecFailed`.
+* A timeout of the setup (subsystem request and hello) or of an RPC fails with `errs.ExecTimeout`. The client gets `deadline_exceeded` with the message "router did not answer in time". A failed NETCONF subsystem request or hello, or a transport error during an RPC, fails with `errs.ExecFailed`.
 * A `close-session` that fails or times out does not fail the operation. It is logged at debug level on the `netconf` component.
 
 ### Examples

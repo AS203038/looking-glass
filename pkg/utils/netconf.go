@@ -69,8 +69,11 @@ func netconfLogAt(lvl slog.Level, msg string, router *RouterConfig, extra ...slo
 	netconfLog.LogAttrs(context.Background(), lvl, msg, attrs...)
 }
 
-// netconfTimeout bounds each RPC. The library bounds the hello exchange to 30s.
-var netconfTimeout = 2 * time.Minute
+// netconfTimeout bounds each RPC. An SR OS traceroute with all probes lost takes 30 hops x 3 probes x 5s = 7.5 min.
+var netconfTimeout = 10 * time.Minute
+
+// netconfSetupTimeout bounds the subsystem request and the hello exchange.
+var netconfSetupTimeout = netconf.DefaultHelloTimeout
 
 // netconfCloseTimeout bounds the close-session RPC.
 var netconfCloseTimeout = 10 * time.Second
@@ -313,19 +316,19 @@ func (o *netconfOutput) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 func netconfOnClient(client *ssh.Client, router *RouterConfig, spec *NetconfSpec, cmd []string) ([]string, error) {
 	start := time.Now()
 	dl := &netconfDeadlines{client: client}
-	// The subsystem request and the hello have no context.
-	_, setupDone := dl.start(netconfTimeout)
+	// The subsystem request has no context. The library's hello timeout closes the transport during a write, a data race.
+	_, setupDone := dl.start(netconfSetupTimeout)
 	tr, err := ncssh.NewTransport(client)
 	if err != nil {
 		setupDone()
 		netconfLogAt(slog.LevelError, "netconf subsystem failed", router, slog.Any("err", err))
-		return nil, errs.ExecFailed
+		return nil, dl.failure(err)
 	}
-	sess, err := netconf.NewSession(&onceCloseTransport{Transport: tr}, netconf.WithLogger(netconfLibLog))
+	sess, err := netconf.NewSession(&onceCloseTransport{Transport: tr}, netconf.WithLogger(netconfLibLog), netconf.WithHelloTimeout(0))
 	setupDone()
 	if err != nil {
 		netconfLogAt(slog.LevelError, "netconf hello failed", router, slog.Any("err", err))
-		return nil, errs.ExecFailed
+		return nil, dl.failure(err)
 	}
 	netconfLogAt(slog.LevelDebug, "netconf session open", router,
 		slog.Uint64("session_id", sess.SessionID()),
@@ -381,6 +384,14 @@ func (n *netconfDeadlines) start(d time.Duration) (ctx context.Context, done fun
 	}
 }
 
+// failure returns errs.ExecTimeout when err is a context deadline or a deadline closed the client, else errs.ExecFailed.
+func (n *netconfDeadlines) failure(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) || n.expired.Load() {
+		return errs.ExecTimeout
+	}
+	return errs.ExecFailed
+}
+
 // netconfCommand runs one command and returns the text of its output elements.
 func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterConfig, spec *NetconfSpec, i int, c string) (string, error) {
 	// An RPC can succeed while its deadline closes the client: a write now would race the transport close.
@@ -388,7 +399,7 @@ func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterC
 		netconfLogAt(slog.LevelError, "netconf client closed by an earlier deadline", router,
 			slog.Int("cmd_index", i),
 			slog.String("cmd", c))
-		return "", errs.ExecFailed
+		return "", errs.ExecTimeout
 	}
 	netconfLogAt(slog.LevelDebug, "netconf rpc start", router,
 		slog.Int("cmd_index", i),
@@ -423,7 +434,7 @@ func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterC
 			slog.String("cmd", c),
 			slog.Duration("duration", time.Since(rpcStart)),
 			slog.Any("err", err))
-		return "", errs.ExecFailed
+		return "", dl.failure(err)
 	case !out.found:
 		netconfLogAt(slog.LevelError, "netconf reply has no output element", router,
 			slog.Int("cmd_index", i),
