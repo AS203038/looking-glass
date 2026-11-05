@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	gotextfsm "github.com/sirikothe/gotextfsm"
@@ -208,6 +209,20 @@ func recUint32(rec map[string]interface{}, name string) uint32 {
 	return 0
 }
 
+// recASN returns the named column as an AS number in asplain ("65546") or asdot ("1.10") notation, or 0 on miss/error.
+func recASN(rec map[string]interface{}, name string) uint32 {
+	hi, lo, dot := strings.Cut(recString(rec, name), ".")
+	if !dot {
+		return recUint32(rec, name)
+	}
+	h, errH := strconv.ParseUint(hi, 10, 16)
+	l, errL := strconv.ParseUint(lo, 10, 16)
+	if errH != nil || errL != nil {
+		return 0
+	}
+	return uint32(h)<<16 | uint32(l)
+}
+
 // recUint64 returns the named column parsed as a uint64, or 0 on miss/error.
 func recUint64(rec map[string]interface{}, name string) uint64 {
 	s := recString(rec, name)
@@ -267,20 +282,49 @@ func recUint32List(rec map[string]interface{}, name string) []uint32 {
 	return out
 }
 
-// recAgeSeconds returns the named column parsed as a seconds count.
+// recAgeSeconds returns the named column parsed as a seconds count, see [ageSeconds].
 // Accepts `HH:MM:SS`, compound (`1d02h03m04s`, `1w`) and bare-integer
 // forms. Returns 0 on any unrecognised input.
 func recAgeSeconds(rec map[string]interface{}, name string) uint64 {
-	s := strings.TrimSpace(recString(rec, name))
+	return ageSeconds(strings.TrimSpace(recString(rec, name)))
+}
+
+// clockSeconds parses "M:SS" or "H:MM:SS". ok is false when a part is not a number or a part after the first is above 59.
+func clockSeconds(s string) (uint64, bool) {
+	if n := strings.Count(s, ":"); n != 1 && n != 2 {
+		return 0, false
+	}
+	var total uint64
+	for i, part := range strings.Split(s, ":") {
+		v, err := strconv.ParseUint(part, 10, 64)
+		if err != nil || (i > 0 && v > 59) {
+			return 0, false
+		}
+		total = total*60 + v
+	}
+	return total, true
+}
+
+// ageSeconds parses an age such as "1d2h", "0:01:00", Junos "5:55" (M:SS) or Junos "32w6d 9:04:08".
+func ageSeconds(s string) uint64 {
 	if s == "" {
 		return 0
 	}
-	if strings.Count(s, ":") == 2 {
-		parts := strings.SplitN(s, ":", 3)
-		h, _ := strconv.ParseUint(parts[0], 10, 64)
-		m, _ := strconv.ParseUint(parts[1], 10, 64)
-		sec, _ := strconv.ParseUint(parts[2], 10, 64)
-		return h*3600 + m*60 + sec
+	if i := strings.LastIndexFunc(s, unicode.IsSpace); i >= 0 {
+		// Only a compound duration ("32w6d") comes before the whitespace; a date such as "Aug 25 2025 16" is not an age.
+		d := strings.TrimSpace(s[:i])
+		if strings.Trim(d, "0123456789wdhmsWDHMS") != "" || !strings.ContainsAny(d, "wdhmsWDHMS") {
+			return 0
+		}
+		c, ok := clockSeconds(strings.TrimSpace(s[i:]))
+		if !ok {
+			return 0
+		}
+		return ageSeconds(d) + c
+	}
+	if strings.Contains(s, ":") {
+		c, _ := clockSeconds(s)
+		return c
 	}
 	var total uint64
 	var cur uint64
@@ -475,7 +519,7 @@ func tfsmBGPSummaryResult(records []map[string]interface{}) Result {
 		}
 		peer := &pb.BGPPeer{
 			PeerIp:           ip,
-			PeerAsn:          recUint32(rec, "peer_asn"),
+			PeerAsn:          recASN(rec, "peer_asn"),
 			Description:      recString(rec, "description"),
 			State:            state,
 			StateDetail:      recString(rec, "state_detail"),
