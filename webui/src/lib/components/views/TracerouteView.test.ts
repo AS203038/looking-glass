@@ -14,7 +14,7 @@ describe('TracerouteView', () => {
 					probes: [
 						{ ip: '', hostname: '', rttMs: 0 },
 						{ ip: '198.51.100.1', hostname: 'core1.example.net', rttMs: 1.5 },
-						{ ip: '198.51.100.1', hostname: 'core1.example.net', rttMs: 2.1 }
+						{ ip: '198.51.100.2', hostname: 'core2.example.net', rttMs: 2.1 }
 					]
 				},
 				{ ttl: 2, probes: [{ rttMs: 0 }, { rttMs: 0 }, { rttMs: 0 }] }
