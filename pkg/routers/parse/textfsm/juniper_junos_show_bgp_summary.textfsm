@@ -1,10 +1,12 @@
 Value Filldown local_asn (\d+)
 Value Filldown router_id ([0-9a-fA-F:.]+)
-Value Required peer_ip ([0-9a-fA-F:.]+)
-Value peer_asn (\d+)
-Value uptime (\S+)
-Value state (\S+(?:\s+\(\w+\))?)
-Value address_family (\S+)
+# A link-local peer keeps its interface scope, for example fe80::1%et-0/0/1:0.0.
+Value Filldown,Required peer_ip ([0-9a-fA-F:.]+(?:%\S+)?)
+# An AS number can be in asdot notation, for example 1.10.
+Value Filldown peer_asn (\d+(?:\.\d+)?)
+Value Filldown uptime (\S+(?:\s+\d+:\d+:\d+)?)
+Value Filldown state (\S+(?:\s+\([^)]*\))?)
+Value address_family ([^\s:]+)
 Value prefixes_accepted (\d+)
 Value prefixes_received (\d+)
 
@@ -14,8 +16,20 @@ Start
   ^Table\s+Tot\s+Paths
   ^Peer\s+AS\s+InPkt\s+OutPkt.*$$ -> Peers
 
+# An Establ peer gets one record per family line, other peers one record for the peer line.
 Peers
+  # Stop on counts on the peer line: the state rule below would take them as a state. An idle reason in parentheses can hold a slash.
+  ^\S+\s+\d+(?:\.\d+)?\s+\d+\s+\d+\s+\d+\s+\d+\s+.*\s[^\s(]*/[^\s)]*\s*$$ -> Error "unknown peer line"
+  ^${peer_ip}\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+${state}\s*$$ -> Continue
   ^${peer_ip}\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+Establ\s*$$
   ^${peer_ip}\s+${peer_asn}\s+\d+\s+\d+\s+\d+\s+\d+\s+${uptime}\s+${state}\s*$$ -> Record
-  ^\s+${address_family}:\s+${prefixes_accepted}/${prefixes_received}/\d+/\d+\s*$$ -> Record
+  # Stop on a peer line in another shape: the Filldown values still hold the previous peer.
+  ^\S+\s+\d+(?:\.\d+)?(\s|$$) -> Error "unknown peer line"
+  # Active/Received[/Accepted]/Damped, as on the peer line.
+  ^\s+${address_family}:\s+\d+/${prefixes_received}/(?:${prefixes_accepted}/)?\d+\s*$$ -> Record
+  # Stop on a family line in another shape: the peer would get no record.
+  ^\s+\S+:(\s|$$) -> Error "unknown family line"
   ^\s*$$
+
+# No record at the end of input: after the last family line only Filldown values are left.
+EOF

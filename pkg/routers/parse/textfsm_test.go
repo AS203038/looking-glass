@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -746,6 +747,36 @@ func TestTextFSMParserCiscoIOSBGPPaths(t *testing.T) {
 	if got, want := p.LargeCommunities, []string{"214503:8:3607"}; !equalStr(got, want) {
 		t.Errorf("LargeCommunities = %v, want %v", got, want)
 	}
+	// "Updated on" is a timestamp, not an age.
+	if p.AgeSeconds != 0 {
+		t.Errorf("AgeSeconds = %d, want 0", p.AgeSeconds)
+	}
+}
+
+func TestAgeSecondsRejectsNonAges(t *testing.T) {
+	for in, want := range map[string]uint64{
+		"32w6d 9:04:08":     32*7*86400 + 6*86400 + 9*3600 + 4*60 + 8,
+		"1d 2:00:00":        86400 + 2*3600,
+		"Aug 25 2025 16:00": 0,
+		"20250825 16:00:00": 0,
+		"5:55":              5*60 + 55,
+		"1:02:03":           3600 + 2*60 + 3,
+		"foo:55":            0,
+		"5:foo":             0,
+		"1d 5:foo":          0,
+		"1:foo:00":          0,
+		":55":               0,
+		"1:60":              0,
+		"1:60:00":           0,
+		"1:02:60":           0,
+		"1d 1:60":           0,
+		"90:00":             90 * 60,
+		"100:59:59":         100*3600 + 59*60 + 59,
+	} {
+		if got := ageSeconds(in); got != want {
+			t.Errorf("ageSeconds(%q) = %d, want %d", in, got, want)
+		}
+	}
 }
 
 const juniperBGPPathsSample = `inet.0: 1000 destinations, 2000 routes (1000 active, 0 holddown, 0 hidden)
@@ -1217,6 +1248,190 @@ func TestTextFSMParserConcurrent(t *testing.T) {
 		})
 	}
 	wg.Wait()
+}
+
+// juniperBGPSummaryLongUptimeSample has the Junos uptime formats, an idle reason with spaces, several families on one peer and a peer in a routing instance.
+const juniperBGPSummaryLongUptimeSample = `Threading mode: BGP I/O
+Default eBGP mode: advertise - reject-always, receive - accept
+Groups: 3 Peers: 4 Down peers: 2
+Table          Tot Paths  Act Paths Suppressed    History Damp State    Pending
+inet.0
+                3314432    1326158          0          0          0          0
+Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Accepted/Damped...
+192.0.2.66                5          0          0       0       0 32w6d 9:04:08 Connect
+192.0.2.67            64502          0          0       0       0        1:02 Idle (Removal in progress)
+192.0.2.3             64500    3318074      12206       0      87 3d 20:55:15 Establ
+  inet.0: 386317/1186613/1186600/0
+  inet6.0: 0/265834/0/0
+  bgp.l3vpn.0: 0/6/0/0
+  CUSTOMER-A.inet.0: 0/2/0/0
+2001:db8::3           64500       7956       7977       0      71 2d 13:07:00 Establ
+  inet6.0: 3/40/30/0
+198.51.100.54         64501    1249300       8020       0       0        5:55 Establ
+  CUSTOMER-B.inet.0: 0/1322670/7/0
+`
+
+func TestTextFSMParserJuniperBGPSummaryLongUptime(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(juniperBGPSummaryLongUptimeSample),
+		Config{Template: "juniper_junos_show_bgp_summary"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	s := r.Payload.(*pb.BGPSummaryParsed)
+	type row struct {
+		ip, af, state          string
+		uptime, recv, accepted uint64
+	}
+	want := []row{
+		{"192.0.2.66", "", "connect", 32*7*86400 + 6*86400 + 9*3600 + 4*60 + 8, 0, 0},
+		{"192.0.2.67", "", "idle (removal in progress)", 62, 0, 0},
+		{"192.0.2.3", "inet.0", "established", 3*86400 + 20*3600 + 55*60 + 15, 1186613, 1186600},
+		{"192.0.2.3", "inet6.0", "established", 3*86400 + 20*3600 + 55*60 + 15, 265834, 0},
+		{"192.0.2.3", "bgp.l3vpn.0", "established", 3*86400 + 20*3600 + 55*60 + 15, 6, 0},
+		{"192.0.2.3", "CUSTOMER-A.inet.0", "established", 3*86400 + 20*3600 + 55*60 + 15, 2, 0},
+		{"2001:db8::3", "inet6.0", "established", 2*86400 + 13*3600 + 7*60, 40, 30},
+		{"198.51.100.54", "CUSTOMER-B.inet.0", "established", 5*60 + 55, 1322670, 7},
+	}
+	var got []row
+	for _, p := range s.Peers {
+		got = append(got, row{p.PeerIp, p.AddressFamily, p.State, p.UptimeSeconds, p.PrefixesReceived, p.PrefixesAccepted})
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("peers:\n got %+v\nwant %+v", got, want)
+	}
+}
+
+// The template takes any whitespace between the duration and the clock, so a tab must also give the full age.
+func TestTextFSMParserJuniperBGPSummaryTabUptime(t *testing.T) {
+	sample := strings.Replace(juniperBGPSummaryLongUptimeSample, "32w6d 9:04:08", "32w6d\t9:04:08", 1)
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(sample), Config{Template: "juniper_junos_show_bgp_summary"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	p := r.Payload.(*pb.BGPSummaryParsed).Peers[0]
+	if want := uint64(32*7*86400 + 6*86400 + 9*3600 + 4*60 + 8); p.PeerIp != "192.0.2.66" || p.UptimeSeconds != want {
+		t.Errorf("peer %s uptime = %d, want 192.0.2.66 %d", p.PeerIp, p.UptimeSeconds, want)
+	}
+}
+
+// juniperBGPSummaryScopedPeerSample has a link-local IPv6 peer with its interface scope after another peer.
+const juniperBGPSummaryScopedPeerSample = `Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Accepted/Damped...
+192.0.2.3             64500       3318      12206       0       0     1:23:45 Establ
+  inet.0: 2/2/2/0
+fe80::5a86:70ff:fe78:e0d5%et-0/0/1:0.0       65001         10         12       0       0        4:01 Establ
+  inet6.0: 5/6/6/0
+`
+
+func TestTextFSMParserJuniperBGPSummaryScopedPeer(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(juniperBGPSummaryScopedPeerSample),
+		Config{Template: "juniper_junos_show_bgp_summary"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	s := r.Payload.(*pb.BGPSummaryParsed)
+	type row struct {
+		ip, af, state          string
+		uptime, recv, accepted uint64
+	}
+	want := []row{
+		{"192.0.2.3", "inet.0", "established", 3600 + 23*60 + 45, 2, 2},
+		{"fe80::5a86:70ff:fe78:e0d5%et-0/0/1:0.0", "inet6.0", "established", 4*60 + 1, 6, 6},
+	}
+	var got []row
+	for _, p := range s.Peers {
+		got = append(got, row{p.PeerIp, p.AddressFamily, p.State, p.UptimeSeconds, p.PrefixesReceived, p.PrefixesAccepted})
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("peers:\n got %+v\nwant %+v", got, want)
+	}
+}
+
+// juniperBGPSummaryPeerFormsSample has a peer with an AS number in asdot notation and an idle reason that holds a slash.
+const juniperBGPSummaryPeerFormsSample = `Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Damped...
+192.0.2.6             65002         87         90       0       3           3 Active
+192.0.2.8              1.10         10         12       0       0        4:01 Establ
+  inet.0: 5/6/6/0
+192.0.2.10            65002          5          5       0       0        1:00 Idle (Peer/AS mismatch)
+`
+
+func TestTextFSMParserJuniperBGPSummaryPeerForms(t *testing.T) {
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(juniperBGPSummaryPeerFormsSample),
+		Config{Template: "juniper_junos_show_bgp_summary"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	type row struct {
+		ip, af, state  string
+		asn            uint32
+		recv, accepted uint64
+	}
+	want := []row{
+		{"192.0.2.6", "", "active", 65002, 0, 0},
+		{"192.0.2.8", "inet.0", "established", 65536 + 10, 6, 6},
+		{"192.0.2.10", "", "idle (peer/as mismatch)", 65002, 0, 0},
+	}
+	var got []row
+	for _, p := range r.Payload.(*pb.BGPSummaryParsed).Peers {
+		got = append(got, row{p.PeerIp, p.AddressFamily, p.State, p.PeerAsn, p.PrefixesReceived, p.PrefixesAccepted})
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("peers:\n got %+v\nwant %+v", got, want)
+	}
+}
+
+// TestTextFSMParserJuniperBGPSummaryThreeCounterFamilyLine verifies that a family line with Active/Received/Damped
+// on the line after an Establ peer gives a record.
+func TestTextFSMParserJuniperBGPSummaryThreeCounterFamilyLine(t *testing.T) {
+	const out = `Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Damped...
+192.168.40.4            200        108        110       0       0     9:00:16 Establ
+  VPN-AB.inet.0: 1/3/0
+192.0.2.3             64500       3318      12206       0       0     1:23:45 Establ
+  inet.0: 2/2/2/0
+`
+	r := TextFSMParser{}.Parse(OpBGPSummary, []byte(out), Config{Template: "juniper_junos_show_bgp_summary"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	type row struct {
+		ip, af         string
+		recv, accepted uint64
+	}
+	want := []row{{"192.168.40.4", "VPN-AB.inet.0", 3, 0}, {"192.0.2.3", "inet.0", 2, 2}}
+	var got []row
+	for _, p := range r.Payload.(*pb.BGPSummaryParsed).Peers {
+		got = append(got, row{p.PeerIp, p.AddressFamily, p.PrefixesReceived, p.PrefixesAccepted})
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("peers:\n got %+v\nwant %+v", got, want)
+	}
+}
+
+// TestTextFSMParserJuniperBGPSummaryUnknownPeerLine verifies that a peer line in an unknown shape fails the parse
+// and does not give a record of the previous peer.
+func TestTextFSMParserJuniperBGPSummaryUnknownPeerLine(t *testing.T) {
+	const head = `Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Accepted/Damped...
+192.0.2.3             64500       3318      12206       0       0     1:23:45 Establ
+  inet.0: 2/2/2/0
+`
+	for name, line := range map[string]string{
+		"not established":    "198.51.100.9+179      64510          0          0       0       0        1:00 Active\n",
+		"established":        "198.51.100.9+179      64510         10         10       0       0        1:00 Establ\n  inet.0: 1/1/1/0\n",
+		"family line":        "198.51.100.9          64510         10         10       0       0        1:00 Establ\n  inet.0: 1/1/1/0/0\n",
+		"missing column":     "198.51.100.9          64510         10         10       0        1:00 Establ\n  inet.0: 1/1/1/0\n",
+		"family counts":      "198.51.100.9          64510         10         10       0       0        1:00 Establ\n  inet.0: 1/1/x/0\n",
+		"asdot missing":      "198.51.100.9           1.10         10         10       0        1:00 Establ\n  inet.0: 1/1/1/0\n",
+		"one counter group":  "198.51.100.9          64510         10         10       0       0        1:00 0/2/0\n",
+		"two counter groups": "198.51.100.9          64510         10         10       0       0        1:00 8/10/10/2 2/4/4/0\n",
+		"table on the line":  "198.51.100.9          64510         10         10       0       0        1:00 Establ VPN-AB.inet.0: 2/4/0\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := TextFSMParser{}.Parse(OpBGPSummary, []byte(head+line),
+				Config{Template: "juniper_junos_show_bgp_summary"})
+			if r.Status != pb.ParseStatus_PARSE_STATUS_PARSE_FAILED {
+				t.Errorf("Status = %v, want PARSE_FAILED (payload %v)", r.Status, r.Payload)
+			}
+		})
+	}
 }
 
 const nokiaBGPSummarySample = `===============================================================================
