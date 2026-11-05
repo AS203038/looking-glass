@@ -1,21 +1,24 @@
 Value Filldown target ([^)\s]+)
-Value Filldown source (\S+)
+Value Filldown source ([^,\s]+)
 Value Required ttl (\d+)
 Value ip1 ([0-9a-fA-F:.]+)
-Value hostname1 ([\w.\-]+)
+Value hostname1 ([\w.:\-]+)
 Value rtt_ms1 (\d+(?:\.\d+)?)
+Value asn1 (\d+)
 Value ip2 ([0-9a-fA-F:.]+)
-Value hostname2 ([\w.\-]+)
+Value hostname2 ([\w.:\-]+)
 Value rtt_ms2 (\d+(?:\.\d+)?)
+Value asn2 (\d+)
 Value ip3 ([0-9a-fA-F:.]+)
-Value hostname3 ([\w.\-]+)
+Value hostname3 ([\w.:\-]+)
 Value rtt_ms3 (\d+(?:\.\d+)?)
+Value asn3 (\d+)
 
+# Each probe prints "*" (lost) or its RTT. A probe prints its address when it is the first that answered or when another router answered it.
+# An address can have an MPLS label stack such as <MPLS:L=16,E=0,S=1,T=1> and an AS list such as [AS 64500], and an RTT an annotation such as !N.
+# Only a single AS fills asn: a probe has one ASN, so an AS list keeps asn empty.
 Start
-  ^traceroute\s+to\s+(?:\S+\s+\()?${target}\)?(?:\s+from\s+${source})?
-  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+${rtt_ms3}\s+ms -> Record
-  ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+${rtt_ms3}\s+ms -> Record
-  ^\s*${ttl}\s+${hostname1}\s+\(${ip1}\)\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+\* -> Record
-  ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+${rtt_ms2}\s+ms\s+\* -> Record
-  ^\s*${ttl}\s+${ip1}\s+${rtt_ms1}\s+ms\s+\*\s+\* -> Record
-  ^\s*${ttl}\s+\*\s+\*\s+\* -> Record
+  ^traceroute6?\s+to\s+(?:\S+\s+\()?${target}\s*\)?(?:\s+from\s+${source})?
+  ^\s*\d+(?:\s+\*)*\s+\d+(?:\.\d+)?\s+ms\b -> Error "first probe that answered has no address"
+  ^\s*${ttl}\s+(?:(?:(?:${hostname1}\s+\()?${ip1}\s*\)?(?:\s+(?:<MPLS:[^>]*>|\[AS\s+${asn1}\]|\[AS[^\]]*\]))*\s+)?${rtt_ms1}\s+ms(?:\s+!\S*)?|\*)(?:\s+(?:(?:(?:${hostname2}\s+\()?${ip2}\s*\)?(?:\s+(?:<MPLS:[^>]*>|\[AS\s+${asn2}\]|\[AS[^\]]*\]))*\s+)?${rtt_ms2}\s+ms(?:\s+!\S*)?|\*))?(?:\s+(?:(?:(?:${hostname3}\s+\()?${ip3}\s*\)?(?:\s+(?:<MPLS:[^>]*>|\[AS\s+${asn3}\]|\[AS[^\]]*\]))*\s+)?${rtt_ms3}\s+ms(?:\s+!\S*)?|\*))?\s*$$ -> Record
+  ^\s*\d+\s -> Error "unknown hop line"
