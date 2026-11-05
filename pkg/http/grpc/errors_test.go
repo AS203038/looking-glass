@@ -18,6 +18,12 @@ import (
 	"github.com/AS203038/looking-glass/pkg/utils"
 )
 
+type mockTimeoutRouter struct{ mockGrpcRouter }
+
+func (mockTimeoutRouter) Traceroute(*utils.RouterConfig, *utils.IPNet) ([]string, error) {
+	return nil, fmt.Errorf("rpc to 198.51.100.7:830: %w", errs.ExecTimeout)
+}
+
 type mockInternalErrorRouter struct{ mockGrpcRouter }
 
 func (mockInternalErrorRouter) Traceroute(*utils.RouterConfig, *utils.IPNet) ([]string, error) {
@@ -28,7 +34,7 @@ func (mockInternalErrorRouter) Traceroute(*utils.RouterConfig, *utils.IPNet) ([]
 // verifies that each failure reaches the client with its code and the sentinel text only.
 func TestMuxErrorsHaveCodeAndMessage(t *testing.T) {
 	rts := utils.RouterMap{}
-	for i, r := range []utils.Router{mockGrpcRouter{}, mockInternalErrorRouter{}, mockPoolExhaustedRouter{}} {
+	for i, r := range []utils.Router{mockTimeoutRouter{}, mockInternalErrorRouter{}, mockPoolExhaustedRouter{}} {
 		rts = append(rts, &utils.RouterInstance{
 			Config:      &utils.RouterConfig{Name: fmt.Sprintf("router%d", i+1)},
 			Router:      r,
@@ -46,6 +52,7 @@ func TestMuxErrorsHaveCodeAndMessage(t *testing.T) {
 		name, body, code, message string
 		status                    int
 	}{
+		{"timeout", `{"routerId":1,"target":"192.0.2.1"}`, "deadline_exceeded", "router did not answer in time", http.StatusGatewayTimeout},
 		{"empty target", `{"routerId":1,"target":""}`, "invalid_argument", "invalid IP", http.StatusBadRequest},
 		{"unknown router", `{"routerId":9,"target":"192.0.2.1"}`, "not_found", "router unknown", http.StatusNotFound},
 		{"internal error", `{"routerId":2,"target":"192.0.2.1"}`, "unavailable", "execution error", http.StatusServiceUnavailable},

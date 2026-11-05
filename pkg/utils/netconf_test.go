@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/xml"
@@ -478,8 +479,8 @@ func TestNetconfExecTimeout(t *testing.T) {
 
 	start := time.Now()
 	_, err := NetconfExec(router, spec, []string{"show hang"})
-	if !errors.Is(err, errs.ExecFailed) {
-		t.Errorf("err = %v, want errs.ExecFailed", err)
+	if !errors.Is(err, errs.ExecTimeout) {
+		t.Errorf("err = %v, want errs.ExecTimeout", err)
 	}
 	if d := time.Since(start); d > 5*time.Second {
 		t.Errorf("NetconfExec took %v, the timeout did not apply", d)
@@ -620,8 +621,8 @@ func TestNetconfExecPoolExhausted(t *testing.T) {
 	if err := ri.Healthcheck(); !errors.Is(err, errs.PoolExhausted) || ri.HealthCheck.Healthy {
 		t.Errorf("Healthcheck: err=%v healthy=%v, want errs.PoolExhausted and unhealthy", err, ri.HealthCheck.Healthy)
 	}
-	if err := <-held; !errors.Is(err, errs.ExecFailed) {
-		t.Errorf("held request: err = %v, want errs.ExecFailed after the timeout", err)
+	if err := <-held; !errors.Is(err, errs.ExecTimeout) {
+		t.Errorf("held request: err = %v, want errs.ExecTimeout after the timeout", err)
 	}
 }
 
@@ -637,8 +638,8 @@ func TestNetconfExecPartialReply(t *testing.T) {
 	router := netconfTestRouter("nc-partial", srv.addr, 1)
 
 	for i := range 2 {
-		if _, err := netconfExecWithin(t, 10*time.Second, router, spec, []string{"show partial"}); !errors.Is(err, errs.ExecFailed) {
-			t.Errorf("NetconfExec %d: err = %v, want errs.ExecFailed (not a held pool slot)", i, err)
+		if _, err := netconfExecWithin(t, 10*time.Second, router, spec, []string{"show partial"}); !errors.Is(err, errs.ExecTimeout) {
+			t.Errorf("NetconfExec %d: err = %v, want errs.ExecTimeout (not a held pool slot)", i, err)
 		}
 	}
 	if _, _, commands := srv.stats(); len(commands) != 2 {
@@ -668,8 +669,8 @@ func TestNetconfCommandAfterExpiredDeadline(t *testing.T) {
 		_, err = netconfCommand(dl, sess, router, spec, 0, "show version")
 		return nil, err
 	})
-	if !errors.Is(err, errs.ExecFailed) {
-		t.Errorf("err = %v, want errs.ExecFailed", err)
+	if !errors.Is(err, errs.ExecTimeout) {
+		t.Errorf("err = %v, want errs.ExecTimeout", err)
 	}
 	if _, _, commands := srv.stats(); len(commands) != 0 {
 		t.Errorf("server got commands %q after the deadline, want none", commands)
@@ -696,18 +697,34 @@ func TestNetconfExecPartialCloseReply(t *testing.T) {
 // TestNetconfExecNoHello verifies that a server that never sends its hello
 // fails the request within the timeout and frees the pool slot.
 func TestNetconfExecNoHello(t *testing.T) {
-	old := netconfTimeout
-	netconfTimeout = 300 * time.Millisecond
-	t.Cleanup(func() { netconfTimeout = old })
+	old := netconfSetupTimeout
+	netconfSetupTimeout = 300 * time.Millisecond
+	t.Cleanup(func() { netconfSetupTimeout = old })
 
 	srv := startNetconfTestServer(t, &netconfTestServer{base11: true, noHello: true})
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 	router := netconfTestRouter("nc-nohello", srv.addr, 1)
 
 	for i := range 2 {
-		if _, err := netconfExecWithin(t, 10*time.Second, router, spec, []string{"show version"}); !errors.Is(err, errs.ExecFailed) {
-			t.Errorf("NetconfExec %d: err = %v, want errs.ExecFailed (not a held pool slot)", i, err)
+		if _, err := netconfExecWithin(t, 10*time.Second, router, spec, []string{"show version"}); !errors.Is(err, errs.ExecTimeout) {
+			t.Errorf("NetconfExec %d: err = %v, want errs.ExecTimeout (not a held pool slot)", i, err)
 		}
+	}
+}
+
+// TestNetconfFailureContextDeadline verifies that a context deadline is a timeout before the
+// deadline callback has marked the client as expired.
+func TestNetconfFailureContextDeadline(t *testing.T) {
+	dl := &netconfDeadlines{}
+	if err := dl.failure(fmt.Errorf("rpc: %w", context.DeadlineExceeded)); !errors.Is(err, errs.ExecTimeout) {
+		t.Errorf("context deadline: err = %v, want errs.ExecTimeout", err)
+	}
+	if err := dl.failure(io.ErrUnexpectedEOF); !errors.Is(err, errs.ExecFailed) {
+		t.Errorf("transport error: err = %v, want errs.ExecFailed", err)
+	}
+	dl.expired.Store(true)
+	if err := dl.failure(io.ErrUnexpectedEOF); !errors.Is(err, errs.ExecTimeout) {
+		t.Errorf("expired client: err = %v, want errs.ExecTimeout", err)
 	}
 }
 
