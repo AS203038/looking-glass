@@ -22,6 +22,8 @@
 		</thead>
 		<tbody>
 			{#each tp.hops as hop, i (i)}
+				{@const answered = hop.probes.find((p) => p.ip || p.hostname)}
+				<!-- A probe can get no answer, also the first one: show the address of the first probe that answered. -->
 				<tr
 					class="border-t"
 					style="border-color: var(--color-border);"
@@ -29,15 +31,15 @@
 				>
 					<td class="px-3 py-1.5" style="color: var(--color-fg-muted);">{hop.ttl}</td>
 					<td class="px-3 py-1.5">
-						{#if hop.probes[0]?.hostname}
-							{hop.probes[0].hostname}
+						{#if answered?.hostname}
+							{answered.hostname}
 						{:else}
 							<span style="color: var(--color-fg-subtle);">—</span>
 						{/if}
 					</td>
 					<td class="px-3 py-1.5">
-						{#if hop.probes[0]?.ip}
-							{hop.probes[0].ip}
+						{#if answered?.ip}
+							{answered.ip}
 						{:else}
 							<span style="color: var(--color-fg-subtle);">*</span>
 						{/if}

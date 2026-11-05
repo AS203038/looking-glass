@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -277,11 +278,14 @@ func printTraceroutePretty(tp *pb.TracerouteParsed) {
 		probes := hop.GetProbes()
 		host, ip, rtts := "—", "*", []string{}
 		if len(probes) > 0 {
-			if probes[0].GetHostname() != "" {
-				host = probes[0].GetHostname()
-			}
-			if probes[0].GetIp() != "" {
-				ip = probes[0].GetIp()
+			// A probe can get no answer, also the first one: show the first probe that answered.
+			if i := slices.IndexFunc(probes, func(p *pb.TracerouteProbe) bool { return p.GetIp() != "" || p.GetHostname() != "" }); i >= 0 {
+				if probes[i].GetHostname() != "" {
+					host = probes[i].GetHostname()
+				}
+				if probes[i].GetIp() != "" {
+					ip = probes[i].GetIp()
+				}
 			}
 			for _, p := range probes {
 				if p.GetRttMs() > 0 {
