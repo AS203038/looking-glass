@@ -173,7 +173,7 @@ test-fuzz: $(DIST_DIR) ## Run all Go fuzz tests sequentially
 		fuzzers=$$(GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -list='^Fuzz' "$$pkg" 2>/dev/null | grep '^Fuzz' || true); \
 		for fuzz in $$fuzzers; do \
 			printf "$(CYAN)Fuzzing $$fuzz in $$pkg...$(RESET)\n"; \
-			GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -fuzz="^$$fuzz$$" -fuzztime=$(FUZZTIME) "$$pkg" || exit 1; \
+			GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -run='^$$' -fuzz="^$$fuzz$$" -fuzztime=$(FUZZTIME) "$$pkg" || exit 1; \
 		done; \
 	done
 
