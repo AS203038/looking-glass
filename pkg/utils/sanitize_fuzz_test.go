@@ -187,6 +187,8 @@ func FuzzSanitizePeerIP(f *testing.F) {
 		"fe80::1%",
 		"2001:db8::1%eth0",
 		"192.0.2.1%eth0",
+		"fe80::1%" + strings.Repeat("a", 64),
+		"fe80::1%" + strings.Repeat("a", 65),
 		"",
 	} {
 		f.Add(seed)
@@ -205,6 +207,9 @@ func FuzzSanitizePeerIP(f *testing.F) {
 		}
 		if a.Zone() != "" && !a.IsLinkLocalUnicast() {
 			t.Errorf("SanitizePeerIP(%q) = %v, an interface on an address that is not link-local", ip, a)
+		}
+		if len(a.Zone()) > 64 {
+			t.Errorf("SanitizePeerIP(%q) = %v, an interface above 64 characters", ip, a)
 		}
 	})
 }
