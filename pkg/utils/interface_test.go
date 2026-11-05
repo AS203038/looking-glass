@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"errors"
@@ -138,35 +139,35 @@ func TestRouterInstanceWrappers(t *testing.T) {
 	ip, _ := NewIPNET("1.1.1.1")
 
 	// 1. Verify wrappers execute commands successfully on the mock server
-	if err := ri.Healthcheck(); err != nil {
+	if err := ri.Healthcheck(context.Background()); err != nil {
 		t.Errorf("Healthcheck failed: %v", err)
 	}
 	if !ri.HealthCheck.Healthy {
 		t.Errorf("expected healthy to be true")
 	}
 
-	if _, err := ri.Ping(ip); err != nil {
+	if _, err := ri.Ping(context.Background(), ip); err != nil {
 		t.Errorf("Ping failed: %v", err)
 	}
-	if _, err := ri.Traceroute(ip); err != nil {
+	if _, err := ri.Traceroute(context.Background(), ip); err != nil {
 		t.Errorf("Traceroute failed: %v", err)
 	}
-	if _, err := ri.BGPSummary(); err != nil {
+	if _, err := ri.BGPSummary(context.Background()); err != nil {
 		t.Errorf("BGPSummary failed: %v", err)
 	}
-	if _, err := ri.BGPRoute(ip); err != nil {
+	if _, err := ri.BGPRoute(context.Background(), ip); err != nil {
 		t.Errorf("BGPRoute failed: %v", err)
 	}
-	if _, err := ri.BGPCommunity("65000:100"); err != nil {
+	if _, err := ri.BGPCommunity(context.Background(), "65000:100"); err != nil {
 		t.Errorf("BGPCommunity failed: %v", err)
 	}
-	if _, err := ri.BGPLargeCommunity("65000:100:200"); err != nil {
+	if _, err := ri.BGPLargeCommunity(context.Background(), "65000:100:200"); err != nil {
 		t.Errorf("BGPLargeCommunity failed: %v", err)
 	}
-	if _, err := ri.BGPASPath("_65000$"); err != nil {
+	if _, err := ri.BGPASPath(context.Background(), "_65000$"); err != nil {
 		t.Errorf("BGPASPath failed: %v", err)
 	}
-	if _, err := ri.BGPPeerRoutes("192.0.2.1", "peer_1", "received"); err != nil {
+	if _, err := ri.BGPPeerRoutes(context.Background(), "192.0.2.1", "peer_1", "received"); err != nil {
 		t.Errorf("BGPPeerRoutes failed: %v", err)
 	}
 
@@ -182,35 +183,35 @@ func TestRouterInstanceWrappers(t *testing.T) {
 		HealthCheck: &HealthCheck{},
 	}
 
-	if err := riFail.Healthcheck(); err == nil {
+	if err := riFail.Healthcheck(context.Background()); err == nil {
 		t.Errorf("expected Healthcheck to fail")
 	}
 	if riFail.HealthCheck.Healthy {
 		t.Errorf("expected healthy to be false on fail")
 	}
 
-	if _, err := riFail.Ping(ip); err == nil {
+	if _, err := riFail.Ping(context.Background(), ip); err == nil {
 		t.Errorf("expected Ping to fail")
 	}
-	if _, err := riFail.Traceroute(ip); err == nil {
+	if _, err := riFail.Traceroute(context.Background(), ip); err == nil {
 		t.Errorf("expected Traceroute to fail")
 	}
-	if _, err := riFail.BGPSummary(); err == nil {
+	if _, err := riFail.BGPSummary(context.Background()); err == nil {
 		t.Errorf("expected BGPSummary to fail")
 	}
-	if _, err := riFail.BGPRoute(ip); err == nil {
+	if _, err := riFail.BGPRoute(context.Background(), ip); err == nil {
 		t.Errorf("expected BGPRoute to fail")
 	}
-	if _, err := riFail.BGPCommunity("65000:100"); err == nil {
+	if _, err := riFail.BGPCommunity(context.Background(), "65000:100"); err == nil {
 		t.Errorf("expected BGPCommunity to fail")
 	}
-	if _, err := riFail.BGPLargeCommunity("65000:100:200"); err == nil {
+	if _, err := riFail.BGPLargeCommunity(context.Background(), "65000:100:200"); err == nil {
 		t.Errorf("expected BGPLargeCommunity to fail")
 	}
-	if _, err := riFail.BGPASPath("_65000$"); err == nil {
+	if _, err := riFail.BGPASPath(context.Background(), "_65000$"); err == nil {
 		t.Errorf("expected BGPASPath to fail")
 	}
-	if _, err := riFail.BGPPeerRoutes("192.0.2.1", "peer_1", "received"); err == nil {
+	if _, err := riFail.BGPPeerRoutes(context.Background(), "192.0.2.1", "peer_1", "received"); err == nil {
 		t.Errorf("expected BGPPeerRoutes to fail")
 	}
 
@@ -226,28 +227,28 @@ func TestRouterInstanceWrappers(t *testing.T) {
 		HealthCheck: &HealthCheck{},
 	}
 
-	if _, err := riRouterFail.Ping(ip); err == nil {
+	if _, err := riRouterFail.Ping(context.Background(), ip); err == nil {
 		t.Errorf("expected Ping error")
 	}
-	if _, err := riRouterFail.Traceroute(ip); err == nil {
+	if _, err := riRouterFail.Traceroute(context.Background(), ip); err == nil {
 		t.Errorf("expected Traceroute error")
 	}
-	if _, err := riRouterFail.BGPSummary(); err == nil {
+	if _, err := riRouterFail.BGPSummary(context.Background()); err == nil {
 		t.Errorf("expected BGPSummary error")
 	}
-	if _, err := riRouterFail.BGPRoute(ip); err == nil {
+	if _, err := riRouterFail.BGPRoute(context.Background(), ip); err == nil {
 		t.Errorf("expected BGPRoute error")
 	}
-	if _, err := riRouterFail.BGPCommunity("65000:100"); err == nil {
+	if _, err := riRouterFail.BGPCommunity(context.Background(), "65000:100"); err == nil {
 		t.Errorf("expected BGPCommunity error")
 	}
-	if _, err := riRouterFail.BGPLargeCommunity("65000:100:200"); err == nil {
+	if _, err := riRouterFail.BGPLargeCommunity(context.Background(), "65000:100:200"); err == nil {
 		t.Errorf("expected BGPLargeCommunity error")
 	}
-	if _, err := riRouterFail.BGPASPath("_65000$"); err == nil {
+	if _, err := riRouterFail.BGPASPath(context.Background(), "_65000$"); err == nil {
 		t.Errorf("expected BGPASPath error")
 	}
-	if _, err := riRouterFail.BGPPeerRoutes("192.0.2.1", "peer_1", "received"); err == nil {
+	if _, err := riRouterFail.BGPPeerRoutes(context.Background(), "192.0.2.1", "peer_1", "received"); err == nil {
 		t.Errorf("expected BGPPeerRoutes error")
 	}
 }

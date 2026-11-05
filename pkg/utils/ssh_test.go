@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -10,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -196,7 +199,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	}
 
 	// 5. Test SSHExec with connection pooling
-	out, err := SSHExec(router, []string{"show bgp summary", "show version"})
+	out, err := SSHExec(context.Background(), router, []string{"show bgp summary", "show version"})
 	if err != nil {
 		t.Fatalf("pooled SSHExec failed: %v", err)
 	}
@@ -205,13 +208,13 @@ func TestSSHPoolAndExec(t *testing.T) {
 	}
 
 	// Test SSHExec with empty command list
-	outEmpty, err := SSHExec(router, []string{})
+	outEmpty, err := SSHExec(context.Background(), router, []string{})
 	if err != nil || len(outEmpty) != 0 {
 		t.Errorf("expected empty output, got %v, err %v", outEmpty, err)
 	}
 
 	// 6. Test SSHExec with failed command execution
-	_, err = SSHExec(router, []string{"show fail"})
+	_, err = SSHExec(context.Background(), router, []string{"show fail"})
 	if !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("expected errs.ExecFailed for failed command, got %v", err)
 	}
@@ -225,7 +228,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 		SSHPoolSize: 0,
 	}
 
-	outUnpooled, err := SSHExec(routerUnpooled, []string{"show bgp summary"})
+	outUnpooled, err := SSHExec(context.Background(), routerUnpooled, []string{"show bgp summary"})
 	if err != nil {
 		t.Fatalf("unpooled SSHExec failed: %v", err)
 	}
@@ -234,7 +237,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 	}
 
 	// Test unpooled SSHExec command execution failure
-	_, err = SSHExec(routerUnpooled, []string{"show fail"})
+	_, err = SSHExec(context.Background(), routerUnpooled, []string{"show fail"})
 	if !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("expected errs.ExecFailed for unpooled command failure, got %v", err)
 	}
@@ -246,7 +249,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 		Username:    "test",
 		SSHPoolSize: 2,
 	}
-	_, err = SSHExec(routerUnreachable, []string{"show version"})
+	_, err = SSHExec(context.Background(), routerUnreachable, []string{"show version"})
 	if !errors.Is(err, errs.ConnectionFailed) {
 		t.Errorf("expected errs.ConnectionFailed for unreachable host, got %v", err)
 	}
@@ -258,7 +261,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 		Username:    "test",
 		SSHPoolSize: 0,
 	}
-	_, err = SSHExec(routerUnpooledUnreachable, []string{"show version"})
+	_, err = SSHExec(context.Background(), routerUnpooledUnreachable, []string{"show version"})
 	if !errors.Is(err, errs.ConnectionFailed) {
 		t.Errorf("expected errs.ConnectionFailed for unpooled unreachable host, got %v", err)
 	}
@@ -271,7 +274,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 		SSHKey:      "non-existent-key.pem",
 		SSHPoolSize: 0,
 	}
-	_, err = SSHExec(routerBadKey, []string{"show version"})
+	_, err = SSHExec(context.Background(), routerBadKey, []string{"show version"})
 	if !errors.Is(err, errs.AuthFailed) {
 		t.Errorf("expected errs.AuthFailed (bad key path), got %v", err)
 	}
@@ -301,7 +304,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 		SSHKey:      tmpKeyFile.Name(),
 		SSHPoolSize: 0,
 	}
-	outWithKey, err := SSHExec(routerWithKey, []string{"show version"})
+	outWithKey, err := SSHExec(context.Background(), routerWithKey, []string{"show version"})
 	if err != nil {
 		t.Fatalf("SSHExec with valid SSHKey failed: %v", err)
 	}
@@ -311,7 +314,7 @@ func TestSSHPoolAndExec(t *testing.T) {
 
 	// 13. Test SSHExec session creation failure (NewSession returns error)
 	mockRejectSession = true
-	_, err = SSHExec(router, []string{"show version"})
+	_, err = SSHExec(context.Background(), router, []string{"show version"})
 	mockRejectSession = false
 	if !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("expected errs.ExecFailed for session creation failure, got %v", err)
@@ -353,6 +356,101 @@ func TestTruncate(t *testing.T) {
 		if got != tc.expected {
 			t.Errorf("truncate(%q, %d) = %q, want %q", tc.in, tc.n, got, tc.expected)
 		}
+	}
+}
+
+// startKeepaliveStallServer starts an SSH server that answers each command. When stall is
+// set, it stops answering global requests such as keepalives, like a half-open connection.
+func startKeepaliveStallServer(t *testing.T, stall *atomic.Bool) string {
+	t.Helper()
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &ssh.ServerConfig{NoClientAuth: true}
+	config.AddHostKey(signer)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { listener.Close() })
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				_, chans, reqs, err := ssh.NewServerConn(conn, config)
+				if err != nil {
+					return
+				}
+				go func() {
+					for req := range reqs {
+						if !stall.Load() {
+							req.Reply(true, nil)
+						}
+					}
+				}()
+				for newChan := range chans {
+					ch, chReqs, err := newChan.Accept()
+					if err != nil {
+						continue
+					}
+					go func() {
+						for req := range chReqs {
+							req.Reply(true, nil)
+							if req.Type == "exec" {
+								ch.Write([]byte("output\n"))
+								ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+								ch.Close()
+							}
+						}
+					}()
+				}
+			}()
+		}
+	}()
+	return listener.Addr().String()
+}
+
+// TestSSHExecKeepaliveTimeout verifies that an idle connection that stops answering
+// keepalives does not hold the only pool slot: the request dials a new connection.
+func TestSSHExecKeepaliveTimeout(t *testing.T) {
+	old := sshKeepaliveTimeout
+	sshKeepaliveTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { sshKeepaliveTimeout = old })
+
+	var stall atomic.Bool
+	addr := startKeepaliveStallServer(t, &stall)
+	router := &RouterConfig{Name: "keepalive@" + addr, Hostname: addr, Username: "test", SSHPoolSize: 1}
+	if _, err := SSHExec(context.Background(), router, []string{"show version"}); err != nil {
+		t.Fatalf("first SSHExec: %v", err)
+	}
+
+	stall.Store(true)
+	done := make(chan error, 1)
+	go func() {
+		_, err := SSHExec(context.Background(), router, []string{"show version"})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("SSHExec with a stalled idle connection: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("SSHExec did not return: the keepalive has no timeout")
+	}
+	pool := getPool(router)
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	if len(pool.conns) != 0 || pool.numOpen != 0 {
+		t.Errorf("pool idle=%d open=%d, want the stalled connections discarded", len(pool.conns), pool.numOpen)
 	}
 }
 
@@ -399,7 +497,7 @@ func TestSSHExecHandshakeTimeout(t *testing.T) {
 		for i := range 2 {
 			done := make(chan error, 1)
 			go func() {
-				_, err := SSHExec(router, []string{"show version"})
+				_, err := SSHExec(context.Background(), router, []string{"show version"})
 				done <- err
 			}()
 			select {

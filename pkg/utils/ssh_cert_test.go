@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
@@ -178,7 +179,7 @@ func TestSSHExecCertLogin(t *testing.T) {
 	e := newCertTestEnv(t)
 	writeTestCert(t, e.certPath, e.ca, e.key.PublicKey(), 1, ssh.CertTimeInfinity)
 
-	out, err := SSHExec(e.router(e.certPath), []string{"show version"})
+	out, err := SSHExec(context.Background(), e.router(e.certPath), []string{"show version"})
 	if err != nil {
 		t.Fatalf("SSHExec with cert and key: %v", err)
 	}
@@ -190,7 +191,7 @@ func TestSSHExecCertLogin(t *testing.T) {
 func TestSSHExecKeyOnlyRejected(t *testing.T) {
 	e := newCertTestEnv(t)
 
-	_, err := SSHExec(e.router(""), []string{"show version"})
+	_, err := SSHExec(context.Background(), e.router(""), []string{"show version"})
 	if !errors.Is(err, errs.ConnectionFailed) {
 		t.Fatalf("expected errs.ConnectionFailed for a plain key, got %v", err)
 	}
@@ -201,7 +202,7 @@ func TestSSHExecCertKeyMismatch(t *testing.T) {
 	other, _ := newTestSigner(t)
 	writeTestCert(t, e.certPath, e.ca, other.PublicKey(), 1, ssh.CertTimeInfinity)
 
-	_, err := SSHExec(e.router(e.certPath), []string{"show version"})
+	_, err := SSHExec(context.Background(), e.router(e.certPath), []string{"show version"})
 	if !errors.Is(err, errs.AuthFailed) {
 		t.Fatalf("expected errs.AuthFailed for a cert of another key, got %v", err)
 	}
@@ -213,7 +214,7 @@ func TestSSHExecCertNotACertificate(t *testing.T) {
 		t.Fatalf("write public key: %v", err)
 	}
 
-	_, err := SSHExec(e.router(e.certPath), []string{"show version"})
+	_, err := SSHExec(context.Background(), e.router(e.certPath), []string{"show version"})
 	if !errors.Is(err, errs.AuthFailed) {
 		t.Fatalf("expected errs.AuthFailed for a plain public key file, got %v", err)
 	}
@@ -225,7 +226,7 @@ func TestSSHExecHostCertRejected(t *testing.T) {
 	cert.CertType = ssh.HostCert
 	signTestCert(t, e.certPath, e.ca, cert)
 
-	_, err := SSHExec(e.router(e.certPath), []string{"show version"})
+	_, err := SSHExec(context.Background(), e.router(e.certPath), []string{"show version"})
 	if !errors.Is(err, errs.AuthFailed) {
 		t.Fatalf("expected errs.AuthFailed for a host certificate, got %v", err)
 	}
@@ -276,7 +277,7 @@ func TestSSHExecCertValidBeforeLogged(t *testing.T) {
 			writeTestCert(t, e.certPath, e.ca, e.key.PublicKey(), 1, tc.validBefore)
 			buf := captureSSHLog(t)
 
-			SSHExec(e.router(e.certPath), []string{"show version"})
+			SSHExec(context.Background(), e.router(e.certPath), []string{"show version"})
 
 			loaded := sshLogRecord(t, buf, "ssh cert loaded")
 			if loaded == nil {
@@ -302,7 +303,7 @@ func TestSSHExecCertNotYetValidLogged(t *testing.T) {
 	signTestCert(t, e.certPath, e.ca, cert)
 	buf := captureSSHLog(t)
 
-	if _, err := SSHExec(e.router(e.certPath), []string{"show version"}); !errors.Is(err, errs.ConnectionFailed) {
+	if _, err := SSHExec(context.Background(), e.router(e.certPath), []string{"show version"}); !errors.Is(err, errs.ConnectionFailed) {
 		t.Fatalf("expected errs.ConnectionFailed for a cert that is not yet valid, got %v", err)
 	}
 	rec := sshLogRecord(t, buf, "ssh cert not yet valid")
@@ -324,12 +325,12 @@ func TestSSHExecCertRenewedFileIsRead(t *testing.T) {
 	writeTestCert(t, e.certPath, e.ca, e.key.PublicKey(), 1, expired)
 
 	router := e.router(e.certPath)
-	if _, err := SSHExec(router, []string{"show version"}); !errors.Is(err, errs.ConnectionFailed) {
+	if _, err := SSHExec(context.Background(), router, []string{"show version"}); !errors.Is(err, errs.ConnectionFailed) {
 		t.Fatalf("expected errs.ConnectionFailed for an expired cert, got %v", err)
 	}
 
 	writeTestCert(t, e.certPath, e.ca, e.key.PublicKey(), 2, ssh.CertTimeInfinity)
-	if _, err := SSHExec(router, []string{"show version"}); err != nil {
+	if _, err := SSHExec(context.Background(), router, []string{"show version"}); err != nil {
 		t.Fatalf("SSHExec after cert renewal: %v", err)
 	}
 }
@@ -342,18 +343,18 @@ func TestSSHExecPooledReuseSkipsCertFile(t *testing.T) {
 	router.SSHPoolSize = 1
 	t.Cleanup(ClosePools)
 
-	if _, err := SSHExec(router, []string{"show version"}); err != nil {
+	if _, err := SSHExec(context.Background(), router, []string{"show version"}); err != nil {
 		t.Fatalf("first SSHExec: %v", err)
 	}
 	if err := os.Remove(e.certPath); err != nil {
 		t.Fatalf("remove cert: %v", err)
 	}
-	if _, err := SSHExec(router, []string{"show version"}); err != nil {
+	if _, err := SSHExec(context.Background(), router, []string{"show version"}); err != nil {
 		t.Fatalf("SSHExec on the idle pooled connection without the cert file: %v", err)
 	}
 
 	ClosePools()
-	if _, err := SSHExec(router, []string{"show version"}); !errors.Is(err, errs.AuthFailed) {
+	if _, err := SSHExec(context.Background(), router, []string{"show version"}); !errors.Is(err, errs.AuthFailed) {
 		t.Fatalf("expected errs.AuthFailed for a new connection without the cert file, got %v", err)
 	}
 }
@@ -388,10 +389,10 @@ func TestSSHExecPoolIsPerConnectionIdentity(t *testing.T) {
 		{"other username", &otherUser, errs.ConnectionFailed},
 		{"other hostname", &otherHost, errs.ConnectionFailed},
 	} {
-		if _, err := SSHExec(first, []string{"show version"}); err != nil {
+		if _, err := SSHExec(context.Background(), first, []string{"show version"}); err != nil {
 			t.Fatalf("%s: first device: %v", tc.name, err)
 		}
-		if _, err := SSHExec(tc.router, []string{"show version"}); !errors.Is(err, tc.want) {
+		if _, err := SSHExec(context.Background(), tc.router, []string{"show version"}); !errors.Is(err, tc.want) {
 			t.Errorf("%s: expected %v, got %v", tc.name, tc.want, err)
 		}
 	}

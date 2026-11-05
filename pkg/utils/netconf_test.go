@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"strconv"
 	"strings"
@@ -369,7 +370,7 @@ func TestNetconfExecSROS(t *testing.T) {
 	srv := startNetconfServer(t, true, false)
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 
-	out, err := NetconfExec(netconfTestRouter("nc-sros", srv.addr, 0), spec,
+	out, err := NetconfExec(context.Background(), netconfTestRouter("nc-sros", srv.addr, 0), spec,
 		[]string{"show router bgp summary", "show router route-table"})
 	if err != nil {
 		t.Fatalf("NetconfExec: %v", err)
@@ -393,7 +394,7 @@ func TestNetconfExecBase10(t *testing.T) {
 	srv := startNetconfServer(t, false, false)
 	spec := netconfTestSpec(t, netconfTestJunosRPC, "output")
 
-	out, err := NetconfExec(netconfTestRouter("nc-junos", srv.addr, 0), spec, []string{"show bgp summary"})
+	out, err := NetconfExec(context.Background(), netconfTestRouter("nc-junos", srv.addr, 0), spec, []string{"show bgp summary"})
 	if err != nil {
 		t.Fatalf("NetconfExec: %v", err)
 	}
@@ -409,7 +410,7 @@ func TestNetconfExecEscapesCommand(t *testing.T) {
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 	cmd := `show router bgp routes aspath-regex "<&>" '_1$'`
 
-	out, err := NetconfExec(netconfTestRouter("nc-escape", srv.addr, 0), spec, []string{cmd})
+	out, err := NetconfExec(context.Background(), netconfTestRouter("nc-escape", srv.addr, 0), spec, []string{cmd})
 	if err != nil {
 		t.Fatalf("NetconfExec: %v", err)
 	}
@@ -431,7 +432,7 @@ func TestNetconfExecCommandError(t *testing.T) {
 		t.Fatalf("NewNetconfSpec: %v", err)
 	}
 
-	out, err := NetconfExec(netconfTestRouter("nc-busy", srv.addr, 0), spec,
+	out, err := NetconfExec(context.Background(), netconfTestRouter("nc-busy", srv.addr, 0), spec,
 		[]string{"show busy", "show version", "show twomessages"})
 	if err != nil {
 		t.Fatalf("NetconfExec: %v", err)
@@ -447,7 +448,7 @@ func TestNetconfExecRPCError(t *testing.T) {
 	srv := startNetconfServer(t, true, false)
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 
-	_, err := NetconfExec(netconfTestRouter("nc-rpcerror", srv.addr, 0), spec,
+	_, err := NetconfExec(context.Background(), netconfTestRouter("nc-rpcerror", srv.addr, 0), spec,
 		[]string{"show version", "show error"})
 	if !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("err = %v, want errs.ExecFailed", err)
@@ -460,7 +461,7 @@ func TestNetconfExecMissingOutput(t *testing.T) {
 	srv := startNetconfServer(t, true, false)
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 
-	_, err := NetconfExec(netconfTestRouter("nc-nooutput", srv.addr, 0), spec, []string{"show nooutput"})
+	_, err := NetconfExec(context.Background(), netconfTestRouter("nc-nooutput", srv.addr, 0), spec, []string{"show nooutput"})
 	if !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("err = %v, want errs.ExecFailed", err)
 	}
@@ -478,7 +479,7 @@ func TestNetconfExecTimeout(t *testing.T) {
 	router := netconfTestRouter("nc-timeout", srv.addr, 1)
 
 	start := time.Now()
-	_, err := NetconfExec(router, spec, []string{"show hang"})
+	_, err := NetconfExec(context.Background(), router, spec, []string{"show hang"})
 	if !errors.Is(err, errs.ExecTimeout) {
 		t.Errorf("err = %v, want errs.ExecTimeout", err)
 	}
@@ -495,12 +496,125 @@ func TestNetconfExecTimeout(t *testing.T) {
 	}
 
 	// The next request dials a new connection and works.
-	out, err := NetconfExec(router, spec, []string{"show version"})
+	out, err := NetconfExec(context.Background(), router, spec, []string{"show version"})
 	if err != nil || len(out) != 1 {
 		t.Errorf("NetconfExec after timeout: out=%q err=%v", out, err)
 	}
 	if conns, _, _ := srv.stats(); conns != 2 {
 		t.Errorf("conns = %d, want 2", conns)
+	}
+}
+
+// TestNetconfExecCallerCanceled verifies that a caller that goes away during a hung RPC
+// ends the request at once, frees the only pool slot and is not reported as a router timeout.
+func TestNetconfExecCallerCanceled(t *testing.T) {
+	srv := startNetconfServer(t, true, false)
+	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
+	router := netconfTestRouter("nc-canceled", srv.addr, 1)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	failed := make(chan error, 1)
+	go func() {
+		_, err := NetconfExec(ctx, router, spec, []string{"show hang"})
+		failed <- err
+	}()
+	netconfWaitForCommand(t, srv)
+	cancel()
+	select {
+	case err := <-failed:
+		if !errors.Is(err, errs.ExecCanceled) {
+			t.Errorf("err = %v, want errs.ExecCanceled", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("NetconfExec did not return after the cancel")
+	}
+
+	out, err := netconfExecWithin(t, 5*time.Second, router, spec, []string{"show version"})
+	if err != nil || len(out) != 1 {
+		t.Errorf("request after the cancel: out=%q err=%v", out, err)
+	}
+}
+
+// TestNetconfExecCallerCanceledInSetup verifies that the cancel also ends the wait for the hello.
+func TestNetconfExecCallerCanceledInSetup(t *testing.T) {
+	srv := startNetconfTestServer(t, &netconfTestServer{base11: true, noHello: true})
+	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
+
+	canceled, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	time.AfterFunc(100*time.Millisecond, cancel)
+	done := make(chan error, 1)
+	go func() {
+		_, err := NetconfExec(canceled, netconfTestRouter("nc-canceled-setup", srv.addr, 1), spec, []string{"show version"})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, errs.ExecCanceled) {
+			t.Errorf("err = %v, want errs.ExecCanceled", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("NetconfExec did not return after the cancel")
+	}
+}
+
+// TestNetconfExecCallerDeadline verifies that the deadline of the caller ends a hung RPC as a timeout.
+func TestNetconfExecCallerDeadline(t *testing.T) {
+	srv := startNetconfServer(t, true, false)
+	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := NetconfExec(ctx, netconfTestRouter("nc-caller-deadline", srv.addr, 1), spec, []string{"show hang"})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, errs.ExecTimeout) {
+			t.Errorf("err = %v, want errs.ExecTimeout", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("NetconfExec did not return after the deadline of the caller")
+	}
+}
+
+// TestNetconfExecCallerCanceledDuringSend cancels at many points of a request. A cancel closes
+// the client while the library can write, so this test needs -race to report the failure.
+func TestNetconfExecCallerCanceledDuringSend(t *testing.T) {
+	srv := startNetconfServer(t, true, false)
+	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
+	router := netconfTestRouter("nc-canceled-send", srv.addr, 0)
+	large := "show " + strings.Repeat("x", 256*1024)
+	// Each log record holds the command: 60 runs give more than 10 MB of log.
+	realLog := netconfLog
+	netconfLog = slog.New(slog.DiscardHandler)
+	defer func() { netconfLog = realLog }()
+
+	for i := range 60 {
+		ctx, cancel := context.WithCancel(context.Background())
+		time.AfterFunc(time.Duration(i)*200*time.Microsecond, cancel)
+		if _, err := NetconfExec(ctx, router, spec, []string{large, large}); err != nil && !errors.Is(err, errs.ExecCanceled) {
+			t.Errorf("run %d: err = %v, want errs.ExecCanceled", i, err)
+		}
+		cancel()
+	}
+}
+
+// netconfWaitForCommand waits until srv got a command.
+func netconfWaitForCommand(t *testing.T, srv *netconfTestServer) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if _, _, commands := srv.stats(); len(commands) > 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the server got no command")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
@@ -513,7 +627,7 @@ func netconfExecWithin(t *testing.T, d time.Duration, router *RouterConfig, spec
 	}
 	done := make(chan result, 1)
 	go func() {
-		out, err := NetconfExec(router, spec, cmd)
+		out, err := NetconfExec(context.Background(), router, spec, cmd)
 		done <- result{out, err}
 	}()
 	select {
@@ -597,7 +711,7 @@ func TestNetconfExecPoolExhausted(t *testing.T) {
 
 	held := make(chan error, 1)
 	go func() {
-		_, err := NetconfExec(ri.Config, spec, []string{"show hang"})
+		_, err := NetconfExec(context.Background(), ri.Config, spec, []string{"show hang"})
 		held <- err
 	}()
 	pool := getPool(ri.Config)
@@ -618,7 +732,7 @@ func TestNetconfExecPoolExhausted(t *testing.T) {
 	if _, err := netconfExecWithin(t, 500*time.Millisecond, ri.Config, spec, []string{"show version"}); !errors.Is(err, errs.PoolExhausted) {
 		t.Errorf("second request: err = %v, want errs.PoolExhausted", err)
 	}
-	if err := ri.Healthcheck(); !errors.Is(err, errs.PoolExhausted) || ri.HealthCheck.Healthy {
+	if err := ri.Healthcheck(context.Background()); !errors.Is(err, errs.PoolExhausted) || ri.HealthCheck.Healthy {
 		t.Errorf("Healthcheck: err=%v healthy=%v, want errs.PoolExhausted and unhealthy", err, ri.HealthCheck.Healthy)
 	}
 	if err := <-held; !errors.Is(err, errs.ExecTimeout) {
@@ -664,8 +778,8 @@ func TestNetconfCommandAfterExpiredDeadline(t *testing.T) {
 			return nil, err
 		}
 		defer client.Close()
-		dl := &netconfDeadlines{client: client}
-		dl.expired.Store(true)
+		dl := &netconfDeadlines{ctx: context.Background(), client: client}
+		dl.clientClosed.Store(true)
 		_, err = netconfCommand(dl, sess, router, spec, 0, "show version")
 		return nil, err
 	})
@@ -715,14 +829,14 @@ func TestNetconfExecNoHello(t *testing.T) {
 // TestNetconfFailureContextDeadline verifies that a context deadline is a timeout before the
 // deadline callback has marked the client as expired.
 func TestNetconfFailureContextDeadline(t *testing.T) {
-	dl := &netconfDeadlines{}
+	dl := &netconfDeadlines{ctx: context.Background()}
 	if err := dl.failure(fmt.Errorf("rpc: %w", context.DeadlineExceeded)); !errors.Is(err, errs.ExecTimeout) {
 		t.Errorf("context deadline: err = %v, want errs.ExecTimeout", err)
 	}
 	if err := dl.failure(io.ErrUnexpectedEOF); !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("transport error: err = %v, want errs.ExecFailed", err)
 	}
-	dl.expired.Store(true)
+	dl.clientClosed.Store(true)
 	if err := dl.failure(io.ErrUnexpectedEOF); !errors.Is(err, errs.ExecTimeout) {
 		t.Errorf("expired client: err = %v, want errs.ExecTimeout", err)
 	}
@@ -734,7 +848,7 @@ func TestNetconfExecNoSubsystem(t *testing.T) {
 	srv := startNetconfServer(t, true, true)
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 
-	_, err := NetconfExec(netconfTestRouter("nc-nosubsystem", srv.addr, 0), spec, []string{"show version"})
+	_, err := NetconfExec(context.Background(), netconfTestRouter("nc-nosubsystem", srv.addr, 0), spec, []string{"show version"})
 	if !errors.Is(err, errs.ExecFailed) {
 		t.Errorf("err = %v, want errs.ExecFailed", err)
 	}
@@ -744,11 +858,11 @@ func TestNetconfExecNoSubsystem(t *testing.T) {
 func TestNetconfExecErrors(t *testing.T) {
 	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
 
-	_, err := NetconfExec(netconfTestRouter("nc-unreachable", "127.0.0.1:1", 0), spec, []string{"show version"})
+	_, err := NetconfExec(context.Background(), netconfTestRouter("nc-unreachable", "127.0.0.1:1", 0), spec, []string{"show version"})
 	if !errors.Is(err, errs.ConnectionFailed) {
 		t.Errorf("unreachable: err = %v, want errs.ConnectionFailed", err)
 	}
-	_, err = NetconfExec(&RouterConfig{Name: "nc-nouser", Hostname: "127.0.0.1:1"}, spec, []string{"show version"})
+	_, err = NetconfExec(context.Background(), &RouterConfig{Name: "nc-nouser", Hostname: "127.0.0.1:1"}, spec, []string{"show version"})
 	if !errors.Is(err, errs.AuthFailed) {
 		t.Errorf("no username: err = %v, want errs.AuthFailed", err)
 	}
@@ -884,14 +998,14 @@ func TestRouterInstanceNetconf(t *testing.T) {
 		HealthCheck: &HealthCheck{},
 	}
 
-	if err := ri.Healthcheck(); err != nil || !ri.HealthCheck.Healthy {
+	if err := ri.Healthcheck(context.Background()); err != nil || !ri.HealthCheck.Healthy {
 		t.Fatalf("Healthcheck: err=%v healthy=%v", err, ri.HealthCheck.Healthy)
 	}
 	if _, sessions, commands := srv.stats(); sessions != 1 || len(commands) != 0 {
 		t.Errorf("health check: sessions=%d commands=%q, want one session and no commands", sessions, commands)
 	}
 
-	out, err := ri.BGPSummary()
+	out, err := ri.BGPSummary(context.Background())
 	if err != nil {
 		t.Fatalf("BGPSummary: %v", err)
 	}
@@ -906,7 +1020,7 @@ func TestRouterInstanceNetconf(t *testing.T) {
 		Router:      netconfMockRouter{spec: spec},
 		HealthCheck: &HealthCheck{Healthy: true},
 	}
-	if err := riNoNetconf.Healthcheck(); !errors.Is(err, errs.ExecFailed) || riNoNetconf.HealthCheck.Healthy {
+	if err := riNoNetconf.Healthcheck(context.Background()); !errors.Is(err, errs.ExecFailed) || riNoNetconf.HealthCheck.Healthy {
 		t.Errorf("Healthcheck without NETCONF: err=%v healthy=%v", err, riNoNetconf.HealthCheck.Healthy)
 	}
 
@@ -916,7 +1030,7 @@ func TestRouterInstanceNetconf(t *testing.T) {
 		Router:      netconfMockRouter{},
 		HealthCheck: &HealthCheck{},
 	}
-	if err := riExec.Healthcheck(); err != nil {
+	if err := riExec.Healthcheck(context.Background()); err != nil {
 		t.Errorf("exec Healthcheck: %v", err)
 	}
 }

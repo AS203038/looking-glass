@@ -1,6 +1,9 @@
 package utils
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Router is the contract every vendor template implements: it returns
 // the command sequence for each supported diagnostic operation.
@@ -51,20 +54,20 @@ type HealthCheck struct {
 
 // exec runs cmd over the transport of the router's template: NETCONF when
 // the template implements [NetconfRouter] with settings, SSH exec otherwise.
-func (rt *RouterInstance) exec(cmd []string) ([]string, error) {
+func (rt *RouterInstance) exec(ctx context.Context, cmd []string) ([]string, error) {
 	if nr, ok := rt.Router.(NetconfRouter); ok {
 		if spec := nr.Netconf(); spec != nil {
-			return NetconfExec(rt.Config, spec, cmd)
+			return NetconfExec(ctx, rt.Config, spec, cmd)
 		}
 	}
-	return SSHExec(rt.Config, cmd)
+	return SSHExec(ctx, rt.Config, cmd)
 }
 
 // Healthcheck connects to the router without running a command and updates
 // the [HealthCheck] record with the timestamp and outcome. For a NETCONF
 // router it also opens and closes a NETCONF session.
-func (rt *RouterInstance) Healthcheck() error {
-	_, err := rt.exec([]string{})
+func (rt *RouterInstance) Healthcheck(ctx context.Context) error {
+	_, err := rt.exec(ctx, []string{})
 	rt.HealthCheck.Checked = time.Now()
 	if err == nil {
 		rt.HealthCheck.Healthy = true
@@ -75,75 +78,75 @@ func (rt *RouterInstance) Healthcheck() error {
 }
 
 // Ping renders and executes the ping command sequence for this router.
-func (rt *RouterInstance) Ping(param *IPNet) ([]string, error) {
+func (rt *RouterInstance) Ping(ctx context.Context, param *IPNet) ([]string, error) {
 	cmd, err := rt.Router.Ping(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // Traceroute renders and executes the traceroute command sequence.
-func (rt *RouterInstance) Traceroute(param *IPNet) ([]string, error) {
+func (rt *RouterInstance) Traceroute(ctx context.Context, param *IPNet) ([]string, error) {
 	cmd, err := rt.Router.Traceroute(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // BGPSummary renders and executes the neighbour-summary command sequence.
-func (rt *RouterInstance) BGPSummary() ([]string, error) {
+func (rt *RouterInstance) BGPSummary(ctx context.Context) ([]string, error) {
 	cmd, err := rt.Router.BGPSummary(rt.Config)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // BGPRoute renders and executes the BGP-route lookup command sequence.
-func (rt *RouterInstance) BGPRoute(param *IPNet) ([]string, error) {
+func (rt *RouterInstance) BGPRoute(ctx context.Context, param *IPNet) ([]string, error) {
 	cmd, err := rt.Router.BGPRoute(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // BGPCommunity renders and executes the standard-community lookup command sequence.
-func (rt *RouterInstance) BGPCommunity(param string) ([]string, error) {
+func (rt *RouterInstance) BGPCommunity(ctx context.Context, param string) ([]string, error) {
 	cmd, err := rt.Router.BGPCommunity(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // BGPLargeCommunity renders and executes the large-community lookup command sequence.
-func (rt *RouterInstance) BGPLargeCommunity(param string) ([]string, error) {
+func (rt *RouterInstance) BGPLargeCommunity(ctx context.Context, param string) ([]string, error) {
 	cmd, err := rt.Router.BGPLargeCommunity(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // BGPASPath renders and executes the AS-path regex lookup command sequence.
-func (rt *RouterInstance) BGPASPath(param string) ([]string, error) {
+func (rt *RouterInstance) BGPASPath(ctx context.Context, param string) ([]string, error) {
 	cmd, err := rt.Router.BGPASPath(rt.Config, param)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // BGPPeerRoutes renders and executes the peer session route lookup command sequence.
-func (rt *RouterInstance) BGPPeerRoutes(peerIP, peerName, queryType string) ([]string, error) {
+func (rt *RouterInstance) BGPPeerRoutes(ctx context.Context, peerIP, peerName, queryType string) ([]string, error) {
 	cmd, err := rt.Router.BGPPeerRoutes(rt.Config, peerIP, peerName, queryType)
 	if err != nil {
 		return nil, err
 	}
-	return rt.exec(cmd)
+	return rt.exec(ctx, cmd)
 }
 
 // RouterMap is the in-memory catalogue of every configured router.

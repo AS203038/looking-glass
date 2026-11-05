@@ -18,3 +18,6 @@ var PoolExhausted = errors.New("ssh pool exhausted")
 
 // ExecTimeout is returned when the router does not answer a command within the transport time limit.
 var ExecTimeout = errors.New("router did not answer in time")
+
+// ExecCanceled is returned when the caller ends the request before the router answers.
+var ExecCanceled = errors.New("request canceled")
