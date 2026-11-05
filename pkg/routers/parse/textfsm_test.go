@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"sync"
@@ -207,6 +208,214 @@ const juniperTracerouteSample = `traceroute to 1.1.1.1 (1.1.1.1), 30 hops max, 4
  3  * * *
  4  one.one.one.one (1.1.1.1)  8.123 ms  8.234 ms  8.345 ms
 `
+
+// juniperTracerouteLostProbeSamples have lost probes next to answers, IPv6 hops, annotations and output without the header line.
+var juniperTracerouteLostProbeSamples = []struct {
+	name, out, target, source string
+	hops                      []string
+}{
+	{
+		name: "ipv4 without header",
+		out: ` 1  * rtr-a.example (192.0.2.1)  3.284 ms  1.683 ms
+ 2  rtr-b.example (192.0.2.5)  0.610 ms *  0.390 ms
+ 3  rtr-c.example (192.0.2.9)  0.627 ms  0.565 ms *
+ 4  * * *
+`,
+		hops: []string{
+			"1: rtr-a.example 192.0.2.1 /0 192.0.2.1/3.284 /1.683",
+			"2: rtr-b.example 192.0.2.5 192.0.2.5/0.61 /0 /0.39",
+			"3: rtr-c.example 192.0.2.9 192.0.2.9/0.627 /0.565",
+			"4: - - /0",
+		},
+	},
+	{
+		name: "address only after lost probes",
+		out: ` 1  * 192.0.2.1  3.284 ms  1.683 ms
+ 2  * * 192.0.2.5  0.390 ms
+ 3  * 2001:db8::9  0.627 ms  *
+`,
+		hops: []string{
+			"1:  192.0.2.1 /0 192.0.2.1/3.284 /1.683",
+			"2:  192.0.2.5 /0 /0 192.0.2.5/0.39",
+			"3:  2001:db8::9 /0 2001:db8::9/0.627",
+		},
+	},
+	{
+		name: "ipv6",
+		out: `traceroute to 2001:db8::29 (2001:db8::29), 30 hops max, 80 byte packets
+ 1  2001:db8::1 (2001:db8::1)  1.294 ms  0.586 ms  0.414 ms
+ 2  2001:db8::29 (2001:db8::29)  0.616 ms  0.645 ms  0.567 ms
+`,
+		target: "2001:db8::29",
+		hops: []string{
+			"1: 2001:db8::1 2001:db8::1 2001:db8::1/1.294 /0.586 /0.414",
+			"2: 2001:db8::29 2001:db8::29 2001:db8::29/0.616 /0.645 /0.567",
+		},
+	},
+	{
+		name: "traceroute6 with source",
+		out: `traceroute6 to 2001:db8::29 (2001:db8::29) from 2001:db8::2, 64 hops max, 12 byte packets
+ 1  2001:db8::1 (2001:db8::1)  1.294 ms  0.586 ms  0.414 ms
+`,
+		target: "2001:db8::29",
+		source: "2001:db8::2",
+		hops:   []string{"1: 2001:db8::1 2001:db8::1 2001:db8::1/1.294 /0.586 /0.414"},
+	},
+	{
+		name: "annotations",
+		out: `traceroute to 192.0.2.9 (192.0.2.9) from 192.0.2.2, 30 hops max, 40 byte packets
+ 1  rtr-a.example (192.0.2.1)  0.571 ms !N  0.547 ms !N  0.532 ms !N
+ 2  192.0.2.5  1.1 ms !H *  0.9 ms !H
+ 3  * rtr-c.example (192.0.2.9)  2.1 ms !X  2.2 ms !X
+`,
+		target: "192.0.2.9",
+		source: "192.0.2.2",
+		hops: []string{
+			"1: rtr-a.example 192.0.2.1 192.0.2.1/0.571 /0.547 /0.532",
+			"2:  192.0.2.5 192.0.2.5/1.1 /0 /0.9",
+			"3: rtr-c.example 192.0.2.9 /0 192.0.2.9/2.1 /2.2",
+		},
+	},
+	{
+		name: "another router answers a later probe",
+		out: ` 1  rtr-a.example (192.0.2.1)  0.610 ms  rtr-b.example (192.0.2.5)  0.7 ms  0.390 ms
+ 2  192.0.2.9  1.1 ms  *  192.0.2.13  0.9 ms !H
+ 3  * rtr-c.example (192.0.2.17)  2.1 ms  192.0.2.21 (192.0.2.21)  2.2 ms
+`,
+		hops: []string{
+			"1: rtr-a.example 192.0.2.1 192.0.2.1/0.61 192.0.2.5/0.7 /0.39",
+			"2:  192.0.2.9 192.0.2.9/1.1 /0 192.0.2.13/0.9",
+			"3: rtr-c.example 192.0.2.17 /0 192.0.2.17/2.1 192.0.2.21/2.2",
+		},
+	},
+	{
+		name: "inline MPLS labels",
+		out: `traceroute to 192.0.2.50 (192.0.2.50), 255 hops max, 60 byte packets
+ 1  192.0.2.60 (192.0.2.60)  13.565 ms  11.696 ms  11.448 ms
+ 2  192.0.2.61 (192.0.2.61) <MPLS:L=17,E=0,S=0,T=1/L=16,E=0,S=1,T=1>  34.034 ms  31.538 ms  27.697 ms
+ 3  * 192.0.2.62 <MPLS:L=299776,E=0,S=1,T=2>  23.174 ms  192.0.2.66 (192.0.2.66) <MPLS:L=16,E=0,S=1,T=1>  21.009 ms
+`,
+		target: "192.0.2.50",
+		hops: []string{
+			"1: 192.0.2.60 192.0.2.60 192.0.2.60/13.565 /11.696 /11.448",
+			"2: 192.0.2.61 192.0.2.61 192.0.2.61/34.034 /31.538 /27.697",
+			"3:  192.0.2.62 /0 192.0.2.62/23.174 192.0.2.66/21.009",
+		},
+	},
+	{
+		// Forms from the Junos documentation sample of traceroute as-number-lookup.
+		name: "AS number lookup",
+		out: `traceroute to 192.0.2.70 (192.0.2.70), 30 hops max, 40 byte packets
+ 1  192.0.2.1 (192.0.2.1)  0.779 ms  0.728 ms  0.562 ms
+ 2  192.0.2.6 (192.0.2.6) [AS  64500]  0.657 ms  0.611 ms  0.617 ms
+ 3  192.0.2.70 (192.0.2.70) [AS  64501, 64502, 64503]  0.880 ms  0.808 ms  0.774 ms
+ 4  2001:db8::10 (2001:db8::10) [AS 64504] 0.657 ms  *  2001:db8::11 [AS 64505]  17.319 ms
+`,
+		target: "192.0.2.70",
+		hops: []string{
+			"1: 192.0.2.1 192.0.2.1 192.0.2.1/0.779 /0.728 /0.562",
+			"2: 192.0.2.6 192.0.2.6 192.0.2.6/0.657 /0.611 /0.617",
+			"3: 192.0.2.70 192.0.2.70 192.0.2.70/0.88 /0.808 /0.774",
+			"4: 2001:db8::10 2001:db8::10 2001:db8::10/0.657 /0 2001:db8::11/17.319",
+		},
+	},
+	{
+		// Form from the Junos documentation sample of an IPv6 traceroute in an OSPF multiarea adjacency.
+		name: "space before the closing parenthesis",
+		out: `traceroute6 to 2001:db8:9009::6 (2001:db8:9009::6 ) from 2001:db8:9009:1::1 , 64 hops max, 12 byte packets
+ 1  2001:db8:9009:1::2 (2001:db8:9009:1::2 )  1.361 ms  1.166 ms  1.117 ms
+ 2  * 2001:db8:9009::6 (2001:db8:9009::6 ) [AS 64500]  1.578 ms  rtr-b.example (2001:db8:9009::7 )  1.484 ms
+`,
+		target: "2001:db8:9009::6",
+		source: "2001:db8:9009:1::1",
+		hops: []string{
+			"1: 2001:db8:9009:1::2 2001:db8:9009:1::2 2001:db8:9009:1::2/1.361 /1.166 /1.117",
+			"2: 2001:db8:9009::6 2001:db8:9009::6 /0 2001:db8:9009::6/1.578 2001:db8:9009::7/1.484",
+		},
+	},
+}
+
+// TestTextFSMParserJuniperTracerouteUnknownHopLine verifies that a hop line in an unknown shape fails the parse
+// and does not give a hop with only the probes before the unknown text.
+func TestTextFSMParserJuniperTracerouteUnknownHopLine(t *testing.T) {
+	for name, line := range map[string]string{
+		"text after the probes":                   " 2  192.0.2.5  1.1 ms  0.9 ms  1.0 ms  extra\n",
+		"fourth probe":                            " 2  192.0.2.5  1.1 ms  0.9 ms  1.0 ms  1.2 ms\n",
+		"rtt without unit":                        " 2  192.0.2.5  1.1 ms  0.9\n",
+		"first probe has no address":              " 2  0.9 ms  1.0 ms  1.1 ms\n",
+		"no address after a lost probe":           " 2  *  0.9 ms\n",
+		"no address after two lost probes":        " 2  *  *  0.9 ms\n",
+		"annotated reply without address":         " 2  *  0.9 ms !N\n",
+		"later address does not excuse the first": " 2  *  0.9 ms  192.0.2.5  1.1 ms\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			out := " 1  192.0.2.1  0.5 ms  0.4 ms  0.3 ms\n" + line
+			r := TextFSMParser{}.Parse(OpTraceroute, []byte(out), Config{Template: "juniper_junos_traceroute"})
+			if r.Status != pb.ParseStatus_PARSE_STATUS_PARSE_FAILED {
+				t.Errorf("Status = %v, want PARSE_FAILED (payload %v)", r.Status, r.Payload)
+			}
+		})
+	}
+}
+
+func TestTextFSMParserJuniperTracerouteLostProbes(t *testing.T) {
+	for _, tc := range juniperTracerouteLostProbeSamples {
+		t.Run(tc.name, func(t *testing.T) {
+			r := TextFSMParser{}.Parse(OpTraceroute, []byte(tc.out), Config{Template: "juniper_junos_traceroute"})
+			if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+				t.Fatalf("Status = %v, want OK", r.Status)
+			}
+			tp := r.Payload.(*pb.TracerouteParsed)
+			if tp.Target != tc.target || tp.Source != tc.source {
+				t.Errorf("target %q source %q, want %q %q", tp.Target, tp.Source, tc.target, tc.source)
+			}
+			// Each hop: TTL, host and address of the first probe that answered, then ip/rtt per probe.
+			var got []string
+			for _, h := range tp.Hops {
+				host, ip := "-", "-"
+				var probes []string
+				for _, p := range h.Probes {
+					if ip == "-" && p.Ip != "" {
+						host, ip = p.Hostname, p.Ip
+					}
+					probes = append(probes, fmt.Sprintf("%s/%g", p.Ip, p.RttMs))
+				}
+				got = append(got, fmt.Sprintf("%d: %s %s %s", h.Ttl, host, ip, strings.Join(probes, " ")))
+			}
+			if !slices.Equal(got, tc.hops) {
+				t.Errorf("hops:\n got %q\nwant %q", got, tc.hops)
+			}
+		})
+	}
+}
+
+// TestTextFSMParserJuniperTracerouteASN verifies that a probe gets the AS of its annotation, and an AS list gives ASN 0.
+func TestTextFSMParserJuniperTracerouteASN(t *testing.T) {
+	const out = `traceroute to 192.0.2.70 (192.0.2.70), 30 hops max, 40 byte packets
+ 1  192.0.2.1 (192.0.2.1)  0.779 ms  0.728 ms  0.562 ms
+ 2  192.0.2.6 (192.0.2.6) [AS  64500]  0.657 ms  0.611 ms  0.617 ms
+ 3  192.0.2.70 (192.0.2.70) [AS  64501, 64502, 64503]  0.880 ms  0.808 ms  0.774 ms
+ 4  2001:db8::10 (2001:db8::10) [AS 64504] 0.657 ms  *  2001:db8::11 [AS 64505]  17.319 ms
+ 5  * 2001:db8::12 (2001:db8::12 ) [AS 64506]  1.578 ms  rtr-b.example (2001:db8::13 )  1.484 ms
+ 6  192.0.2.7 (192.0.2.7) <MPLS:L=16,E=0,S=1,T=1> [AS 64507]  1.1 ms  192.0.2.8 [AS 64508] <MPLS:L=17,E=0,S=1,T=1>  1.2 ms  192.0.2.9 [AS 64509, 64510]  1.3 ms
+`
+	r := TextFSMParser{}.Parse(OpTraceroute, []byte(out), Config{Template: "juniper_junos_traceroute"})
+	if r.Status != pb.ParseStatus_PARSE_STATUS_OK {
+		t.Fatalf("Status = %v, want OK", r.Status)
+	}
+	var got [][]uint32
+	for _, h := range r.Payload.(*pb.TracerouteParsed).Hops {
+		var asns []uint32
+		for _, p := range h.Probes {
+			asns = append(asns, p.Asn)
+		}
+		got = append(got, asns)
+	}
+	want := [][]uint32{{0, 0, 0}, {64500, 0, 0}, {0, 0, 0}, {64504, 0, 64505}, {0, 64506, 0}, {64507, 64508, 0}}
+	if !slices.EqualFunc(got, want, slices.Equal[[]uint32]) {
+		t.Errorf("probe ASNs:\n got %v\nwant %v", got, want)
+	}
+}
 
 func TestTextFSMParserJuniperTraceroute(t *testing.T) {
 	r := TextFSMParser{}.Parse(OpTraceroute, []byte(juniperTracerouteSample),
