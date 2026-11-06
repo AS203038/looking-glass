@@ -317,7 +317,7 @@ func printBGPSummaryPretty(s *pb.BGPSummaryParsed) {
 	for _, p := range s.GetPeers() {
 		state := p.GetState()
 		var sColor string
-		// A state can have a reason, for example "idle (no route)" or "idle(noif)": only the state selects the color.
+		// A state can have a reason, for example "idle (removal in progress)" or "idle(noif)": only the state selects the color.
 		base, _, _ := strings.Cut(state, "(")
 		switch strings.TrimSpace(base) {
 		case "established":
