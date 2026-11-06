@@ -27,6 +27,14 @@ function renderRows(oldPeers: JsonObject[], newPeers: JsonObject[]): string[][] 
 }
 
 describe('DiffBGPSummaryView', () => {
+	it('gives a state with a reason the color of the state', () => {
+		const { container } = render(DiffBGPSummaryView, {
+			oldSummary: summary([peer('192.0.2.1', '', 'idle (removal in progress)', 0)]),
+			newSummary: summary([peer('192.0.2.1', '', 'idle (removal in progress)', 0)])
+		});
+		expect(container.querySelector('tbody .lg-badge')!.classList).toContain('lg-badge-warning');
+	});
+
 	it('compares each address family of a peer on its own', () => {
 		const rows = renderRows(
 			[
