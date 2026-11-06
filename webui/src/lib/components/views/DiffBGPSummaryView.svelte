@@ -8,7 +8,7 @@
 	let { oldSummary, newSummary }: Props = $props();
 
 	function stateColor(state: string): string {
-		// A state can have a reason, for example "idle (no route)" or "idle(noif)": only the state selects the color.
+		// A state can have a reason, for example "idle (removal in progress)" or "idle(noif)": only the state selects the color.
 		switch (state.split(/[\s(]/)[0]) {
 			case 'established':
 				return 'lg-badge-success';
