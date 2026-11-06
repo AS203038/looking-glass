@@ -50,3 +50,25 @@ func TestPrintTraceroutePrettyLostFirstProbe(t *testing.T) {
 		}
 	}
 }
+
+// A state with a reason has the color of the state without the reason.
+func TestPrintBGPSummaryPrettyStateColor(t *testing.T) {
+	old := opts.ForceColor
+	opts.ForceColor = true
+	defer func() { opts.ForceColor = old }()
+
+	for _, tc := range []struct{ state, color string }{
+		{"established", ansiGreen},
+		{"idle", ansiYellow},
+		{"idle (removal in progress)", ansiYellow},
+		{"idle(noif)", ansiYellow},
+		{"connect", ansiYellow},
+		{"active", ansiRed},
+	} {
+		s := &pb.BGPSummaryParsed{Peers: []*pb.BGPPeer{{PeerIp: "192.0.2.1", State: tc.state}}}
+		got := captureStdout(t, func() { printBGPSummaryPretty(s) })
+		if want := tc.color + tc.state + ansiReset; !strings.Contains(got, want) {
+			t.Errorf("state %q: output has no %q:\n%q", tc.state, want, got)
+		}
+	}
+}
