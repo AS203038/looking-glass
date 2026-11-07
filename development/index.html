@@ -1409,7 +1409,7 @@
 </ol>
 <p>The service stays at <code>v0</code> — we treat it as field-additive indefinitely. Removing or renaming fields is a breaking change that needs a <code>v1</code> package; introduce it explicitly when the time comes.</p>
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span><span class="nb">test</span><span class="w">            </span><span class="c1"># Runs Go standard tests and all fuzzers sequentially</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span><span class="nb">test</span><span class="w">            </span><span class="c1"># Runs Go standard tests, all fuzzers sequentially and the webui tests</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>make<span class="w"> </span>test-fuzz<span class="w">       </span><span class="c1"># Runs all Go fuzzers sequentially</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>make<span class="w"> </span>test-cover<span class="w">      </span><span class="c1"># Runs Go standard tests with coverage</span>
 </span></code></pre></div>
@@ -1424,8 +1424,10 @@
 <h3 id="frontend-checks">Frontend checks<a class="headerlink" href="#frontend-checks" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make<span class="w"> </span>check-webui<span class="w">     </span><span class="c1"># svelte-check (TypeScript + Svelte)</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>make<span class="w"> </span>lint-webui<span class="w">      </span><span class="c1"># prettier + eslint</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>make<span class="w"> </span>format-webui<span class="w">    </span><span class="c1"># prettier in-place</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>make<span class="w"> </span>test-webui<span class="w">      </span><span class="c1"># vitest component tests (jsdom)</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>make<span class="w"> </span>format-webui<span class="w">    </span><span class="c1"># prettier in-place</span>
 </span></code></pre></div>
+<p>Keep a component test next to the component (<code>Foo.svelte</code> → <code>Foo.test.ts</code>). Mount the component with <code>@testing-library/svelte</code> and give it real protobuf messages made with <code>fromJson</code>.</p>
 <p><code>pnpm check</code> returns <code>0 errors, 0 warnings</code> on a clean tree. The build itself (<code>make build-webui</code>) is the final source of truth: if adapter-static can't render the routes, the tree is broken.</p>
 <h3 id="ci-parity">CI parity<a class="headerlink" href="#ci-parity" title="Permanent link">&para;</a></h3>
 <p>The full pre-push sequence is <code>make check</code>, which runs <code>make lint test</code>. Match what CI runs locally by sticking with <code>make</code> targets.</p>
