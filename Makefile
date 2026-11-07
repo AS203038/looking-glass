@@ -113,6 +113,10 @@ check-webui: ## Run svelte-check / typescript type checks
 lint-webui: ## Run prettier + eslint checks
 	cd $(WEBUI_DIR) && $(PNPM) run lint
 
+.PHONY: test-webui
+test-webui: ## Run webui component tests with vitest
+	cd $(WEBUI_DIR) && $(PNPM) run test
+
 .PHONY: format-webui
 format-webui: ## Format webui sources with prettier
 	cd $(WEBUI_DIR) && $(PNPM) run format
@@ -159,7 +163,7 @@ build: build-webui build-server build-cli ## Build webui + server + cli (product
 all: install generate build ## Install deps, generate code, and build everything
 
 .PHONY: test
-test: test-go test-fuzz ## Run all tests (including fuzz tests)
+test: test-go test-fuzz test-webui ## Run all tests (including fuzz tests and webui tests)
 
 .PHONY: test-go
 test-go: $(DIST_DIR) ## Run Go standard tests with the race detector
