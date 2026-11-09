@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { float32 } from '$lib/format';
 	import type { Pb } from '$lib/grpc';
 
 	interface Props {
@@ -109,18 +110,18 @@
 						{#if r.status === 'changed'}
 							<div class="flex flex-col items-end line-through opacity-50">
 								{#each r.old?.probes || [] as p, i (i)}
-									<span>{p.ip ? p.rttMs + ' ms' : '*'}</span>
+									<span>{p.rttMs > 0 ? float32(p.rttMs) + ' ms' : '*'}</span>
 								{/each}
 							</div>
 							<div class="flex flex-col items-end text-(--color-success)">
 								{#each r.new?.probes || [] as p, i (i)}
-									<span>{p.ip ? p.rttMs + ' ms' : '*'}</span>
+									<span>{p.rttMs > 0 ? float32(p.rttMs) + ' ms' : '*'}</span>
 								{/each}
 							</div>
 						{:else}
 							<div class="flex flex-col items-end">
 								{#each (r.new || r.old)?.probes || [] as p, i (i)}
-									<span>{p.ip ? p.rttMs + ' ms' : '*'}</span>
+									<span>{p.rttMs > 0 ? float32(p.rttMs) + ' ms' : '*'}</span>
 								{/each}
 							</div>
 						{/if}
