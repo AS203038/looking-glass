@@ -175,3 +175,41 @@ func FuzzNewIPNET(f *testing.F) {
 		}
 	})
 }
+
+// FuzzSanitizePeerIP verifies that an accepted peer address is safe unquoted in a router command and has an interface only when it is link-local.
+func FuzzSanitizePeerIP(f *testing.F) {
+	for _, seed := range []string{
+		"192.0.2.1",
+		"2001:db8::1",
+		"fe80::1%et-0/0/1:0.0",
+		"fe80::1%et-0/0/1;reload",
+		"fe80::1%a b",
+		"fe80::1%",
+		"2001:db8::1%eth0",
+		"192.0.2.1%eth0",
+		"fe80::1%" + strings.Repeat("a", 64),
+		"fe80::1%" + strings.Repeat("a", 65),
+		"",
+	} {
+		f.Add(seed)
+	}
+	const safe = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.:%_/-"
+	f.Fuzz(func(t *testing.T, ip string) {
+		a, err := SanitizePeerIP(ip)
+		if err != nil {
+			if !errors.Is(err, errs.IPInvalid) {
+				t.Errorf("SanitizePeerIP(%q) error %v, want %v", ip, err, errs.IPInvalid)
+			}
+			return
+		}
+		if s := a.String(); strings.ContainsFunc(s, func(r rune) bool { return !strings.ContainsRune(safe, r) }) {
+			t.Errorf("SanitizePeerIP(%q) = %q, has a character that is not safe in a router command", ip, s)
+		}
+		if a.Zone() != "" && !a.IsLinkLocalUnicast() {
+			t.Errorf("SanitizePeerIP(%q) = %v, an interface on an address that is not link-local", ip, a)
+		}
+		if len(a.Zone()) > 64 {
+			t.Errorf("SanitizePeerIP(%q) = %v, an interface above 64 characters", ip, a)
+		}
+	})
+}

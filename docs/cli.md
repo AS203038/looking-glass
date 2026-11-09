@@ -156,9 +156,11 @@ Calls `BGPASPath`. The regex is forwarded verbatim; the server's `SanitizeASPath
 ```
 lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=received
 lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=accepted --name=peer_member_100
+lg-cli bgp peer-routes as203038 1 'fe80::1%et-0/0/1:0.0'
 ```
 
 Calls `BGPPeerRoutes` to query routing details on a per-peer session basis. Useful for route-server debugging at IXPs.
+A link-local IPv6 peer can have its interface after `%`, as the router shows it in the BGP summary.
 
 Supported flags:
 * `-t, --type`: Peer route query type: `received` (default), `accepted`, `rejected`, or `advertised`.
