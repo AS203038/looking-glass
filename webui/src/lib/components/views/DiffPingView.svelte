@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { float32 } from '$lib/format';
 	import type { Pb } from '$lib/grpc';
 
 	interface Props {
@@ -41,12 +42,14 @@
 		<span style="color: var(--color-fg-muted);">Min / Avg / Max</span>
 		<span>
 			{oldStats.rttMinMs === newStats.rttMinMs
-				? newStats.rttMinMs
-				: `${oldStats.rttMinMs}➔${newStats.rttMinMs}`}/{oldStats.rttAvgMs === newStats.rttAvgMs
-				? newStats.rttAvgMs
-				: `${oldStats.rttAvgMs}➔${newStats.rttAvgMs}`}/{oldStats.rttMaxMs === newStats.rttMaxMs
-				? newStats.rttMaxMs
-				: `${oldStats.rttMaxMs}➔${newStats.rttMaxMs}`}
+				? float32(newStats.rttMinMs)
+				: `${float32(oldStats.rttMinMs)}➔${float32(newStats.rttMinMs)}`}/{oldStats.rttAvgMs ===
+			newStats.rttAvgMs
+				? float32(newStats.rttAvgMs)
+				: `${float32(oldStats.rttAvgMs)}➔${float32(newStats.rttAvgMs)}`}/{oldStats.rttMaxMs ===
+			newStats.rttMaxMs
+				? float32(newStats.rttMaxMs)
+				: `${float32(oldStats.rttMaxMs)}➔${float32(newStats.rttMaxMs)}`}
 		</span>
 	</div>
 	<div class="flex flex-col gap-1">

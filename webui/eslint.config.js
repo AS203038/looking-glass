@@ -35,6 +35,20 @@ export default defineConfig(
 		}
 	},
 	{
+		files: ['**/*.svelte'],
+		rules: {
+			'no-restricted-syntax': [
+				'error',
+				{
+					selector:
+						"SvelteMustacheTag[kind='text'] :matches(TemplateLiteral, BinaryExpression[operator='+'], ConditionalExpression) > MemberExpression[property.name=/Ms$/], SvelteMustacheTag[kind='text'] > MemberExpression[property.name=/Ms$/]",
+					message:
+						'An *Ms field is a proto float: show it with float32() from $lib/format or toFixed().'
+				}
+			]
+		}
+	},
+	{
 		rules: {
 			'svelte/no-navigation-without-resolve': 'off',
 			'svelte/prefer-svelte-reactivity': 'off'
