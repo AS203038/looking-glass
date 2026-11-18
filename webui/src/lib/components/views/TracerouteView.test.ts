@@ -29,4 +29,13 @@ describe('TracerouteView', () => {
 			['2', '—', '*', '***']
 		]);
 	});
+
+	it('shows a reply with an RTT of 0 as an RTT, not as a lost probe', () => {
+		const tp = fromJson(Pb.TracerouteParsedSchema, {
+			hops: [{ ttl: 1, probes: [{ ip: '10.0.0.254', rttMs: 0 }, { rttMs: 0 }] }]
+		});
+		const { container } = render(TracerouteView, { tp });
+		const rtt = container.querySelector('tbody tr td:last-child')!.textContent!.replace(/\s+/g, '');
+		expect(rtt).toBe('0.0ms*');
+	});
 });

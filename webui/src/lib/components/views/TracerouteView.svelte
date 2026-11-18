@@ -46,7 +46,7 @@
 					</td>
 					<td class="px-3 py-1.5 text-right" style="color: var(--color-fg-muted);">
 						{#each hop.probes as p, j (j)}
-							{#if p.rttMs > 0}
+							{#if p.ip || p.rttMs > 0}
 								<span class="ml-2">{p.rttMs.toFixed(1)} ms</span>
 							{:else}
 								<span class="ml-2" style="color: var(--color-fg-subtle);">*</span>
