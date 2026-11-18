@@ -786,6 +786,7 @@ func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
 		"fe80::1%",
 		"2001:db8::1%et-0/0/1:0.0",
 		"192.0.2.1%eth0",
+		"::ffff:169.254.1.2%eth0",
 	} {
 		if err := ask(1, peer); !errors.Is(err, errs.IPInvalid) {
 			t.Errorf("BGPPeerRoutes(%q) = %v, want %v", peer, err, errs.IPInvalid)

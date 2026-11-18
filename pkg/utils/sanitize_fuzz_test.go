@@ -187,6 +187,7 @@ func FuzzSanitizePeerIP(f *testing.F) {
 		"fe80::1%",
 		"2001:db8::1%eth0",
 		"192.0.2.1%eth0",
+		"::ffff:169.254.1.2%eth0",
 		"fe80::1%" + strings.Repeat("a", 64),
 		"fe80::1%" + strings.Repeat("a", 65),
 		"",
@@ -205,7 +206,7 @@ func FuzzSanitizePeerIP(f *testing.F) {
 		if s := a.String(); strings.ContainsFunc(s, func(r rune) bool { return !strings.ContainsRune(safe, r) }) {
 			t.Errorf("SanitizePeerIP(%q) = %q, has a character that is not safe in a router command", ip, s)
 		}
-		if a.Zone() != "" && !a.IsLinkLocalUnicast() {
+		if a.Zone() != "" && (!a.Is6() || a.Is4In6() || !a.IsLinkLocalUnicast()) {
 			t.Errorf("SanitizePeerIP(%q) = %v, an interface on an address that is not link-local", ip, a)
 		}
 		if len(a.Zone()) > 64 {
