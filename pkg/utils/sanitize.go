@@ -87,7 +87,7 @@ func SanitizePeerIP(ip string) (netip.Addr, error) {
 	if err != nil {
 		return netip.Addr{}, errs.IPInvalid
 	}
-	if z := a.Zone(); z != "" && (!a.IsLinkLocalUnicast() || !sanePeerZoneRegex.MatchString(z)) {
+	if z := a.Zone(); z != "" && (a.Is4In6() || !a.IsLinkLocalUnicast() || !sanePeerZoneRegex.MatchString(z)) {
 		return netip.Addr{}, errs.IPInvalid
 	}
 	return a, nil
