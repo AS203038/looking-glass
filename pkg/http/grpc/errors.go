@@ -21,6 +21,8 @@ var publicErrors = []struct {
 	{errs.ASPathTooLong, connect.CodeInvalidArgument},
 	{errs.CommunityMalformed, connect.CodeInvalidArgument},
 	{errs.PeerNameMalformed, connect.CodeInvalidArgument},
+	{errs.PeerIPRequired, connect.CodeInvalidArgument},
+	{errs.PeerNameRequired, connect.CodeInvalidArgument},
 	{errs.UnknownRouter, connect.CodeNotFound},
 	{errs.RouterUnavailable, connect.CodeUnavailable},
 	{errs.OperationUnknown, connect.CodeUnimplemented},
@@ -51,7 +53,8 @@ func publicErrorInterceptor(next connect.ServerFunc) connect.ServerFunc {
 
 // execError keeps the router errors that tell the client what to do and returns errs.ExecFailed for the others.
 func execError(err error) error {
-	if errors.Is(err, errs.PoolExhausted) || errors.Is(err, errs.ExecTimeout) || errors.Is(err, errs.ExecCanceled) {
+	if errors.Is(err, errs.PoolExhausted) || errors.Is(err, errs.ExecTimeout) || errors.Is(err, errs.ExecCanceled) ||
+		errors.Is(err, errs.PeerIPRequired) || errors.Is(err, errs.PeerNameRequired) {
 		return err
 	}
 	return errs.ExecFailed

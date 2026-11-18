@@ -839,3 +839,58 @@ func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
 		}
 	}
 }
+
+// TestBGPPeerRoutesCommandNeedsPeerOperand verifies that a router command does not run with an empty peer address or name.
+func TestBGPPeerRoutesCommandNeedsPeerOperand(t *testing.T) {
+	cmds := make(chan string, 8)
+	addr := startExecRecorder(t, cmds)
+	router := func(name, kind string) *utils.RouterInstance {
+		return &utils.RouterInstance{
+			Config:      &utils.RouterConfig{Name: name, Hostname: addr, Username: "test"},
+			Router:      routers.Get(kind),
+			HealthCheck: &utils.HealthCheck{Healthy: true},
+		}
+	}
+	server := newServer(NewLookingGlassService(context.Background(), utils.RouterMap{router("ros", "mikrotik_routeros"), router("bird", "bird")}))
+	cli := lookingglassconnect.NewLookingGlassServiceClient(connect.NewClient(connectinprocess.New(server)))
+
+	for _, tc := range []struct {
+		name     string
+		routerID int64
+		peerIP   string
+		peerName string
+		qType    pb.PeerRouteQueryType
+		want     error
+	}{
+		{"routeros advertised by address", 1, "192.0.2.1", "", pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ADVERTISED, errs.PeerNameRequired},
+		{"routeros received by name", 1, "", "peer1", pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED, errs.PeerIPRequired},
+		{"bird received by address", 2, "192.0.2.1", "", pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED, errs.PeerNameRequired},
+	} {
+		_, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+			RouterId: tc.routerID, PeerIp: tc.peerIP, PeerName: tc.peerName, QueryType: tc.qType,
+		})
+		if !errors.Is(err, tc.want) || connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Errorf("%s: BGPPeerRoutes = %v (code %v), want %v (code %v)", tc.name, err, connect.CodeOf(err), tc.want, connect.CodeInvalidArgument)
+		}
+	}
+	select {
+	case got := <-cmds:
+		t.Errorf("router got command %q with an empty peer operand", got)
+	default:
+	}
+
+	_, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+		RouterId: 1, PeerName: "peer1", QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_ADVERTISED,
+	})
+	if err != nil {
+		t.Fatalf("BGPPeerRoutes(advertised, peer1): %v", err)
+	}
+	select {
+	case got := <-cmds:
+		if want := `/routing bgp advertisements print detail where peer~"peer1"`; got != want {
+			t.Errorf("command %q, want %q", got, want)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("no router command for advertised peer1")
+	}
+}
