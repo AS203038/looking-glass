@@ -498,7 +498,7 @@ const nokiaTracerouteSample = `traceroute to 1.1.1.1, 30 hops max, 40 byte packe
 // nokiaTracerouteMDSamples are in the MD-CLI format: a source address, a lost probe as "0.0.0.0  *" and an IPv6 hop.
 var nokiaTracerouteMDSamples = []struct {
 	name, out, target, source string
-	hops                      []string
+	hops                      []string // "ttl: hostname=ip/rtt ..."; a probe without a hostname has no "hostname="
 }{
 	{
 		name: "ipv4",
@@ -511,8 +511,8 @@ var nokiaTracerouteMDSamples = []struct {
 		target: "203.0.113.9",
 		source: "192.0.2.7",
 		hops: []string{
-			"1: 192.0.2.1/0.538 /0.682 /0.514",
-			"2: /0 198.51.100.1/0.552 /0.453",
+			"1: 192.0.2.1=192.0.2.1/0.538 /0.682 /0.514",
+			"2: /0 198.51.100.1=198.51.100.1/0.552 /0.453",
 			"3: /0",
 		},
 	},
@@ -525,8 +525,8 @@ var nokiaTracerouteMDSamples = []struct {
 		target: "2001:db8::9",
 		source: "2001:db8::7",
 		hops: []string{
-			"1: 2001:db8::1/0.546 /0.519 /0.668",
-			"2: 2001:db8::9/0.612 /0.526 /0.499",
+			"1: 2001:db8::1=2001:db8::1/0.546 /0.519 /0.668",
+			"2: 2001:db8::9=2001:db8::9/0.612 /0.526 /0.499",
 		},
 	},
 	{
@@ -541,8 +541,8 @@ var nokiaTracerouteMDSamples = []struct {
 		source: "192.0.2.7",
 		hops: []string{
 			"1: /0",
-			"2: /0 192.0.2.1/863",
-			"3: 198.51.100.1/0.571 /0.547 /0.532",
+			"2: /0 192.0.2.1=192.0.2.1/863",
+			"3: 198.51.100.1=198.51.100.1/0.571 /0.547 /0.532",
 		},
 	},
 }
@@ -562,7 +562,11 @@ func TestTextFSMParserNokiaTracerouteMD(t *testing.T) {
 			for _, h := range tp.Hops {
 				var probes []string
 				for _, p := range h.Probes {
-					probes = append(probes, fmt.Sprintf("%s/%g", p.Ip, p.RttMs))
+					probe := fmt.Sprintf("%s/%g", p.Ip, p.RttMs)
+					if p.Hostname != "" {
+						probe = p.Hostname + "=" + probe
+					}
+					probes = append(probes, probe)
 				}
 				got = append(got, fmt.Sprintf("%d: %s", h.Ttl, strings.Join(probes, " ")))
 			}
