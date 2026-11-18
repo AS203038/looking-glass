@@ -69,10 +69,26 @@ type _tpl_data struct {
 	LargeCommunity string
 	// ASPath is the sanitised AS-path regex.
 	ASPath string
-	// PeerIP is the IP address of the peer session.
-	PeerIP string
-	// PeerName is the administrative name of the peer session.
-	PeerName string
+	// peerIP is the IP address of the peer session.
+	peerIP string
+	// peerName is the administrative name of the peer session.
+	peerName string
+}
+
+// PeerIP gives the peer address to a template, and fails the render when the request has none.
+func (d _tpl_data) PeerIP() (string, error) {
+	if d.peerIP == "" {
+		return "", errs.PeerIPRequired
+	}
+	return d.peerIP, nil
+}
+
+// PeerName gives the peer name to a template, and fails the render when the request has none.
+func (d _tpl_data) PeerName() (string, error) {
+	if d.peerName == "" {
+		return "", errs.PeerNameRequired
+	}
+	return d.peerName, nil
 }
 
 // parserSpec is the YAML projection of a per-operation parser declaration.
@@ -356,6 +372,9 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 			return nil, errs.OperationUnknown
 		}
 		err = tt.Execute(&buf, data)
+		if errors.Is(err, errs.PeerIPRequired) || errors.Is(err, errs.PeerNameRequired) {
+			return nil, err
+		}
 		if err != nil {
 			attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
 			attrs = append(attrs,
@@ -426,7 +445,7 @@ func (rt *Yaml) BGPPeerRoutes(cfg *utils.RouterConfig, peerIP, peerName, queryTy
 	default:
 		return nil, errs.OperationUnknown
 	}
-	return rt._tpl(op, _tpl_data{Cfg: cfg, PeerIP: peerIP, PeerName: peerName})
+	return rt._tpl(op, _tpl_data{Cfg: cfg, peerIP: peerIP, peerName: peerName})
 }
 
 // Parser returns the parser declared for op together with its

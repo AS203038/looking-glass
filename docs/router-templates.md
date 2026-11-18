@@ -105,6 +105,8 @@ type _tpl_data struct {
 }
 ```
 
+A command that uses `{{.PeerIP}}` or `{{.PeerName}}` does not run when the request has no value for it: the request fails with `InvalidArgument`.
+
 ### Custom Template Functions
 
 The Go template engine implements custom functions to assist with vendor-specific formatting quirks:
