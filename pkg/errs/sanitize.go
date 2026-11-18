@@ -19,3 +19,9 @@ var CommunityMalformed = errors.New("BGP community malformed")
 
 // PeerNameMalformed is returned when a BGP peer/protocol name contains disallowed characters.
 var PeerNameMalformed = errors.New("BGP peer name malformed")
+
+// PeerIPRequired is returned when the router command for a request needs the BGP peer address and the request has none.
+var PeerIPRequired = errors.New("BGP peer IP required by this router")
+
+// PeerNameRequired is returned when the router command for a request needs the BGP peer name and the request has none.
+var PeerNameRequired = errors.New("BGP peer name required by this router")
