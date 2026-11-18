@@ -34,4 +34,13 @@ describe('DiffTracerouteView', () => {
 		);
 		expect(rtts).toEqual(['0.682 ms 0.514 ms', '2505.862 ms 2505.863 ms *']);
 	});
+
+	it('shows a reply with an RTT of 0 as an RTT, not as a lost probe', () => {
+		const hop1: JsonObject = { ttl: 1, probes: [{ ip: '10.0.0.254', rttMs: 0 }, { rttMs: 0 }] };
+		const rtts = renderRtts(
+			[hop1, { ttl: 2, probes: [{ ip: '198.51.100.1', rttMs: 0 }] }],
+			[hop1, { ttl: 2, probes: [{ ip: '198.51.100.2', rttMs: 0 }] }]
+		);
+		expect(rtts).toEqual(['0 ms *', '0 ms 0 ms']);
+	});
 });
