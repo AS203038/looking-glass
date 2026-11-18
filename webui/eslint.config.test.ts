@@ -18,7 +18,8 @@ describe('the *Ms display rule', () => {
 		"{p.rttMs + ' ms'}",
 		'{`${p.rttMs} ms`}',
 		"{hasReply ? p.rttMs : '*'}",
-		"{hasReply ? '*' : p.rttMs}"
+		"{hasReply ? '*' : p.rttMs}",
+		"{String(hasReply) + (hasReply ? p.rttMs : '*')}"
 	])('rejects %s', async (mustache) => {
 		expect(await rttRuleHits(mustache)).toBe(1);
 	});
@@ -26,7 +27,9 @@ describe('the *Ms display rule', () => {
 	it.each([
 		"{float32(p.rttMs) + ' ms'}",
 		"{p.rttMs > 0 ? float32(p.rttMs) + ' ms' : '*'}",
-		"{p.rttMs ? float32(p.rttMs) + ' ms' : '*'}"
+		"{p.rttMs ? float32(p.rttMs) + ' ms' : '*'}",
+		'{(hasReply ? p.rttMs : 0).toFixed(3)}',
+		"{float32(hasReply ? p.rttMs : 0) + ' ms'}"
 	])('accepts %s', async (mustache) => {
 		expect(await rttRuleHits(mustache)).toBe(0);
 	});
