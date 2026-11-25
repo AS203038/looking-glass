@@ -1413,7 +1413,7 @@
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>make<span class="w"> </span>test-fuzz<span class="w">       </span><span class="c1"># Runs all Go fuzzers sequentially</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>make<span class="w"> </span>test-cover<span class="w">      </span><span class="c1"># Runs Go standard tests with coverage</span>
 </span></code></pre></div>
-<p>By default, each Go fuzzer runs for <code>10s</code> during <code>make test</code> or <code>make test-fuzz</code>. You can customize this duration by setting the <code>FUZZTIME</code> variable (e.g., <code>make test FUZZTIME=2s</code> or <code>make test-fuzz FUZZTIME=5s</code>).</p>
+<p>By default, each Go fuzzer runs for <code>250000x</code> executions during <code>make test</code> or <code>make test-fuzz</code>. You can customize this budget using an execution count or duration by setting the <code>FUZZTIME</code> variable (e.g., <code>make test FUZZTIME=50000x</code> or <code>make test-fuzz FUZZTIME=5s</code>). In CI, PR checks cache the generated fuzz corpus (<code>$(go env GOCACHE)/fuzz</code>) across runs and <a href="../.github/workflows/fuzz.yaml"><code>.github/workflows/fuzz.yaml</code></a> runs a nightly deep-fuzz sweep at <code>2000000x</code> per target.</p>
 <p>There aren't many tests today; this is a known shortcoming and contributions are extremely welcome. When adding tests:</p>
 <ul>
 <li>Keep them next to the file they cover (<code>foo.go</code> → <code>foo_test.go</code>).</li>
