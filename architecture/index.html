@@ -1190,7 +1190,7 @@
 <h3 id="pkgerrs-sentinel-errors"><code>pkg/errs</code> — sentinel errors<a class="headerlink" href="#pkgerrs-sentinel-errors" title="Permanent link">&para;</a></h3>
 <p>Five files of one-liner <code>errors.New(...)</code>. The whole point is that RPC clients never see anything more specific than these sentinels; operators see the gory detail in logs. The split per file is purely organisational (ipnet / sanitize / router / ssh).</p>
 <h3 id="webui-sveltekit-5-frontend"><code>webui</code> — SvelteKit 5 frontend<a class="headerlink" href="#webui-sveltekit-5-frontend" title="Permanent link">&para;</a></h3>
-<p>A pnpm workspace linked to <code>../protobuf</code> via <code>workspace:*</code>. Key files:</p>
+<p>A member of the root pnpm workspace, linked to <code>protobuf</code> via <code>workspace:*</code>. Key files:</p>
 <ul>
 <li><code>svelte.config.js</code> — adapter-static, output to <code>../cmd/server/dist</code>.</li>
 <li><code>src/lib/env.ts</code> — reads <code>PUBLIC_*</code> from <code>$env/dynamic/public</code> with sane defaults; consumed by every other module.</li>
