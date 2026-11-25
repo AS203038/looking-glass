@@ -30,11 +30,11 @@
 			</div>
 
 			<nav class="ml-auto flex flex-wrap items-center gap-1">
-				{#each customLinks as { name, href } (href)}
+				{#each customLinks as { name, href }, i (i)}
 					<a
 						{href}
 						target="_blank"
-						rel="noreferrer"
+						rel="noopener noreferrer"
 						class="lg-btn lg-btn-ghost h-8 !px-2.5 text-xs"
 					>
 						<span>{name}</span>
@@ -45,7 +45,7 @@
 				<a
 					href="https://github.com/AS203038/looking-glass"
 					target="_blank"
-					rel="noreferrer"
+					rel="noopener noreferrer"
 					class="lg-btn lg-btn-ghost h-8 !px-2.5 text-xs"
 					title="Source code on GitHub"
 				>

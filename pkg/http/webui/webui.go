@@ -2,7 +2,9 @@
 package webui
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/AS203038/looking-glass/pkg/utils"
@@ -34,10 +36,13 @@ type EnvJS struct {
 	SentryEnv string `json:"PUBLIC_SENTRY_ENV"`
 	// SentrySampleRate is the traces-sample-rate in [0, 1].
 	SentrySampleRate float64 `json:"PUBLIC_SENTRY_SAMPLE_RATE"`
+	// SentryReplay enables Sentry Session Replay in the browser when true.
+	SentryReplay bool `json:"PUBLIC_SENTRY_REPLAY"`
 }
 
-// ConfigInjector builds the `/_app/env.js` handler. The response body
-// is precomputed from cfg at construction time and reused per request.
+// ConfigInjector builds the `/_app/env.js` handler. The response body and
+// content-hash ETag are precomputed from cfg at construction time and reused
+// per request.
 func ConfigInjector(cfg utils.WebConfig) http.Handler {
 	envobj := EnvJS{
 		PageTitle:   cfg.Title,
@@ -54,11 +59,19 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 		envobj.SentryDSN = cfg.Sentry.DSN
 		envobj.SentryEnv = cfg.Sentry.Environment
 		envobj.SentrySampleRate = cfg.Sentry.SampleRate
+		envobj.SentryReplay = cfg.Sentry.Replay
 	}
 	envjson, _ := json.Marshal(envobj)
 	envjs := "export const env = " + string(envjson)
+	etag := fmt.Sprintf("\"%x\"", sha256.Sum256([]byte(envjs)))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("ETag", etag)
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 		w.Write([]byte(envjs))
 	})
 }

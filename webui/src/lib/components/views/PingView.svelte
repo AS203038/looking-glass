@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Pb } from '$lib/grpc';
+	import { float32 } from '$lib/format';
 
 	interface Props {
 		stats: Pb.PingStats;
@@ -15,13 +16,13 @@
 	);
 </script>
 
-<div class="grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-4">
+<div class="grid grid-cols-2 gap-3 px-4 py-3 tabular-nums sm:grid-cols-4">
 	<div>
 		<div class="text-[10px] tracking-wider uppercase" style="color: var(--color-fg-subtle);">
 			Loss
 		</div>
 		<div class="font-mono text-lg font-semibold {lossClass}">
-			{stats.lossPct.toFixed(0)}%
+			{float32(stats.lossPct)}%
 		</div>
 		<div class="text-xs" style="color: var(--color-fg-muted);">
 			{stats.packetsReceived} / {stats.packetsSent} pkts

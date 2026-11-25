@@ -129,6 +129,7 @@ web:
     dsn: "https://...sentry.io/..."
     environment: "production"
     sample_rate: 0.1
+    replay: false
 ```
 
 | Key                  | Type    | Default | Notes                                                                                            |
@@ -146,6 +147,7 @@ web:
 | `sentry.dsn`         | string  | `""`    | Sentry project DSN. Forwarded to the browser when `sentry.enabled` is true.                       |
 | `sentry.environment` | string  | `""`    | Tag attached to every event. Treated by Sentry as "production" when blank.                        |
 | `sentry.sample_rate` | float   | `0.0`   | Traces-sample-rate `[0,1]`. `0` keeps error reporting but disables performance tracing.            |
+| `sentry.replay`      | bool    | `false` | Enables Sentry Session Replay in the browser when `sentry.enabled` is true.                        |
 
 The link list is serialised into a `"name|href,name|href"` string in `/_app/env.js` (see `utils.HFBlock.LinksString`). This is an implementation detail of the env bridge and not part of any public API.
 

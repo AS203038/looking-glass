@@ -151,6 +151,8 @@ type SentryConfig struct {
 	Environment string `yaml:"environment"`
 	// SampleRate is the traces-sample-rate in [0, 1].
 	SampleRate float64 `yaml:"sample_rate"`
+	// Replay enables Sentry Session Replay in the browser when true.
+	Replay bool `yaml:"replay"`
 }
 
 // HFBlock describes a header or footer content block.

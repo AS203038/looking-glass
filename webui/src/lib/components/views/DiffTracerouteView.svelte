@@ -35,7 +35,6 @@
 			if (o && !n) arr.push({ ttl, old: o, status: 'removed' });
 			else if (!o && n) arr.push({ ttl, new: n, status: 'added' });
 			else if (o && n) {
-				// To check if changed, we can stringify their probes simply
 				const oStr = o.probes.map((p) => `${p.ip}-${p.rttMs}`).join('|');
 				const nStr = n.probes.map((p) => `${p.ip}-${p.rttMs}`).join('|');
 				arr.push({ ttl, old: o, new: n, status: oStr === nStr ? 'unchanged' : 'changed' });
@@ -45,8 +44,8 @@
 	});
 </script>
 
-<div class="flex-1 overflow-auto bg-(--color-bg-base)">
-	<table class="w-full font-mono text-xs">
+<div class="flex-1 overflow-auto bg-(--color-bg)">
+	<table class="w-full font-mono text-xs tabular-nums">
 		<thead
 			class="sticky top-0"
 			style="background-color: var(--color-bg-inset); color: var(--color-fg-subtle);"
@@ -85,7 +84,10 @@
 							<div class="flex flex-col">
 								{#each r.old.probes as p, i (i)}
 									{#if p.ip}
-										<span>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}</span>
+										<span
+											>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}{#if p.asn > 0}
+												<span class="ml-1 opacity-75">AS{p.asn}</span>{/if}</span
+										>
 									{:else}
 										<span>*</span>
 									{/if}
@@ -98,7 +100,10 @@
 							<div class="flex flex-col">
 								{#each r.new.probes as p, i (i)}
 									{#if p.ip}
-										<span>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}</span>
+										<span
+											>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}{#if p.asn > 0}
+												<span class="ml-1 opacity-75">AS{p.asn}</span>{/if}</span
+										>
 									{:else}
 										<span>*</span>
 									{/if}

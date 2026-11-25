@@ -11,6 +11,10 @@ export interface HistoryEntry {
 	results: Record<string, ExecResult>;
 }
 
+const STORAGE_KEY = 'lg-history';
+const MAX_HISTORY_ENTRIES = 15;
+const LARGE_BYTES_THRESHOLD = 262_144;
+
 function generateUUID(): string {
 	if (typeof crypto !== 'undefined' && crypto.randomUUID) {
 		return crypto.randomUUID();
@@ -22,13 +26,14 @@ function generateUUID(): string {
 	});
 }
 
+/** Encodes a byte slice to base64 in chunks to avoid excessive string allocations. */
 function uint8ToBase64(u8: Uint8Array): string {
-	let binary = '';
-	const len = u8.byteLength;
-	for (let i = 0; i < len; i++) {
-		binary += String.fromCharCode(u8[i]);
+	const CHUNK = 0x8000;
+	const parts: string[] = [];
+	for (let i = 0; i < u8.byteLength; i += CHUNK) {
+		parts.push(String.fromCharCode(...u8.subarray(i, i + CHUNK)));
 	}
-	return btoa(binary);
+	return btoa(parts.join(''));
 }
 
 function base64ToUint8(b64: string): Uint8Array {
@@ -58,7 +63,7 @@ function serializeHistory(entries: HistoryEntry[]): string {
 }
 
 function deserializeHistory(json: string): HistoryEntry[] {
-	return JSON.parse(json, (key, value) => {
+	return JSON.parse(json, (_key, value) => {
 		if (value && typeof value === 'object') {
 			if (value.__type === 'Date') {
 				return new Date(value.value);
@@ -74,39 +79,77 @@ function deserializeHistory(json: string): HistoryEntry[] {
 	});
 }
 
+function stripLargeBytes(entry: HistoryEntry): HistoryEntry {
+	const results: Record<string, ExecResult> = {};
+	for (const [k, res] of Object.entries(entry.results)) {
+		if (res.bytes && res.bytes.byteLength > LARGE_BYTES_THRESHOLD) {
+			results[k] = { ...res, bytes: null };
+		} else {
+			results[k] = res;
+		}
+	}
+	return { ...entry, results };
+}
+
+function persistHistory(entries: HistoryEntry[]) {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		localStorage.setItem(STORAGE_KEY, serializeHistory(entries));
+		return;
+	} catch {
+		// Fall through to quota-recovery trimming below.
+	}
+
+	let candidate = entries.map((e, idx) => (idx > 0 ? stripLargeBytes(e) : e));
+	while (candidate.length > 0) {
+		try {
+			localStorage.setItem(STORAGE_KEY, serializeHistory(candidate));
+			return;
+		} catch {
+			candidate = candidate.slice(0, -1);
+		}
+	}
+	try {
+		localStorage.removeItem(STORAGE_KEY);
+	} catch {
+		/* localStorage unavailable */
+	}
+}
+
 function loadHistory(): HistoryEntry[] {
 	if (typeof localStorage === 'undefined') return [];
-	const stored = localStorage.getItem('lg-history');
+	const stored = localStorage.getItem(STORAGE_KEY);
 	if (!stored) return [];
 	try {
-		return deserializeHistory(stored);
+		const parsed = deserializeHistory(stored);
+		return Array.isArray(parsed) ? parsed : [];
 	} catch (e) {
 		console.warn('Failed to parse history from localStorage', e);
 		return [];
 	}
 }
 
+/** Reactive store of the most recent executed queries. */
 export const history = writable<HistoryEntry[]>(loadHistory());
 
 history.subscribe((entries) => {
-	if (typeof localStorage === 'undefined') return;
-	try {
-		localStorage.setItem('lg-history', serializeHistory(entries));
-	} catch (e) {
-		console.warn('Failed to save history to localStorage', e);
-		// If quota exceeded, we could trim here, but we already limit to 15 items below
-	}
+	persistHistory(entries);
 });
 
+/** Records an executed query in history, skipping all-error runs and duplicate cached hits. */
 export function pushHistory(
 	command: CommandValue,
 	parameter: string,
 	routers: Pb.Router[],
 	results: Record<string, ExecResult>
 ) {
+	const resultsArray = Object.values(results);
+	if (resultsArray.length === 0 || resultsArray.every((r) => r.status === 'error')) {
+		return;
+	}
+
 	history.update((h) => {
-		const resultsArray = Object.values(results);
-		if (resultsArray.length > 0 && resultsArray.every((r) => r.cached)) {
+		if (resultsArray.every((r) => r.cached)) {
 			const isDuplicate = h.some((entry) => {
 				if (entry.command !== command || entry.parameter !== parameter) return false;
 				if (entry.routers.length !== routers.length) return false;
@@ -135,9 +178,18 @@ export function pushHistory(
 			routers,
 			results
 		};
-		// Keep last 15 entries to avoid hitting localStorage 5MB quota
 		const next = [entry, ...h];
-		if (next.length > 15) next.length = 15;
+		if (next.length > MAX_HISTORY_ENTRIES) next.length = MAX_HISTORY_ENTRIES;
 		return next;
 	});
+}
+
+/** Removes a single history entry by id. */
+export function deleteHistoryEntry(id: string) {
+	history.update((h) => h.filter((entry) => entry.id !== id));
+}
+
+/** Clears all stored query history. */
+export function clearHistory() {
+	history.set([]);
 }

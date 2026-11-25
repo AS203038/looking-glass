@@ -41,9 +41,9 @@ export default defineConfig(
 				'error',
 				{
 					selector:
-						"SvelteMustacheTag[kind='text'] :matches(TemplateLiteral, BinaryExpression[operator='+'], ConditionalExpression) > MemberExpression[property.name=/Ms$/]:not(.test):not(CallExpression *), SvelteMustacheTag[kind='text'] > MemberExpression[property.name=/Ms$/]",
+						"SvelteMustacheTag[kind='text'] :matches(TemplateLiteral, BinaryExpression[operator='+'], ConditionalExpression) > MemberExpression[property.name=/(Ms|Pct)$/]:not(.test):not(CallExpression *), SvelteMustacheTag[kind='text'] > MemberExpression[property.name=/(Ms|Pct)$/]",
 					message:
-						'An *Ms field is a proto float: show it with float32() from $lib/format or toFixed().'
+						'An *Ms or *Pct field is a proto float: show it with float32() from $lib/format or toFixed().'
 				}
 			]
 		}

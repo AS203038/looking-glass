@@ -100,6 +100,36 @@ func TestLoggingHandler(t *testing.T) {
 	if recCached.Code != http.StatusNotModified {
 		t.Errorf("expected 304 Not Modified, got %d", recCached.Code)
 	}
+
+	// /_app/env.js must bypass the binary-version ETag shortcut so config edits take effect.
+	reqEnv := httptest.NewRequest("GET", "/_app/env.js", nil)
+	reqEnv.Header.Set("If-None-Match", etag)
+	recEnv := httptest.NewRecorder()
+	logged.ServeHTTP(recEnv, reqEnv)
+	if recEnv.Code != http.StatusTeapot {
+		t.Errorf("expected /_app/env.js to reach inner handler (418), got %d", recEnv.Code)
+	}
+}
+
+// TestSecurityHeadersHandler verifies that baseline HTTP security headers are added to responses.
+func TestSecurityHeadersHandler(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := securityHeadersHandler(inner)
+	req := httptest.NewRequest("GET", "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q, want nosniff", got)
+	}
+	if got := rec.Header().Get("Referrer-Policy"); got != "strict-origin-when-cross-origin" {
+		t.Errorf("Referrer-Policy = %q, want strict-origin-when-cross-origin", got)
+	}
+	if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Errorf("X-Frame-Options = %q, want DENY", got)
+	}
 }
 
 // TestListenAndServe exercises all major configuration paths in ListenAndServe.

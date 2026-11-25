@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
+	import { browser } from '$app/environment';
 	import {
 		routers,
 		loadState,
+		loadError,
 		selectedIds,
+		selectedRouters,
 		toggleSelection,
 		selectMany,
+		deselectMany,
 		clearSelection,
-		loadRouters
+		loadRouters,
+		retryLoadRouters
 	} from '$lib/stores/routers';
+	import { command, parameter } from '$lib/stores/query';
+	import { parseUrlState, syncUrlState } from '$lib/urlSync';
+	import { transitionDuration } from '$lib/motion';
 	import type { Pb } from '$lib/grpc';
 	import Loader from './Loader.svelte';
 	import { now, relativeTime, absoluteTime, isoTime } from '$lib/time';
@@ -22,29 +30,33 @@
 	import RouterIcon from '@lucide/svelte/icons/router';
 	import CheckCheck from '@lucide/svelte/icons/check-check';
 	import EraserIcon from '@lucide/svelte/icons/eraser';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
-	let allRouters: Pb.Router[] = $state([]);
-	let routerLoadState: 'idle' | 'loading' | 'ready' | 'error' = $state('idle');
-	let ids: Set<bigint> = $state(new Set());
 	let query = $state('');
+	let hideUnhealthy = $state(false);
+	let bmpOnly = $state(false);
 	let collapsedLocations: Set<string> = $state(new Set());
 	let activeLocation = $state<string | null>(null);
-	let nowDate = $state(new Date());
+	let urlHydrated = $state(false);
 
-	routers.subscribe((r) => (allRouters = r));
-	loadState.subscribe((s) => (routerLoadState = s));
-	selectedIds.subscribe((s) => (ids = s));
-	now.subscribe((d) => (nowDate = d));
+	onMount(() => {
+		void loadRouters();
+	});
 
-	onMount(loadRouters);
+	const hasAnyBmp = $derived($routers.some((r) => r.bmpActive));
+	const healthyRouters = $derived($routers.filter((r) => r.health?.healthy === true));
+	const allHealthySelected = $derived(
+		healthyRouters.length > 0 && healthyRouters.every((r) => $selectedIds.has(r.id))
+	);
 
 	const filtered = $derived.by(() => {
 		const q = query.trim().toLowerCase();
-		if (!q) return allRouters;
-		return allRouters.filter(
-			(r: Pb.Router) =>
-				r.name.toLowerCase().includes(q) || (r.location ?? '').toLowerCase().includes(q)
-		);
+		return $routers.filter((r: Pb.Router) => {
+			if (hideUnhealthy && r.health?.healthy !== true) return false;
+			if (bmpOnly && !r.bmpActive) return false;
+			if (!q) return true;
+			return r.name.toLowerCase().includes(q) || (r.location ?? '').toLowerCase().includes(q);
+		});
 	});
 
 	const grouped = $derived.by(() => {
@@ -59,10 +71,44 @@
 
 	const totalLocationCount = $derived.by(() => {
 		const seen = new Set<string>();
-		for (const r of allRouters) seen.add(r.location || 'Other');
+		for (const r of $routers) seen.add(r.location || 'Other');
 		return seen.size;
 	});
 	const showQuickNav = $derived(totalLocationCount >= 8);
+
+	$effect(() => {
+		if (!browser || urlHydrated || $loadState !== 'ready') return;
+		urlHydrated = true;
+		const initial = parseUrlState(window.location.search);
+		if (initial.routers.length > 0) {
+			const wanted = new Set(initial.routers.map((s) => s.toLowerCase()));
+			const matched = $routers
+				.filter(
+					(r) =>
+						r.health?.healthy === true &&
+						(wanted.has(r.name.toLowerCase()) || wanted.has(r.id.toString()))
+				)
+				.map((r) => r.id);
+			if (matched.length > 0) {
+				selectMany(matched);
+			}
+		}
+		if (initial.cmd) {
+			command.set(initial.cmd);
+		}
+		if (initial.param) {
+			parameter.set(initial.param);
+		}
+	});
+
+	$effect(() => {
+		if (!browser || !urlHydrated) return;
+		syncUrlState({
+			routerNames: $selectedRouters.map((r) => r.name),
+			cmd: $command,
+			param: $parameter
+		});
+	});
 
 	function toggleGroup(loc: string) {
 		const next = new Set(collapsedLocations);
@@ -76,21 +122,22 @@
 		return !collapsedLocations.has(loc);
 	}
 
+	function selectAllHealthy() {
+		selectMany(healthyRouters.map((r) => r.id));
+	}
+
 	function selectAllInGroup(group: Pb.Router[]) {
 		selectMany(group.filter((r) => r.health?.healthy === true).map((r) => r.id));
 	}
 
 	function clearGroup(group: Pb.Router[]) {
-		const groupIds = new Set(group.map((r) => r.id));
-		for (const id of groupIds) {
-			if (ids.has(id)) toggleSelection(id);
-		}
+		deselectMany(group.map((r) => r.id));
 	}
 
 	function groupSelectionState(group: Pb.Router[]): 'none' | 'some' | 'all' {
 		const healthy = group.filter((r) => r.health?.healthy === true);
 		if (healthy.length === 0) return 'none';
-		const selectedInGroup = healthy.filter((r) => ids.has(r.id)).length;
+		const selectedInGroup = healthy.filter((r) => $selectedIds.has(r.id)).length;
 		if (selectedInGroup === 0) return 'none';
 		if (selectedInGroup === healthy.length) return 'all';
 		return 'some';
@@ -107,7 +154,12 @@
 
 	let observer: IntersectionObserver | null = null;
 	$effect(() => {
-		if (typeof window === 'undefined') return;
+		if (typeof window === 'undefined' || !showQuickNav) {
+			observer?.disconnect();
+			observer = null;
+			return;
+		}
+		const currentGrouped = grouped;
 		observer?.disconnect();
 		observer = new IntersectionObserver(
 			(entries) => {
@@ -116,7 +168,7 @@
 					.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
 				if (visible.length > 0) {
 					const id = visible[0].target.id;
-					const match = grouped.find(([loc]) => locationAnchorId(loc) === id);
+					const match = currentGrouped.find(([loc]) => locationAnchorId(loc) === id);
 					if (match) activeLocation = match[0];
 				}
 			},
@@ -125,13 +177,16 @@
 				threshold: [0, 0.25, 0.5]
 			}
 		);
-		requestAnimationFrame(() => {
-			for (const [loc] of grouped) {
+		const rafId = requestAnimationFrame(() => {
+			for (const [loc] of currentGrouped) {
 				const el = document.getElementById(locationAnchorId(loc));
-				if (el) observer!.observe(el);
+				if (el) observer?.observe(el);
 			}
 		});
-		return () => observer?.disconnect();
+		return () => {
+			cancelAnimationFrame(rafId);
+			observer?.disconnect();
+		};
 	});
 
 	/** Health check Date from the protobuf timestamp, or null when missing. */
@@ -143,32 +198,78 @@
 </script>
 
 <section aria-labelledby="router-picker-title" class="flex w-full flex-col gap-3">
-	<header class="flex flex-wrap items-baseline gap-3" id="router-picker-title">
-		<h2 class="text-sm font-semibold tracking-wide uppercase">Routers</h2>
-		{#if routerLoadState === 'ready'}
-			<span class="lg-badge">{allRouters.length} total</span>
-			{#if ids.size > 0}
-				<span class="lg-badge lg-badge-info">{ids.size} selected</span>
+	<header class="flex flex-wrap items-center gap-2">
+		<h2 id="router-picker-title" class="text-sm font-semibold tracking-wide uppercase">Routers</h2>
+		{#if $loadState === 'ready'}
+			<span class="lg-badge">{$routers.length} total</span>
+			{#if $selectedIds.size > 0}
+				<span class="lg-badge lg-badge-info">{$selectedIds.size} selected</span>
+			{/if}
+			<div class="ml-auto flex flex-wrap items-center gap-1.5">
 				<button
 					type="button"
-					class="lg-btn lg-btn-ghost ml-auto h-7 !px-2 text-xs"
-					onclick={clearSelection}
-					title="Deselect every router"
+					class="lg-btn h-7 !px-2 text-xs {hideUnhealthy ? 'lg-btn-outline' : 'lg-btn-ghost'}"
+					aria-pressed={hideUnhealthy}
+					onclick={() => (hideUnhealthy = !hideUnhealthy)}
 				>
-					Clear all
+					Hide unreachable
 				</button>
-			{/if}
+				{#if hasAnyBmp}
+					<button
+						type="button"
+						class="lg-btn h-7 !px-2 text-xs {bmpOnly ? 'lg-btn-outline' : 'lg-btn-ghost'}"
+						aria-pressed={bmpOnly}
+						onclick={() => (bmpOnly = !bmpOnly)}
+					>
+						BMP only
+					</button>
+				{/if}
+				{#if healthyRouters.length > 0 && !allHealthySelected}
+					<button
+						type="button"
+						class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
+						onclick={selectAllHealthy}
+						title="Select all healthy routers"
+					>
+						<CheckCheck size={12} />
+						Select all healthy
+					</button>
+				{/if}
+				{#if $selectedIds.size > 0}
+					<button
+						type="button"
+						class="lg-btn lg-btn-ghost h-7 !px-2 text-xs"
+						onclick={clearSelection}
+						title="Deselect every router"
+					>
+						Clear all
+					</button>
+				{/if}
+			</div>
 		{/if}
 	</header>
 
-	{#if routerLoadState === 'loading' && allRouters.length === 0}
-		<div class="lg-card flex justify-center p-8" in:fade>
+	{#if $loadState === 'loading' && $routers.length === 0}
+		<div class="lg-card flex justify-center p-8" in:fade={{ duration: transitionDuration(150) }}>
 			<Loader label="loading routers" />
 		</div>
-	{:else if routerLoadState === 'error'}
-		<div class="lg-card flex items-center gap-3 p-4" style="color: var(--color-danger);">
-			<CircleX size={18} />
-			<span class="text-sm">Failed to load routers — see the toast for details.</span>
+	{:else if $loadState === 'error'}
+		<div class="lg-card flex flex-wrap items-center gap-3 p-4" style="color: var(--color-danger);">
+			<CircleX size={18} class="shrink-0" />
+			<div class="min-w-0 flex-1">
+				<p class="text-sm font-medium">Failed to load routers</p>
+				{#if $loadError}
+					<p class="font-mono text-xs break-words opacity-80">{$loadError}</p>
+				{/if}
+			</div>
+			<button type="button" class="lg-btn lg-btn-outline h-8 text-xs" onclick={retryLoadRouters}>
+				<RotateCcw size={13} />
+				Retry
+			</button>
+		</div>
+	{:else if $loadState === 'ready' && $routers.length === 0}
+		<div class="lg-card p-6 text-center text-sm" style="color: var(--color-fg-muted);">
+			No routers configured on this Looking Glass instance.
 		</div>
 	{:else}
 		<div
@@ -194,7 +295,11 @@
 
 		{#if grouped.length === 0}
 			<p class="px-1 py-6 text-center text-sm" style="color: var(--color-fg-muted);">
-				No routers match <span class="font-mono">"{query}"</span>.
+				{#if query.trim()}
+					No routers match <span class="font-mono">"{query}"</span>.
+				{:else}
+					No routers match the active filters.
+				{/if}
 			</p>
 		{:else}
 			<div class="flex gap-3">
@@ -203,7 +308,7 @@
 						{@const expanded = isExpanded(location)}
 						{@const selState = groupSelectionState(routerGroup)}
 						{@const anchorId = locationAnchorId(location)}
-						<div class="lg-card" id={anchorId}>
+						<div class="lg-card scroll-mt-[120px]" id={anchorId}>
 							<div
 								class="sticky z-[5] flex items-center gap-2 rounded-t-xl border-b px-4 py-2.5 backdrop-blur-md"
 								style="top: calc(var(--lg-header-h) + var(--lg-picker-search-h));
@@ -261,7 +366,7 @@
 									style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));"
 								>
 									{#each routerGroup as rt (rt.id)}
-										{@const selected = ids.has(rt.id)}
+										{@const selected = $selectedIds.has(rt.id)}
 										{@const healthy = rt.health?.healthy === true}
 										{@const lastCheck = healthCheckDate(rt)}
 										<button
@@ -282,6 +387,14 @@
 											<span class="flex w-full items-center gap-2">
 												<RouterIcon size={14} class="shrink-0 opacity-60" />
 												<span class="truncate text-sm font-medium">{rt.name}</span>
+												{#if rt.bmpActive}
+													<span
+														class="lg-badge lg-badge-info !px-1.5 !py-0 text-[10px]"
+														title="BMP real-time telemetry active"
+													>
+														BMP
+													</span>
+												{/if}
 												{#if selected}
 													<span
 														class="ml-auto inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
@@ -320,7 +433,7 @@
 														datetime={isoTime(lastCheck)}
 														title={`Last health check: ${absoluteTime(lastCheck)}`}
 													>
-														{relativeTime(lastCheck, nowDate)}
+														{relativeTime(lastCheck, $now)}
 													</time>
 												{/if}
 											</span>
@@ -356,7 +469,7 @@
 									: 'transparent'};
 								       color: {active ? 'var(--color-accent)' : 'var(--color-fg-muted)'};"
 								onclick={() => scrollToLocation(loc)}
-								aria-current={active ? 'true' : 'false'}
+								aria-current={active ? 'location' : undefined}
 								title={loc}
 							>
 								{loc}

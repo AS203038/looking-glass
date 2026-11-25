@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { toasts, dismissToast, type Toast } from '$lib/toast';
+	import { transitionDuration } from '$lib/motion';
 	import X from '@lucide/svelte/icons/x';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import CircleX from '@lucide/svelte/icons/circle-x';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import Info from '@lucide/svelte/icons/info';
-
-	let list = $state<Toast[]>([]);
-	toasts.subscribe((v) => (list = v));
 
 	function iconFor(kind: Toast['kind']) {
 		switch (kind) {
@@ -43,12 +41,12 @@
 	aria-live="polite"
 	aria-atomic="false"
 >
-	{#each list as t (t.id)}
+	{#each $toasts as t (t.id)}
 		{@const Icon = iconFor(t.kind)}
 		<div
 			class="lg-card pointer-events-auto flex items-start gap-3 p-3 shadow-lg"
-			in:fly={{ y: -8, duration: 180 }}
-			out:fade={{ duration: 140 }}
+			in:fly={{ y: -8, duration: transitionDuration(180) }}
+			out:fade={{ duration: transitionDuration(140) }}
 			role={t.kind === 'error' ? 'alert' : 'status'}
 		>
 			<span class={['lg-badge mt-0.5', badgeClassFor(t.kind)].join(' ')}>
