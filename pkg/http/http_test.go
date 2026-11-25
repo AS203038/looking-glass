@@ -1,16 +1,21 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"testing/fstest"
 	"time"
 
+	"github.com/AS203038/looking-glass/pkg/http/grpc"
 	"github.com/AS203038/looking-glass/pkg/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 // TestHttpWriter verifies that httpwriter correctly wraps ResponseWriter and intercepts status codes.
@@ -251,6 +256,228 @@ func TestListenAndServe(t *testing.T) {
 				err := <-errCh
 				if err != nil && err != http.ErrServerClosed && !tt.wantErr {
 					t.Errorf("ListenAndServe() failed on shutdown: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestRedactRedisURI(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{
+			name: "no credentials",
+			raw:  "redis://localhost:6379/0",
+			want: "redis://localhost:6379/0",
+		},
+		{
+			name: "non-sensitive query",
+			raw:  "redis://redis-svc:6379/0?protocol=3",
+			want: "redis://redis-svc:6379/0?protocol=3",
+		},
+		{
+			name: "password only",
+			raw:  "redis://:supersecret@localhost:6379/0",
+			want: "redis://:xxxxx@localhost:6379/0",
+		},
+		{
+			name: "user and password with tls and query",
+			raw:  "rediss://alice:supersecret@redis.example.com:6380/2?protocol=3",
+			want: "rediss://alice:xxxxx@redis.example.com:6380/2?protocol=3",
+		},
+		{
+			name: "bare userinfo without colon",
+			raw:  "redis://supersecret@localhost:6379/0",
+			want: "redis://xxxxx@localhost:6379/0",
+		},
+		{
+			name: "unix socket with credentials",
+			raw:  "unix://alice:supersecret@/var/run/redis.sock?db=1",
+			want: "unix://alice:xxxxx@/var/run/redis.sock?db=1",
+		},
+		{
+			name: "ipv6 host with password",
+			raw:  "redis://:supersecret@[::1]:6379/0",
+			want: "redis://:xxxxx@[::1]:6379/0",
+		},
+		{
+			name: "unparseable uri with space",
+			raw:  "redis://:my secret@localhost:6379/0",
+			want: "<redacted>",
+		},
+		{
+			name: "unparseable uri with invalid escape",
+			raw:  "redis://:my%zzsecret@localhost:6379/0",
+			want: "<redacted>",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := redactRedisURI(tc.raw)
+			if got != tc.want {
+				t.Errorf("redactRedisURI(%q) = %q, want %q", tc.raw, got, tc.want)
+			}
+		})
+	}
+
+	t.Run("sensitive query parameter", func(t *testing.T) {
+		got := redactRedisURI("redis://localhost:6379/0?password=supersecret&protocol=3")
+		if strings.Contains(got, "supersecret") {
+			t.Fatalf("expected secret to be redacted, got %q", got)
+		}
+		if !strings.Contains(got, "password=xxxxx") {
+			t.Errorf("expected password=xxxxx in %q", got)
+		}
+		if !strings.Contains(got, "protocol=3") {
+			t.Errorf("expected protocol=3 in %q", got)
+		}
+	})
+}
+
+func TestSanitizeRedisParseErr(t *testing.T) {
+	t.Run("unparseable uri with space", func(t *testing.T) {
+		_, err := redis.ParseURL("redis://:mysecret pw@localhost:6379/0")
+		if err == nil {
+			t.Fatal("expected parse error")
+		}
+		sanitized := sanitizeRedisParseErr(err).Error()
+		if strings.Contains(sanitized, "mysecret") || strings.Contains(sanitized, "pw") {
+			t.Fatalf("sanitized error leaked credentials: %q", sanitized)
+		}
+		if !strings.Contains(sanitized, "<redacted>") {
+			t.Errorf("expected <redacted> in %q", sanitized)
+		}
+	})
+
+	t.Run("unparseable uri with invalid escape", func(t *testing.T) {
+		_, err := redis.ParseURL("redis://:my%zzsecret@localhost:6379/0")
+		if err == nil {
+			t.Fatal("expected parse error")
+		}
+		sanitized := sanitizeRedisParseErr(err).Error()
+		for _, forbidden := range []string{"my", "secret", "%zz"} {
+			if strings.Contains(sanitized, forbidden) {
+				t.Fatalf("sanitized error leaked %q: %q", forbidden, sanitized)
+			}
+		}
+		if !strings.Contains(sanitized, "<redacted>") {
+			t.Errorf("expected <redacted> in %q", sanitized)
+		}
+		if !strings.Contains(sanitized, "invalid URL escape") {
+			t.Errorf("expected invalid URL escape in %q", sanitized)
+		}
+	})
+
+	t.Run("parseable url with invalid scheme", func(t *testing.T) {
+		_, err := redis.ParseURL("http://:mysecret@localhost:6379/0")
+		if err == nil {
+			t.Fatal("expected parse error")
+		}
+		sanitized := sanitizeRedisParseErr(err).Error()
+		if strings.Contains(sanitized, "mysecret") {
+			t.Fatalf("sanitized error leaked credentials: %q", sanitized)
+		}
+	})
+}
+
+type syncLogBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncLogBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncLogBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func TestListenAndServeRedactsRedisPassword(t *testing.T) {
+	mockFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("welcome")},
+	}
+
+	prev := slog.Default()
+	defer slog.SetDefault(prev)
+	defer func() {
+		grpc.SetRedis(nil)
+		grpc.SetRPCCache(nil, 0)
+	}()
+
+	cases := []struct {
+		name         string
+		uri          string
+		wantContains []string
+		wantAbsent   []string
+	}{
+		{
+			name:         "valid uri with password",
+			uri:          "redis://alice:top-secret-pw@127.0.0.1:6379/0?protocol=3",
+			wantContains: []string{"connecting to redis", "redis://alice:xxxxx@127.0.0.1:6379/0?protocol=3"},
+			wantAbsent:   []string{"top-secret-pw"},
+		},
+		{
+			name:         "parseable invalid-scheme uri with password",
+			uri:          "http://:top-secret-pw@127.0.0.1:6379/0",
+			wantContains: []string{"redis url parse failed", "http://:xxxxx@127.0.0.1:6379/0"},
+			wantAbsent:   []string{"top-secret-pw"},
+		},
+		{
+			name:         "unparseable uri with invalid escape and password",
+			uri:          "redis://:top%zzsecret@127.0.0.1:6379/0",
+			wantContains: []string{"redis url parse failed", "<redacted>"},
+			wantAbsent:   []string{"top", "%zz", "secret"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := &syncLogBuffer{}
+			slog.SetDefault(slog.New(slog.NewJSONHandler(buf, nil)))
+
+			cfg := &utils.Config{}
+			cfg.Grpc.Listen = "127.0.0.1:0"
+			cfg.Redis.Enabled = true
+			cfg.Redis.URI = tc.uri
+
+			ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+			defer cancel()
+
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- ListenAndServe(ctx, cfg, utils.RouterMap{}, mockFS)
+			}()
+
+			select {
+			case err := <-errCh:
+				if err != nil && err != http.ErrServerClosed {
+					t.Fatalf("ListenAndServe() error = %v", err)
+				}
+			case <-time.After(100 * time.Millisecond):
+				cancel()
+				if err := <-errCh; err != nil && err != http.ErrServerClosed {
+					t.Fatalf("ListenAndServe() shutdown error = %v", err)
+				}
+			}
+
+			logs := buf.String()
+			for _, want := range tc.wantContains {
+				if !strings.Contains(logs, want) {
+					t.Errorf("expected logs to contain %q, got:\n%s", want, logs)
+				}
+			}
+			for _, absent := range tc.wantAbsent {
+				if strings.Contains(logs, absent) {
+					t.Errorf("expected logs NOT to contain %q, got:\n%s", absent, logs)
 				}
 			}
 		})
