@@ -1304,7 +1304,7 @@
 <tr>
 <td>Node.js</td>
 <td>WebUI build / dev server</td>
-<td>20.x LTS</td>
+<td>22.17+ (26.x LTS recommended)</td>
 </tr>
 <tr>
 <td>pnpm</td>
@@ -1334,12 +1334,11 @@
 </tbody>
 </table>
 <p>Install Go and Node from your distro / nvm. For everything else:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># pnpm via corepack (ships with Node ≥ 16; reads `packageManager` from root package.json)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>corepack<span class="w"> </span><span class="nb">enable</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>corepack<span class="w"> </span>prepare<span class="w"> </span>--activate
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># buf (optional, only needed when regenerating protobuf)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>make<span class="w"> </span>install-tools<span class="w">     </span><span class="c1"># equivalent to: go install github.com/bufbuild/buf/cmd/buf@latest</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># pnpm (pinned in root package.json; Node 25+ dropped Corepack, so install via npm)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>node<span class="w"> </span>-p<span class="w"> </span><span class="s2">"require('./package.json').packageManager.split('+')[0]"</span><span class="k">)</span><span class="s2">"</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># buf (optional, only needed when regenerating protobuf)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>make<span class="w"> </span>install-tools<span class="w">     </span><span class="c1"># equivalent to: go install github.com/bufbuild/buf/cmd/buf@latest</span>
 </span></code></pre></div>
 <h2 id="one-shot-setup">One-shot setup<a class="headerlink" href="#one-shot-setup" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AS203038/looking-glass.git
@@ -1368,7 +1367,7 @@
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">web</span><span class="p">:</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">grpc_url</span><span class="p">:</span><span class="w"> </span><span class="s">"http://localhost:8080"</span>
 </span></code></pre></div>
-<p>…or override at the env level (the WebUI reads <code>$env/dynamic/public</code>):</p>
+<p>…or override at the env level (the WebUI reads <code>$app/env/public</code>):</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">PUBLIC_GRPC_URL</span><span class="o">=</span>http://localhost:8080<span class="w"> </span>pnpm<span class="w"> </span>--dir<span class="w"> </span>webui<span class="w"> </span>dev
 </span></code></pre></div>
 <p>CORS is permissive for development (the server's CORS middleware allows <code>*</code> by default), so cross-origin gRPC-Web requests from <code>localhost:5173</code> to <code>localhost:8080</code> work out of the box.</p>
@@ -1453,13 +1452,13 @@
 </span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>│   ├── lib/         # Reusable building blocks
 </span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>│   │   ├── stores/  # Svelte stores (routers, query, sheet)
 </span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>│   │   ├── components/  # Visual components (CommandDock, ResultsSheet, …)
-</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>│   │   ├── env.ts   # Wraps $env/dynamic/public with defaults
+</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>│   │   ├── env.ts   # Wraps $app/env/public with defaults
 </span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>│   │   └── grpc.ts  # Singleton ConnectRPC client
 </span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>│   ├── routes/      # SvelteKit pages and layouts
 </span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>│   ├── hooks.client.ts  # Sentry lazy-init
 </span><span id="__span-13-24"><a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>│   └── app.html     # HTML shell (pre-paint theme script lives here)
 </span><span id="__span-13-25"><a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>├── static/          # Favicons, manifest, robots.txt
-</span><span id="__span-13-26"><a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>├── svelte.config.js # adapter-static → ../cmd/server/dist
+</span><span id="__span-13-26"><a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>├── vite.config.ts   # sveltekit() + adapter-static → ../cmd/server/dist
 </span><span id="__span-13-27"><a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>└── package.json     # workspace:* to ../protobuf
 </span><span id="__span-13-28"><a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>
 </span><span id="__span-13-29"><a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a>docs/                # ← this documentation

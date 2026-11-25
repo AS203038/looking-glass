@@ -1133,7 +1133,7 @@
 <h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
 <h3 id="cmdserver-entry-point"><code>cmd/server</code> — entry point<a class="headerlink" href="#cmdserver-entry-point" title="Permanent link">&para;</a></h3>
 <p><code>main.go</code> parses <code>config.yaml</code>, asks <code>pkg/routers</code> to materialise the device list, and hands control to <code>pkg/http.ListenAndServe</code>. The whole file is ~60 lines because the heavy lifting lives in <code>pkg/</code>.</p>
-<p>The <code>//go:embed all:dist</code> directive is what gives the binary its self-contained nature. The SvelteKit build (<code>webui/</code>) writes its static output to <code>cmd/server/dist/</code> via the adapter-static configuration in <code>webui/svelte.config.js</code>, so the embed picks it up on the next <code>go build</code>.</p>
+<p>The <code>//go:embed all:dist</code> directive is what gives the binary its self-contained nature. The SvelteKit build (<code>webui/</code>) writes its static output to <code>cmd/server/dist/</code> via the adapter-static configuration in <code>webui/vite.config.ts</code>, so the embed picks it up on the next <code>go build</code>.</p>
 <h3 id="cmdcli-lg-cli"><code>cmd/cli</code> — <code>lg-cli</code><a class="headerlink" href="#cmdcli-lg-cli" title="Permanent link">&para;</a></h3>
 <p>Cobra-based CLI with one file per subcommand (<code>cmd_info.go</code>, <code>cmd_routers.go</code>, <code>cmd_pingtrace.go</code>, <code>cmd_bgp.go</code>, …). Shared plumbing lives in <code>root.go</code> (global flags, context with timeout + signal handling), <code>client.go</code> (ConnectRPC client construction), <code>index.go</code> (public-index lookup + ASN/name/URL resolution), and <code>output.go</code> (pretty / json / raw output modes).</p>
 <p>See <a href="../cli/">cli.md</a> for the user-facing reference.</p>
@@ -1192,8 +1192,8 @@
 <h3 id="webui-sveltekit-5-frontend"><code>webui</code> — SvelteKit 5 frontend<a class="headerlink" href="#webui-sveltekit-5-frontend" title="Permanent link">&para;</a></h3>
 <p>A member of the root pnpm workspace, linked to <code>protobuf</code> via <code>workspace:*</code>. Key files:</p>
 <ul>
-<li><code>svelte.config.js</code> — adapter-static, output to <code>../cmd/server/dist</code>.</li>
-<li><code>src/lib/env.ts</code> — reads <code>PUBLIC_*</code> from <code>$env/dynamic/public</code> with sane defaults; consumed by every other module.</li>
+<li><code>vite.config.ts</code> — <code>sveltekit()</code> + adapter-static, output to <code>../cmd/server/dist</code>.</li>
+<li><code>src/lib/env.ts</code> — reads <code>PUBLIC_*</code> from <code>$app/env/public</code> with sane defaults; consumed by every other module.</li>
 <li><code>src/lib/grpc.ts</code> — singleton ConnectRPC client.</li>
 <li><code>src/lib/stores/routers.ts</code> — fetches the router catalogue, refreshes every 5 minutes, pauses while the tab is hidden.</li>
 <li><code>src/lib/stores/query.ts</code> — the actual RPC dispatch from the UI.</li>
@@ -1318,7 +1318,7 @@
 <li>You can't independently rev the WebUI without rebuilding the Go binary (in practice this is fine; both are small).</li>
 <li>The Go binary is ~20MB rather than ~6MB.</li>
 </ul>
-<p>The <code>webui/svelte.config.js</code> adapter-static writes directly to <code>cmd/server/dist</code>, so <code>go build</code> always picks up the freshest WebUI.</p>
+<p>The <code>webui/vite.config.ts</code> adapter-static writes directly to <code>cmd/server/dist</code>, so <code>go build</code> always picks up the freshest WebUI.</p>
 <h2 id="ssh-connection-pooling">SSH Connection Pooling<a class="headerlink" href="#ssh-connection-pooling" title="Permanent link">&para;</a></h2>
 <p>To mitigate SSH negotiation overhead and reduce the latency of repeated queries against the same device, Looking Glass implements transparent, self-healing, and concurrent-safe <strong>SSH Connection Pooling</strong>.</p>
 <ul>
