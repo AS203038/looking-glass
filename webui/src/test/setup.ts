@@ -1,8 +1,6 @@
 import { vi } from 'vitest';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: {}
-}));
+vi.mock('$app/env/public', () => ({}));
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
 	globalThis.ResizeObserver = class ResizeObserver {

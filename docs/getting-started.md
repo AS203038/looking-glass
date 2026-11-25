@@ -7,7 +7,7 @@ This guide walks you from a fresh checkout to a running Looking Glass server in 
 | Tool       | Why                                       | Minimum version    |
 | ---------- | ----------------------------------------- | ------------------ |
 | Go         | Server + CLI build                        | 1.25.0+            |
-| Node.js    | WebUI build (SvelteKit)                   | 20.x (LTS)         |
+| Node.js    | WebUI build (SvelteKit)                   | 22.17+             |
 | pnpm       | WebUI package manager (workspace-linked)  | 11.x               |
 | `buf`      | Protobuf codegen (only if you regenerate) | latest             |
 | Docker     | Optional: containerised builds & runs     | any recent version |

@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 /** Reports whether the user prefers reduced motion. */
 export function prefersReducedMotion(): boolean {
