@@ -92,22 +92,25 @@
 					<td class="px-3 py-1.5">
 						{#if r.status === 'changed' && r.old?.state !== r.new?.state}
 							<span class="mr-1 line-through opacity-50">{r.old?.state}</span>
-							<span class="lg-badge {bgpStateBadgeClass(r.new!.state)} !px-1.5 !py-0 text-[10px]"
-								>{r.new!.state}</span
-							>
+							<span class="lg-badge {bgpStateBadgeClass(r.new!.state)} !px-1.5 !py-0 text-[10px]">
+								{r.new!.state}
+							</span>
 						{:else}
 							<span
 								class="lg-badge {bgpStateBadgeClass(
 									(r.new || r.old)!.state
-								)} !px-1.5 !py-0 text-[10px]">{(r.new || r.old)!.state}</span
+								)} !px-1.5 !py-0 text-[10px]"
 							>
+								{(r.new || r.old)!.state}
+							</span>
 						{/if}
 					</td>
 					<td class="px-3 py-1.5 text-right">
 						{#if r.status === 'changed' && r.old?.prefixesReceived !== r.new?.prefixesReceived}
 							<span class="mr-1 line-through opacity-50">{Number(r.old?.prefixesReceived)}</span>
-							<span class="font-bold text-(--color-success)">{Number(r.new?.prefixesReceived)}</span
-							>
+							<span class="font-bold text-(--color-success)">
+								{Number(r.new?.prefixesReceived)}
+							</span>
 						{:else}
 							{Number((r.new || r.old)?.prefixesReceived)}
 						{/if}

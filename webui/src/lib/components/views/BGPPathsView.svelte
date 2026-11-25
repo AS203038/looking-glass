@@ -116,7 +116,7 @@
 		placeholder="Filter prefix, ASN, community…"
 		aria-label="Filter BGP paths"
 		bind:value={searchQuery}
-		class="lg-input w-56 !py-1 text-xs font-mono"
+		class="lg-input w-56 !py-1 font-mono text-xs"
 	/>
 </div>
 
@@ -250,16 +250,17 @@
 										class="lg-badge !px-1.5 !py-0 text-[10px] hover:underline"
 										title={`Pivot: bgp_community ${c}`}
 										onclick={() => pivotQuery({ command: 'bgp_community', parameter: c })}
-										>{c}</button
-									>{/each}{#each p.largeCommunities ?? [] as c, ci (ci)}{#if ci > 0 || (p.communities ?? []).length > 0}<span
-										>
+									>
+										{c}
+									</button>{/each}{#each p.largeCommunities ?? [] as c, ci (ci)}{#if ci > 0 || (p.communities ?? []).length > 0}<span>
 										</span>{/if}<button
 										type="button"
 										class="lg-badge lg-badge-info !px-1.5 !py-0 text-[10px] hover:underline"
 										title={`Pivot: bgp_community ${c}`}
 										onclick={() => pivotQuery({ command: 'bgp_community', parameter: c })}
-										>{c}</button
-									>{/each}
+									>
+										{c}
+									</button>{/each}
 							</span>
 						{:else}
 							<span class="inline-flex flex-wrap gap-1">
@@ -269,8 +270,9 @@
 										class="lg-badge !px-1.5 !py-0 text-[10px] hover:underline"
 										title={`Pivot: bgp_community ${c}`}
 										onclick={() => pivotQuery({ command: 'bgp_community', parameter: c })}
-										>{c}</button
 									>
+										{c}
+									</button>
 								{/each}
 								{#each p.largeCommunities ?? [] as c, ci (ci)}
 									<button
@@ -278,8 +280,9 @@
 										class="lg-badge lg-badge-info !px-1.5 !py-0 text-[10px] hover:underline"
 										title={`Pivot: bgp_community ${c}`}
 										onclick={() => pivotQuery({ command: 'bgp_community', parameter: c })}
-										>{c}</button
 									>
+										{c}
+									</button>
 								{/each}
 							</span>
 						{/if}
@@ -299,9 +302,9 @@
 	<span>
 		{rows.length} path{rows.length === 1 ? '' : 's'}
 		{#if win.virtualized}
-			<span class="ml-2" style="color: var(--color-fg-subtle);"
-				>· virtualized — scroll to load more rows</span
-			>
+			<span class="ml-2" style="color: var(--color-fg-subtle);">
+				· virtualized — scroll to load more rows
+			</span>
 		{/if}
 	</span>
 	{#if nextPageToken && onLoadMore}

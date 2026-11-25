@@ -33,12 +33,12 @@
 	</div>
 	<div class="flex flex-col gap-1">
 		<span style="color: var(--color-fg-muted);">Sent / Recv</span>
-		<span
-			>{diffStr(oldStats.packetsSent, newStats.packetsSent)} / {diffStr(
+		<span>
+			{diffStr(oldStats.packetsSent, newStats.packetsSent)} / {diffStr(
 				oldStats.packetsReceived,
 				newStats.packetsReceived
-			)}</span
-		>
+			)}
+		</span>
 	</div>
 	<div class="flex flex-col gap-1">
 		<span style="color: var(--color-fg-muted);">Min / Avg / Max</span>
@@ -64,9 +64,9 @@
 	</div>
 	<div class="flex flex-col gap-1">
 		<span style="color: var(--color-fg-muted);">Target</span>
-		<span class="truncate" title={diffStr(oldStats.target, newStats.target)}
-			>{diffStr(oldStats.target, newStats.target)}</span
-		>
+		<span class="truncate" title={diffStr(oldStats.target, newStats.target)}>
+			{diffStr(oldStats.target, newStats.target)}
+		</span>
 		{#if oldStats.source || newStats.source}
 			<span class="truncate text-xs" style="color: var(--color-fg-muted);">
 				src {diffStr(oldStats.source || '—', newStats.source || '—')}

@@ -206,8 +206,10 @@
 			{#if result.cached}
 				<span
 					class="lg-badge lg-badge-info tracking-wider uppercase"
-					style="font-size: 9px; padding: 0.125rem 0.375rem; height: max-content;">Cached</span
+					style="font-size: 9px; padding: 0.125rem 0.375rem; height: max-content;"
 				>
+					Cached
+				</span>
 			{/if}
 
 			{#if result.timestamp}

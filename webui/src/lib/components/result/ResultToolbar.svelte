@@ -146,16 +146,19 @@
 				<span
 					class="font-mono text-[10px]"
 					style="color: var(--color-fg-subtle);"
-					title="Parser provenance">via {parserLabel}</span
+					title="Parser provenance"
 				>
+					via {parserLabel}
+				</span>
 			{/if}
 		{:else if parserLabel}
 			<span
 				class="font-mono text-[10px]"
 				style="color: var(--color-fg-subtle);"
 				title="Parser attempted but produced no structured view"
-				>parser: {parserLabel} (failed)</span
 			>
+				parser: {parserLabel} (failed)
+			</span>
 		{/if}
 
 		{#if !canStructured || viewMode === 'raw'}

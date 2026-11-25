@@ -103,8 +103,8 @@
 		style="border-color: var(--color-border); color: var(--color-fg-muted);"
 	>
 		{#if tp.target}<span>target <span style="color: var(--color-fg);">{tp.target}</span></span>{/if}
-		{#if tp.source}<span class="ml-3"
-				>source <span style="color: var(--color-fg);">{tp.source}</span></span
-			>{/if}
+		{#if tp.source}<span class="ml-3">
+				source <span style="color: var(--color-fg);">{tp.source}</span>
+			</span>{/if}
 	</div>
 {/if}

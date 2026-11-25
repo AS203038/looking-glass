@@ -1,6 +1,0 @@
-packages:
-  - '../protobuf'
-
-allowBuilds:
-  '@tailwindcss/oxide': true
-  esbuild: true

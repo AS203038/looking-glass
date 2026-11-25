@@ -58,14 +58,12 @@ install-go: ## Download Go module dependencies
 	$(GO) mod download
 
 .PHONY: install-webui
-install-webui: ## Install webui npm/pnpm dependencies
-	@printf "$(BOLD)>> Installing webui dependencies$(RESET)\n"
-	cd $(WEBUI_DIR) && $(PNPM) install --frozen-lockfile
+install-webui: ## Install webui and protobuf npm/pnpm dependencies
+	@printf "$(BOLD)>> Installing pnpm workspace dependencies$(RESET)\n"
+	$(PNPM) install --frozen-lockfile
 
 .PHONY: install-proto
-install-proto: ## Install protobuf workspace dependencies
-	@printf "$(BOLD)>> Installing protobuf dependencies$(RESET)\n"
-	cd $(PROTO_DIR) && $(PNPM) install
+install-proto: install-webui ## Install protobuf workspace dependencies (via root pnpm workspace)
 
 .PHONY: install-tools
 install-tools: ## Install developer CLI tools (buf)
@@ -232,5 +230,6 @@ clean: ## Remove build artifacts (binaries, webui dist, node_modules caches)
 .PHONY: distclean
 distclean: clean ## Remove build artifacts AND installed dependencies
 	@printf "$(BOLD)>> Removing installed dependencies$(RESET)\n"
+	rm -rf $(ROOT_DIR)/node_modules
 	rm -rf $(WEBUI_DIR)/node_modules
 	rm -rf $(PROTO_DIR)/node_modules

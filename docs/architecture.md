@@ -125,7 +125,7 @@ Five files of one-liner `errors.New(...)`. The whole point is that RPC clients n
 
 ### `webui` — SvelteKit 5 frontend
 
-A pnpm workspace linked to `../protobuf` via `workspace:*`. Key files:
+A member of the root pnpm workspace, linked to `protobuf` via `workspace:*`. Key files:
 
 * `svelte.config.js` — adapter-static, output to `../cmd/server/dist`.
 * `src/lib/env.ts` — reads `PUBLIC_*` from `$env/dynamic/public` with sane defaults; consumed by every other module.

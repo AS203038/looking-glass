@@ -1,12 +1,13 @@
 version: 2
 updates:
-  # protobuf is a member of the webui pnpm workspace: this entry updates it together with webui/pnpm-lock.yaml.
+  # Root pnpm workspace covering both webui/ and protobuf/ with a single root pnpm-lock.yaml.
   - package-ecosystem: "npm"
-    directory: "/webui"
+    directory: "/"
     schedule:
       interval: "weekly"
     cooldown:
       default-days: 1
+    versioning-strategy: increase
     groups:
       npm:
         patterns:

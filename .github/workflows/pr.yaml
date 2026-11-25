@@ -28,8 +28,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - name: Set up Node
         uses: ./.github/actions/setup-node
@@ -96,8 +94,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - name: Set up Node
         uses: ./.github/actions/setup-node
@@ -143,8 +139,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - name: Set up Node
         uses: ./.github/actions/setup-node
