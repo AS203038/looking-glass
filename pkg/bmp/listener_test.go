@@ -137,6 +137,55 @@ func TestBMPListenerEndToEnd(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 }
 
+// TestBMPListenerMaxLengthAndContextClose verifies oversized frames are rejected and active connections close when ctx is cancelled.
+func TestBMPListenerMaxLengthAndContextClose(t *testing.T) {
+	bmpLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to reserve port: %v", err)
+	}
+	bmpAddr := bmpLn.Addr().String()
+	_ = bmpLn.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := StartBMPListener(ctx, bmpAddr, nil, nil); err != nil {
+		t.Fatalf("StartBMPListener failed: %v", err)
+	}
+
+	conn, err := net.Dial("tcp", bmpAddr)
+	if err != nil {
+		t.Fatalf("failed to dial BMP listener: %v", err)
+	}
+	defer conn.Close()
+
+	var oversized [6]byte
+	oversized[0] = 3
+	binary.BigEndian.PutUint32(oversized[1:5], maxBMPMessageLen+1)
+	oversized[5] = BMPMsgTypeInitiation
+	if _, err := conn.Write(oversized[:]); err != nil {
+		t.Fatalf("write oversized header: %v", err)
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	buf := make([]byte, 1)
+	if _, err := conn.Read(buf); err == nil {
+		t.Errorf("expected connection to be closed after oversized BMP header")
+	}
+
+	conn2, err := net.Dial("tcp", bmpAddr)
+	if err != nil {
+		t.Fatalf("failed to dial second BMP connection: %v", err)
+	}
+	defer conn2.Close()
+
+	cancel()
+	_ = conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if _, err := conn2.Read(buf); err == nil {
+		t.Errorf("expected active connection to close when ctx is cancelled")
+	}
+}
+
 // TestFindRouterByRemoteIPPorts verifies that findRouterByRemoteIP omits the port number from RouterConfig's Hostname.
 func TestFindRouterByRemoteIPPorts(t *testing.T) {
 	rts := utils.RouterMap{

@@ -337,6 +337,7 @@ This method-specific key structure offers several key benefits:
 
 * **Build-Stable Invalidation**: The current version string (e.g. `v1.2.3` or untracked suffix) is folded directly into every key prefix. Deploying a new binary release instantly invalidates prior cached items cluster-wide, eliminating stale-state issues after an upgrade.
 * **No Error Caching**: Only successful RPC responses are cached. Connection failures, authentication timeouts, or other operational errors are never written to the cache.
+* **Size Guard**: Serialized responses larger than 8 MiB are skipped when writing to Redis to avoid large cache-marshal spikes.
 * **TTL Configuration**: Cache TTL is configured globally via `redis.ttl` (e.g. `5m`). There is no manual invalidation API.
 
 Cache hits set the `X-Cache: HIT` response header and appear in the structured access log:

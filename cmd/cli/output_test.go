@@ -94,3 +94,42 @@ func TestPrintBGPSummaryPrettyStateColor(t *testing.T) {
 		}
 	}
 }
+
+// TestLevenshteinAndBGPPathsPretty verifies levenshtein distances, colorTabWriter stripping/coloring, and printBGPPathsPretty formatting.
+func TestLevenshteinAndBGPPathsPretty(t *testing.T) {
+	if got := levenshtein("kitten", "sitting"); got != 3 {
+		t.Errorf("levenshtein(kitten, sitting) = %d, want 3", got)
+	}
+	if got := levenshtein("", "abc"); got != 3 || levenshtein("abc", "") != 3 {
+		t.Errorf("levenshtein empty check failed")
+	}
+
+	paths := &pb.BGPPaths{
+		Paths: []*pb.BGPPath{
+			{
+				Best:             true,
+				Prefix:           "192.0.2.0/24",
+				Nexthop:          "192.0.2.1",
+				Med:              10,
+				LocalPref:        100,
+				AsPath:           []uint32{65001, 203038},
+				PeerAsn:          65001,
+				PeerIp:           "192.0.2.1",
+				Communities:      []string{"65001:100"},
+				LargeCommunities: []string{"65001:100:1"},
+			},
+		},
+	}
+
+	oldNoColor := opts.NoColor
+	opts.NoColor = true
+	defer func() { opts.NoColor = oldNoColor }()
+
+	got := captureStdout(t, func() { printBGPPathsPretty(paths) })
+	if strings.Contains(got, "\x1b[") {
+		t.Errorf("expected ANSI escapes stripped when NoColor=true, got %q", got)
+	}
+	if !strings.Contains(got, "65001 203038") || !strings.Contains(got, "65001:100 65001:100:1") {
+		t.Errorf("unexpected printBGPPathsPretty output: %q", got)
+	}
+}

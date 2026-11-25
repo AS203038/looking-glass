@@ -721,6 +721,8 @@ func startRESPRecorder(t *testing.T, reqs chan<- string) string {
 						c.Write([]byte(":0\r\n"))
 					case strings.Contains(req, "hgetall"):
 						c.Write([]byte("*0\r\n"))
+					case strings.Contains(req, "hscan"):
+						c.Write([]byte("*2\r\n$1\r\n0\r\n*0\r\n"))
 					case strings.Contains(req, "get"):
 						c.Write([]byte("$-1\r\n"))
 					default:
@@ -814,7 +816,7 @@ func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
 		t.Errorf("no router command for %q on a BMP router", scoped)
 	}
 	for len(reqs) > 0 {
-		if req := <-reqs; strings.Contains(req, "hgetall") {
+		if req := <-reqs; strings.Contains(req, "hscan") || strings.Contains(req, "hgetall") {
 			t.Errorf("BMP lookup for a scoped peer: %q", req)
 		}
 	}
@@ -833,7 +835,7 @@ func TestBGPPeerRoutesLinkLocalPeer(t *testing.T) {
 	for found := false; !found; {
 		select {
 		case req := <-reqs:
-			found = strings.Contains(req, "hgetall") && strings.Contains(req, ribKey)
+			found = strings.Contains(req, "hscan") && strings.Contains(req, ribKey)
 		default:
 			t.Fatalf("BMP lookup did not use the key %q", strings.TrimSpace(ribKey))
 		}
@@ -968,5 +970,94 @@ func TestBGPPeerRoutesAristaEOSFamilySelection(t *testing.T) {
 	case extra := <-cmds:
 		t.Errorf("unexpected command for name-only query: %q", extra)
 	default:
+	}
+}
+
+// TestBGPPeerRoutesBMPPagination verifies BGPPeerRoutes propagates HScan cursors into NextPageToken and clears it on completion.
+func TestBGPPeerRoutesBMPPagination(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	routeJSON := `{"prefix":"192.0.2.0/24","as_path":[65001],"next_hop":"10.0.0.2","accepted":true}`
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				buf := make([]byte, 4096)
+				for {
+					n, err := c.Read(buf)
+					if err != nil {
+						return
+					}
+					req := string(buf[:n])
+					lower := strings.ToLower(req)
+					switch {
+					case strings.Contains(lower, "hello"):
+						c.Write([]byte("-ERR unknown command\r\n"))
+					case strings.Contains(lower, "setinfo"):
+						c.Write([]byte("+OK\r\n+OK\r\n"))
+					case strings.Contains(lower, "hlen"):
+						c.Write([]byte(":1\r\n"))
+					case strings.Contains(lower, "hscan"):
+						cursor := "0"
+						if strings.Contains(req, "\r\n$1\r\n0\r\n") {
+							cursor = "77"
+						}
+						c.Write([]byte("*2\r\n$" + strconv.Itoa(len(cursor)) + "\r\n" + cursor + "\r\n*2\r\n$12\r\n192.0.2.0/24\r\n$" + strconv.Itoa(len(routeJSON)) + "\r\n" + routeJSON + "\r\n"))
+					case strings.Contains(lower, "get"):
+						c.Write([]byte("$-1\r\n"))
+					default:
+						c.Write([]byte("+OK\r\n"))
+					}
+				}
+			}(conn)
+		}
+	}()
+
+	client := redis.NewClient(&redis.Options{Addr: ln.Addr().String(), Protocol: 2})
+	defer client.Close()
+	SetRPCCache(client, 0)
+	defer SetRPCCache(nil, 0)
+
+	server := newServer(NewLookingGlassService(context.Background(), utils.RouterMap{
+		&utils.RouterInstance{
+			Config:      &utils.RouterConfig{Name: "bmp-paginated"},
+			HealthCheck: &utils.HealthCheck{Healthy: true},
+		},
+	}))
+	cli := lookingglassconnect.NewLookingGlassServiceClient(connect.NewClient(connectinprocess.New(server)))
+
+	page1, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+		RouterId:  1,
+		PeerIp:    "10.0.0.2",
+		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
+		Limit:     10,
+	})
+	if err != nil {
+		t.Fatalf("page1: %v", err)
+	}
+	if page1.GetNextPageToken() != "77" || len(page1.GetParsed().GetPaths()) != 1 {
+		t.Fatalf("page1 NextPageToken=%q paths=%d, want 77 and 1", page1.GetNextPageToken(), len(page1.GetParsed().GetPaths()))
+	}
+
+	page2, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+		RouterId:  1,
+		PeerIp:    "10.0.0.2",
+		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
+		Limit:     10,
+		PageToken: page1.GetNextPageToken(),
+	})
+	if err != nil {
+		t.Fatalf("page2: %v", err)
+	}
+	if page2.GetNextPageToken() != "" || len(page2.GetParsed().GetPaths()) != 1 {
+		t.Fatalf("page2 NextPageToken=%q paths=%d, want empty and 1", page2.GetNextPageToken(), len(page2.GetParsed().GetPaths()))
 	}
 }

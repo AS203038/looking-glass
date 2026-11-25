@@ -64,6 +64,7 @@ func healthcheck(ctx context.Context, rts utils.RouterMap) {
 		log.Info("healthcheck uncoordinated; every replica probes every router")
 	}
 	ticker := time.NewTicker(healthcheckInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():

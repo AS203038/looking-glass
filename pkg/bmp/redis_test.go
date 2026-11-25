@@ -1,10 +1,14 @@
 package bmp
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/AS203038/looking-glass/pkg/utils"
@@ -357,5 +361,160 @@ func TestBMPReconciliation(t *testing.T) {
 	}
 	if !receivedDel {
 		t.Errorf("expected DEL to be called for peer RIB cleanup")
+	}
+}
+
+// TestBMPRedisPaginationASPathAndBatching verifies multi-page HScan filtering, AS-path HScan fallback, and batched HMGet fetching.
+func TestBMPRedisPaginationASPathAndBatching(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to start mock redis: %v", err)
+	}
+	defer ln.Close()
+
+	var hscanCalls, hmgetCalls atomic.Int32
+	routeAccepted := `{"prefix":"192.0.2.0/24","as_path":[65001,203038],"next_hop":"192.0.2.1","accepted":true,"rejected":false}`
+	routeRejected := `{"prefix":"198.51.100.0/24","as_path":[65002],"next_hop":"192.0.2.1","accepted":false,"rejected":true}`
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				br := bufio.NewReader(c)
+				for {
+					line, err := br.ReadString('\n')
+					if err != nil {
+						return
+					}
+					if !strings.HasPrefix(line, "*") {
+						continue
+					}
+					n, _ := strconv.Atoi(strings.TrimSpace(line[1:]))
+					args := make([]string, 0, n)
+					for i := 0; i < n; i++ {
+						szLine, err := br.ReadString('\n')
+						if err != nil {
+							return
+						}
+						sz, _ := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(szLine, "$")))
+						argBuf := make([]byte, sz+2)
+						if _, err := io.ReadFull(br, argBuf); err != nil {
+							return
+						}
+						args = append(args, string(argBuf[:sz]))
+					}
+					if len(args) == 0 {
+						continue
+					}
+					switch strings.ToLower(args[0]) {
+					case "hello":
+						c.Write([]byte("%7\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n7.0.0\r\n$5\r\nproto\r\n:2\r\n$2\r\nid\r\n:1\r\n$4\r\nmode\r\n$10\r\nstandalone\r\n$4\r\nrole\r\n$6\r\nmaster\r\n$7\r\nmodules\r\n*0\r\n"))
+					case "hgetall":
+						peerJSON := `{"peer_ip":"192.0.2.1","peer_asn":65001,"state":"established"}`
+						c.Write([]byte(fmt.Sprintf("*2\r\n$9\r\n192.0.2.1\r\n$%d\r\n%s\r\n", len(peerJSON), peerJSON)))
+					case "smembers", "sinter":
+						m := "192.0.2.1:192.0.2.0/24"
+						c.Write([]byte(fmt.Sprintf("*1\r\n$%d\r\n%s\r\n", len(m), m)))
+					case "hlen":
+						c.Write([]byte(":1\r\n"))
+					case "hget":
+						c.Write([]byte("$-1\r\n"))
+					case "hscan":
+						hscanCalls.Add(1)
+						cursor := "0"
+						if len(args) > 2 {
+							cursor = args[2]
+						}
+						if cursor == "0" {
+							c.Write([]byte(fmt.Sprintf("*2\r\n$2\r\n42\r\n*2\r\n$12\r\n192.0.2.0/24\r\n$%d\r\n%s\r\n", len(routeAccepted), routeAccepted)))
+						} else {
+							c.Write([]byte(fmt.Sprintf("*2\r\n$1\r\n0\r\n*2\r\n$15\r\n198.51.100.0/24\r\n$%d\r\n%s\r\n", len(routeRejected), routeRejected)))
+						}
+					case "hmget":
+						hmgetCalls.Add(1)
+						fields := len(args) - 2
+						if fields < 1 {
+							fields = 1
+						}
+						var sb strings.Builder
+						sb.WriteString(fmt.Sprintf("*%d\r\n", fields))
+						sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(routeAccepted), routeAccepted))
+						for i := 1; i < fields; i++ {
+							sb.WriteString("$-1\r\n")
+						}
+						c.Write([]byte(sb.String()))
+					default:
+						c.Write([]byte("+OK\r\n"))
+					}
+				}
+			}(conn)
+		}
+	}()
+
+	client := redis.NewClient(&redis.Options{Addr: ln.Addr().String()})
+	defer client.Close()
+	ctx := context.Background()
+
+	// Filtered paginated lookup advances across an empty-match round.
+	routes, nextCursor, err := GetBMPPeerRoutesPaginated(ctx, client, "rt1", "192.0.2.1", "rejected", 0, 10)
+	if err != nil {
+		t.Fatalf("GetBMPPeerRoutesPaginated failed: %v", err)
+	}
+	if len(routes) != 1 || routes[0].Prefix != "198.51.100.0/24" || nextCursor != 0 {
+		t.Fatalf("unexpected paginated rejected routes: %+v, cursor=%d", routes, nextCursor)
+	}
+	if hscanCalls.Load() < 2 {
+		t.Errorf("expected at least 2 HScan calls when skipping empty-match page, got %d", hscanCalls.Load())
+	}
+
+	// Pattern with no numeric ASNs streams via HScan.
+	asRoutes, err := FindBMPRoutesByASPath(ctx, client, "rt1", ".*")
+	if err != nil {
+		t.Fatalf("FindBMPRoutesByASPath fallback failed: %v", err)
+	}
+	if len(asRoutes) != 1 || asRoutes[0].Prefix != "192.0.2.0/24" {
+		t.Fatalf("unexpected ASPath fallback routes: %+v", asRoutes)
+	}
+
+	// >500 members are fetched in multiple HMGet batches.
+	members := make([]string, 550)
+	for i := range members {
+		members[i] = fmt.Sprintf("192.0.2.1:10.0.%d.0/24", i)
+	}
+	batched, err := fetchRoutesFromIndexMembers(ctx, client, "rt1", members)
+	if err != nil {
+		t.Fatalf("fetchRoutesFromIndexMembers failed: %v", err)
+	}
+	if hmgetCalls.Load() != 2 || len(batched) != 2 {
+		t.Errorf("expected 2 HMGet batches and 2 decoded routes, got hmgetCalls=%d len=%d", hmgetCalls.Load(), len(batched))
+	}
+
+	// Verify community, large-community, ASN-indexed ASPath lookups, and route overwrite/withdrawal index updates.
+	upWithComms := &BGPUpdate{
+		AnnouncedPrefixes: []string{"192.0.2.0/24"},
+		WithdrawnPrefixes: []string{"198.51.100.0/24"},
+		ASPath:            []uint32{65001, 203038},
+		NextHop:           "192.0.2.1",
+		Communities:       []string{"65001:100"},
+		LargeCommunities:  []string{"65001:100:1"},
+	}
+	if err := UpdateBMPRib(ctx, client, "rt1", "192.0.2.1", upWithComms); err != nil {
+		t.Fatalf("UpdateBMPRib with communities failed: %v", err)
+	}
+	if _, _, err := GetBMPPeerRoutesPaginated(ctx, client, "rt1", "192.0.2.1", "bestpath", 0, 10); err != nil {
+		t.Fatalf("GetBMPPeerRoutesPaginated bestpath failed: %v", err)
+	}
+	if commRoutes, err := FindBMPRoutesByCommunity(ctx, client, "rt1", "65001:100"); err != nil || len(commRoutes) == 0 {
+		t.Errorf("FindBMPRoutesByCommunity = (%v, %v), want non-empty", commRoutes, err)
+	}
+	if lcRoutes, err := FindBMPRoutesByLargeCommunity(ctx, client, "rt1", "65001:100:1"); err != nil || len(lcRoutes) == 0 {
+		t.Errorf("FindBMPRoutesByLargeCommunity = (%v, %v), want non-empty", lcRoutes, err)
+	}
+	if asnRoutes, err := FindBMPRoutesByASPath(ctx, client, "rt1", "_65001_203038_"); err != nil || len(asnRoutes) == 0 {
+		t.Errorf("FindBMPRoutesByASPath indexed = (%v, %v), want non-empty", asnRoutes, err)
 	}
 }

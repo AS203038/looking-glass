@@ -1051,3 +1051,34 @@ func TestNetconfExecDeviceCommandTimeout(t *testing.T) {
 		t.Errorf("NetconfExec took %v, device CommandTimeout did not override netconfTimeout", d)
 	}
 }
+
+// TestNetconfOutputMaxBytes verifies netconfOutput rejects XML replies exceeding maxBytes.
+func TestNetconfOutputMaxBytes(t *testing.T) {
+	old := maxSSHOutputBytes
+	maxSSHOutputBytes = 16
+	t.Cleanup(func() { maxSSHOutputBytes = old })
+
+	srv := startNetconfServer(t, true, false)
+	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
+	router := netconfTestRouter("nc-maxbytes", srv.addr, 0)
+
+	_, err := NetconfExec(context.Background(), router, spec, []string{"show version with long reply"})
+	if !errors.Is(err, errs.ExecFailed) {
+		t.Errorf("err = %v, want errs.ExecFailed", err)
+	}
+
+	// Verify errText overflow and debugHandler forwarding.
+	out := &netconfOutput{local: "output", errLocal: "error-message", maxBytes: 4}
+	err = out.UnmarshalXML(xml.NewDecoder(strings.NewReader(`<rpc-reply><error-message>too long error</error-message></rpc-reply>`)), xml.StartElement{})
+	if !errors.Is(err, errOutputTooLarge) {
+		t.Errorf("UnmarshalXML errText overflow = %v, want errOutputTooLarge", err)
+	}
+
+	var logBuf strings.Builder
+	dh := debugHandler{slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelDebug})}
+	l := slog.New(dh).With("k", "v").WithGroup("g")
+	l.Warn("forwarded at debug", "x", "y")
+	if !strings.Contains(logBuf.String(), "forwarded at debug") || !strings.Contains(logBuf.String(), "g.x=y") {
+		t.Errorf("unexpected debugHandler output: %q", logBuf.String())
+	}
+}

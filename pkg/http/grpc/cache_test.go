@@ -162,4 +162,14 @@ func TestLiveRPCCache(t *testing.T) {
 
 	// 3. Test cache STORE
 	rpcCacheSet(ctx, "new-key", sampleResp)
+
+	// 4. Test oversized cache entry skip
+	prevMax := rpcCacheMaxBytes
+	rpcCacheMaxBytes = 4
+	t.Cleanup(func() { rpcCacheMaxBytes = prevMax })
+	rpcCacheSet(ctx, "oversized-key", sampleResp)
+	destMiss2 := &pb.BGPSummaryResponse{}
+	if rpcCacheGet(ctx, "non-existent-oversized-key", destMiss2) {
+		t.Errorf("expected oversized key to not be cached")
+	}
 }

@@ -711,3 +711,107 @@ func TestSSHExecCallerCanceled(t *testing.T) {
 		t.Errorf("pool idle=%d open=%d after cancel, want 0 and 0", idle, open)
 	}
 }
+
+// TestSSHExecOutputAndStderrBounds verifies large stdout is rejected with errs.ExecFailed, large stderr is capped, and Checkout clears popped slots.
+func TestSSHExecOutputAndStderrBounds(t *testing.T) {
+	oldMax := maxSSHOutputBytes
+	maxSSHOutputBytes = 64
+	t.Cleanup(func() { maxSSHOutputBytes = oldMax })
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(key)
+	if err != nil {
+		t.Fatalf("signer: %v", err)
+	}
+	srvCfg := &ssh.ServerConfig{NoClientAuth: true}
+	srvCfg.AddHostKey(signer)
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				_, chans, reqs, err := ssh.NewServerConn(conn, srvCfg)
+				if err != nil {
+					return
+				}
+				go ssh.DiscardRequests(reqs)
+				for newChan := range chans {
+					ch, chReqs, err := newChan.Accept()
+					if err != nil {
+						continue
+					}
+					go func(channel ssh.Channel, requests <-chan *ssh.Request) {
+						defer channel.Close()
+						for req := range requests {
+							req.Reply(true, nil)
+							if req.Type == "exec" {
+								var payload struct{ Command string }
+								_ = ssh.Unmarshal(req.Payload, &payload)
+								if payload.Command == "big-stdout" {
+									_, _ = channel.Write([]byte(strings.Repeat("x", 256)))
+									_, _ = channel.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+								} else if payload.Command == "big-stderr" {
+									_, _ = channel.Stderr().Write([]byte(strings.Repeat("e", 1024)))
+									_, _ = channel.SendRequest("exit-status", false, []byte{0, 0, 0, 1})
+								} else {
+									_, _ = channel.Write([]byte("ok"))
+									_, _ = channel.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+								}
+								return
+							}
+						}
+					}(ch, chReqs)
+				}
+			}()
+		}
+	}()
+
+	router := &RouterConfig{
+		Name:        "bounds@" + ln.Addr().String(),
+		Hostname:    ln.Addr().String(),
+		Username:    "test",
+		SSHPoolSize: 1,
+	}
+
+	if _, err := SSHExec(context.Background(), router, []string{"big-stdout"}); !errors.Is(err, errs.ExecFailed) {
+		t.Errorf("big-stdout err = %v, want errs.ExecFailed", err)
+	}
+	if _, err := SSHExec(context.Background(), router, []string{"big-stderr"}); !errors.Is(err, errs.ExecFailed) {
+		t.Errorf("big-stderr err = %v, want errs.ExecFailed", err)
+	}
+
+	pool := getPool(router)
+	c, err := pool.Checkout(router, true, func() (*ssh.ClientConfig, error) {
+		return &ssh.ClientConfig{User: "test", HostKeyCallback: ssh.InsecureIgnoreHostKey()}, nil
+	})
+	if err != nil {
+		t.Fatalf("Checkout: %v", err)
+	}
+	pool.Recycle(c, router, true)
+	c2, err := pool.Checkout(router, true, func() (*ssh.ClientConfig, error) {
+		return &ssh.ClientConfig{User: "test", HostKeyCallback: ssh.InsecureIgnoreHostKey()}, nil
+	})
+	if err != nil {
+		t.Fatalf("Checkout 2: %v", err)
+	}
+	pool.mu.Lock()
+	backing := pool.conns[:cap(pool.conns)]
+	leaked := backing[0] != nil
+	pool.mu.Unlock()
+	if leaked {
+		t.Errorf("expected popped pool slot to be zeroed in backing array")
+	}
+	pool.Recycle(c2, router, false)
+}

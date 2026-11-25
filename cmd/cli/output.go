@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -90,6 +91,25 @@ func (w *colorTabWriter) Write(p []byte) (int, error) {
 	return w.tw.Write(p)
 }
 
+var (
+	colorReplacer = strings.NewReplacer(
+		cReset, ansiReset,
+		cGreen, ansiGreen,
+		cRed, ansiRed,
+		cYellow, ansiYellow,
+		cDim, ansiDim,
+		cBold, ansiBold,
+	)
+	stripColorReplacer = strings.NewReplacer(
+		cReset, "",
+		cGreen, "",
+		cRed, "",
+		cYellow, "",
+		cDim, "",
+		cBold, "",
+	)
+)
+
 // Flush finalises the table, substitutes colour sentinels for their ANSI
 // equivalents (or strips them when colour is disabled), and writes the
 // result to the configured output.
@@ -97,23 +117,11 @@ func (w *colorTabWriter) Flush() error {
 	if err := w.tw.Flush(); err != nil {
 		return err
 	}
-	b := w.buf.Bytes()
+	r := stripColorReplacer
 	if isColorEnabled() {
-		b = bytes.ReplaceAll(b, []byte(cReset), []byte(ansiReset))
-		b = bytes.ReplaceAll(b, []byte(cGreen), []byte(ansiGreen))
-		b = bytes.ReplaceAll(b, []byte(cRed), []byte(ansiRed))
-		b = bytes.ReplaceAll(b, []byte(cYellow), []byte(ansiYellow))
-		b = bytes.ReplaceAll(b, []byte(cDim), []byte(ansiDim))
-		b = bytes.ReplaceAll(b, []byte(cBold), []byte(ansiBold))
-	} else {
-		b = bytes.ReplaceAll(b, []byte(cReset), nil)
-		b = bytes.ReplaceAll(b, []byte(cGreen), nil)
-		b = bytes.ReplaceAll(b, []byte(cRed), nil)
-		b = bytes.ReplaceAll(b, []byte(cYellow), nil)
-		b = bytes.ReplaceAll(b, []byte(cDim), nil)
-		b = bytes.ReplaceAll(b, []byte(cBold), nil)
+		r = colorReplacer
 	}
-	_, err := w.out.Write(b)
+	_, err := r.WriteString(w.out, w.buf.String())
 	w.buf.Reset()
 	return err
 }
@@ -350,13 +358,14 @@ func printBGPPathsPretty(paths *pb.BGPPaths) {
 		if p.GetBest() {
 			best = cGreen + ">" + cReset
 		}
-		asPath := ""
+		var asBuf strings.Builder
 		for i, a := range p.GetAsPath() {
 			if i > 0 {
-				asPath += " "
+				asBuf.WriteByte(' ')
 			}
-			asPath += fmt.Sprintf("%d", a)
+			asBuf.WriteString(strconv.FormatUint(uint64(a), 10))
 		}
+		asPath := asBuf.String()
 		if asPath == "" {
 			asPath = "—"
 		}
@@ -372,7 +381,8 @@ func printBGPPathsPretty(paths *pb.BGPPaths) {
 		if p.GetPeerAsn() != 0 || p.GetPeerIp() != "" {
 			peer = fmt.Sprintf("AS%d %s", p.GetPeerAsn(), p.GetPeerIp())
 		}
-		comms := append([]string{}, p.GetCommunities()...)
+		comms := make([]string, 0, len(p.GetCommunities())+len(p.GetLargeCommunities()))
+		comms = append(comms, p.GetCommunities()...)
 		comms = append(comms, p.GetLargeCommunities()...)
 		commsStr := strings.Join(comms, " ")
 		if commsStr == "" {

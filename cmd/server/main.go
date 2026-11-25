@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"runtime"
+	"runtime/debug"
 
 	"github.com/AS203038/looking-glass/pkg/http"
 	"github.com/AS203038/looking-glass/pkg/logging"
@@ -37,8 +39,9 @@ func main() {
 	Start(context.Background(), web)
 }
 
-// Start parses config.yaml, builds the router catalogue, and starts
-// the HTTP/2 listener with the supplied embedded WebUI filesystem.
+// Start parses config.yaml, initializes logging, configures Go runtime CPU and
+// memory limits, builds the router catalogue, and starts the HTTP/2 listener
+// with the supplied embedded WebUI filesystem.
 func Start(ctx context.Context, web fs.FS) {
 	cfg, err := utils.ParseConfigYaml("config.yaml")
 	if err != nil {
@@ -52,10 +55,15 @@ func Start(ctx context.Context, web fs.FS) {
 		os.Exit(exitLoggingCfg)
 	}
 	serverLog := logging.Component("server")
+	undo := configureRuntime(serverLog)
+	defer undo()
+	defer utils.ClosePools()
 	serverLog.Info("server starting",
 		slog.String("version", utils.Version()),
 		slog.Int("pid", os.Getpid()),
-		slog.Int("devices", len(cfg.Devices)))
+		slog.Int("devices", len(cfg.Devices)),
+		slog.Int("gomaxprocs", runtime.GOMAXPROCS(0)),
+		slog.Int64("gomemlimit", debug.SetMemoryLimit(-1)))
 	rm := routers.CreateRouterMap(cfg)
 	http.ListenAndServe(ctx, cfg, rm, web)
 	serverLog.Info("server shutting down")

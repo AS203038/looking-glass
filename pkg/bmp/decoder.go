@@ -3,8 +3,8 @@ package bmp
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
-	"net"
+	"net/netip"
+	"strconv"
 )
 
 // bmpCommonHeaderLen is the length of the Common Header (RFC 7854).
@@ -69,15 +69,20 @@ func ParsePerPeerHeader(data []byte) (*PerPeerHeader, error) {
 	h.Flags = data[1]
 	copy(h.PeerDistinguisher[:], data[2:10])
 
-	addrBytes := data[10:26]
 	if h.IsIPv6() {
-		h.PeerAddress = net.IP(addrBytes).String()
+		var addr [16]byte
+		copy(addr[:], data[10:26])
+		h.PeerAddress = netip.AddrFrom16(addr).Unmap().String()
 	} else {
-		h.PeerAddress = net.IP(addrBytes[12:16]).String()
+		var addr [4]byte
+		copy(addr[:], data[22:26])
+		h.PeerAddress = netip.AddrFrom4(addr).String()
 	}
 
 	h.PeerAS = binary.BigEndian.Uint32(data[26:30])
-	h.PeerBGPID = net.IP(data[30:34]).String()
+	var bgpID [4]byte
+	copy(bgpID[:], data[30:34])
+	h.PeerBGPID = netip.AddrFrom4(bgpID).String()
 	h.TimestampSec = binary.BigEndian.Uint32(data[34:38])
 	h.TimestampMicro = binary.BigEndian.Uint32(data[38:42])
 
@@ -171,17 +176,28 @@ func parsePrefix(data []byte, isIPv6 bool) (string, int, error) {
 		return "", 0, errors.New("empty prefix")
 	}
 	length := int(data[0])
+	maxBits := 32
+	if isIPv6 {
+		maxBits = 128
+	}
+	if length > maxBits {
+		return "", 0, errors.New("invalid prefix length")
+	}
 	bytesLen := (length + 7) / 8
 	if len(data) < 1+bytesLen {
 		return "", 0, errors.New("truncated prefix payload")
 	}
-	ipBytes := make([]byte, 4)
+	var pfx netip.Prefix
 	if isIPv6 {
-		ipBytes = make([]byte, 16)
+		var ipBytes [16]byte
+		copy(ipBytes[:], data[1:1+bytesLen])
+		pfx = netip.PrefixFrom(netip.AddrFrom16(ipBytes), length)
+	} else {
+		var ipBytes [4]byte
+		copy(ipBytes[:], data[1:1+bytesLen])
+		pfx = netip.PrefixFrom(netip.AddrFrom4(ipBytes), length)
 	}
-	copy(ipBytes, data[1:1+bytesLen])
-	ip := net.IP(ipBytes)
-	return fmt.Sprintf("%s/%d", ip.String(), length), 1 + bytesLen, nil
+	return pfx.String(), 1 + bytesLen, nil
 }
 
 // PathAttribute describes one attribute TLV in a BGP update.
@@ -193,7 +209,7 @@ type PathAttribute struct {
 
 // parsePathAttributes extracts attribute TLV structures.
 func parsePathAttributes(data []byte) ([]PathAttribute, error) {
-	var attrs []PathAttribute
+	attrs := make([]PathAttribute, 0, 8)
 	offset := 0
 	for offset < len(data) {
 		if len(data)-offset < 2 {
@@ -231,7 +247,7 @@ func parsePathAttributes(data []byte) ([]PathAttribute, error) {
 
 // parseASPath decodes the ASNs from an AS_PATH attribute.
 func parseASPath(value []byte) []uint32 {
-	var asns []uint32
+	asns := make([]uint32, 0, len(value)/4)
 	offset := 0
 	for offset < len(value) {
 		if len(value)-offset < 2 {
@@ -265,29 +281,33 @@ func parseASPath(value []byte) []uint32 {
 
 // parseCommunities extracts RFC 1997 communities as "ASN:VALUE".
 func parseCommunities(value []byte) []string {
-	var comms []string
-	for i := 0; i < len(value); i += 4 {
-		if len(value)-i < 4 {
-			break
-		}
+	comms := make([]string, 0, len(value)/4)
+	var buf [16]byte
+	for i := 0; i+4 <= len(value); i += 4 {
 		asn := binary.BigEndian.Uint16(value[i : i+2])
 		val := binary.BigEndian.Uint16(value[i+2 : i+4])
-		comms = append(comms, fmt.Sprintf("%d:%d", asn, val))
+		b := strconv.AppendUint(buf[:0], uint64(asn), 10)
+		b = append(b, ':')
+		b = strconv.AppendUint(b, uint64(val), 10)
+		comms = append(comms, string(b))
 	}
 	return comms
 }
 
 // parseLargeCommunities extracts RFC 8092 communities as "Global:Local1:Local2".
 func parseLargeCommunities(value []byte) []string {
-	var comms []string
-	for i := 0; i < len(value); i += 12 {
-		if len(value)-i < 12 {
-			break
-		}
+	comms := make([]string, 0, len(value)/12)
+	var buf [36]byte
+	for i := 0; i+12 <= len(value); i += 12 {
 		global := binary.BigEndian.Uint32(value[i : i+4])
 		local1 := binary.BigEndian.Uint32(value[i+4 : i+8])
 		local2 := binary.BigEndian.Uint32(value[i+8 : i+12])
-		comms = append(comms, fmt.Sprintf("%d:%d:%d", global, local1, local2))
+		b := strconv.AppendUint(buf[:0], uint64(global), 10)
+		b = append(b, ':')
+		b = strconv.AppendUint(b, uint64(local1), 10)
+		b = append(b, ':')
+		b = strconv.AppendUint(b, uint64(local2), 10)
+		comms = append(comms, string(b))
 	}
 	return comms
 }
@@ -295,7 +315,9 @@ func parseLargeCommunities(value []byte) []string {
 // parseNextHop decodes standard IPv4 next-hop.
 func parseNextHop(value []byte) string {
 	if len(value) == 4 {
-		return net.IP(value).String()
+		var addr [4]byte
+		copy(addr[:], value)
+		return netip.AddrFrom4(addr).String()
 	}
 	return ""
 }
@@ -314,7 +336,9 @@ func parseMPReachNLRI(value []byte) (string, []string, error) {
 	nextHopIP := ""
 	if afi == 2 && safi == 1 { // IPv6 Unicast
 		if nextHopLen >= 16 {
-			nextHopIP = net.IP(value[4 : 4+16]).String()
+			var addr [16]byte
+			copy(addr[:], value[4:4+16])
+			nextHopIP = netip.AddrFrom16(addr).Unmap().String()
 		}
 	}
 	nlriOffset := 4 + nextHopLen + 1

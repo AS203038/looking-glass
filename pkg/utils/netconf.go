@@ -297,6 +297,7 @@ func checkXML(s string) error {
 type netconfOutput struct {
 	local    string
 	errLocal string
+	maxBytes int
 	found    bool
 	text     strings.Builder
 	errText  strings.Builder
@@ -337,9 +338,15 @@ func (o *netconfOutput) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 			depth--
 		case xml.CharData:
 			if inside > 0 {
+				if o.maxBytes > 0 && o.text.Len()+len(t) > o.maxBytes {
+					return errOutputTooLarge
+				}
 				o.text.Write(t)
 			}
 			if insideErr > 0 {
+				if o.maxBytes > 0 && o.errText.Len()+len(t) > o.maxBytes {
+					return errOutputTooLarge
+				}
 				o.errText.Write(t)
 			}
 		}
@@ -456,7 +463,7 @@ func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterC
 	}
 	ctx, done := dl.start(router.commandTimeout(netconfTimeout))
 	defer done()
-	out := &netconfOutput{local: spec.Output, errLocal: spec.Error}
+	out := &netconfOutput{local: spec.Output, errLocal: spec.Error, maxBytes: maxSSHOutputBytes}
 	err = sess.Exec(ctx, body, out)
 	var rpcErrs netconf.RPCErrors
 	switch {

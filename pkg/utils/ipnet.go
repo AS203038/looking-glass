@@ -78,15 +78,14 @@ func (ip *IPNet) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewIPNET parses a textual IP address or CIDR prefix into an [IPNet].
 // Returns [errs.IPInvalid] or [errs.NetInvalid] for malformed input.
 func NewIPNET(ip string) (*IPNet, error) {
-	var ret = &IPNet{}
-	ret.IP = ip
-	hasSlash := strings.Contains(ip, "/")
+	ret := &IPNet{IP: ip}
+	host, cidr, hasSlash := strings.Cut(ip, "/")
 	if hasSlash {
 		if _, _, err := net.ParseCIDR(ip); err != nil {
 			return nil, errs.NetInvalid
 		}
-		ret.CIDR = strings.Split(ip, "/")[1]
-		ret.IP = strings.Split(ip, "/")[0]
+		ret.CIDR = cidr
+		ret.IP = host
 	}
 	if net.ParseIP(ret.IP) == nil {
 		return nil, errs.IPInvalid

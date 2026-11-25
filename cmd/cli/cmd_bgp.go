@@ -100,23 +100,42 @@ func newBGPPeerRoutesCmd() *cobra.Command {
 				return fmt.Errorf("unsupported query type: %s (must be received, accepted, rejected, or advertised)", qType)
 			}
 
-			resp, err := callWithRetry(ctx, &pb.BGPPeerRoutesRequest{
-				RouterId:  routerID,
-				PeerIp:    args[2],
-				PeerName:  peerName,
-				QueryType: qt,
-			}, client.BGPPeerRoutes)
-			if err != nil {
-				return err
+			var (
+				first     *pb.BGPPeerRoutesResponse
+				allPaths  []*pb.BGPPath
+				pageToken string
+			)
+			for {
+				resp, err := callWithRetry(ctx, &pb.BGPPeerRoutesRequest{
+					RouterId:  routerID,
+					PeerIp:    args[2],
+					PeerName:  peerName,
+					QueryType: qt,
+					Limit:     2000,
+					PageToken: pageToken,
+				}, client.BGPPeerRoutes)
+				if err != nil {
+					return err
+				}
+				if first == nil {
+					first = resp
+				}
+				if resp.GetParsed() != nil {
+					allPaths = append(allPaths, resp.GetParsed().GetPaths()...)
+				}
+				next := resp.GetNextPageToken()
+				if next == "" || next == pageToken {
+					break
+				}
+				pageToken = next
 			}
-			msg := resp
 			var parsed any
-			if msg.GetParsed() != nil {
-				parsed = msg.GetParsed()
+			if first.GetParsed() != nil {
+				parsed = &pb.BGPPaths{Paths: allPaths}
 			}
 			return printParsedResult(
-				string(msg.GetResult()), msg.GetTimestamp().AsTime(),
-				parsed, msg.GetParserKind(), msg.GetParseStatus())
+				string(first.GetResult()), first.GetTimestamp().AsTime(),
+				parsed, first.GetParserKind(), first.GetParseStatus())
 		},
 	}
 

@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -99,7 +98,36 @@ func runParser(ri *utils.RouterInstance, op parse.Op, raw []byte) parse.Result {
 
 // joinSSH concatenates per-command stdout strings into the wire `result` bytes.
 func joinSSH(parts []string) []byte {
-	return []byte(strings.Join(parts, "\n"))
+	if len(parts) == 0 {
+		return nil
+	}
+	total := len(parts) - 1
+	for _, p := range parts {
+		total += len(p)
+	}
+	buf := make([]byte, 0, total)
+	for i, p := range parts {
+		if i > 0 {
+			buf = append(buf, '\n')
+		}
+		buf = append(buf, p...)
+	}
+	return buf
+}
+
+// bmpRoutesToProto converts BMP route records into preallocated protobuf BGPPath messages.
+func bmpRoutesToProto(routes []bmp.RouteInfo) []*pb.BGPPath {
+	pbPaths := make([]*pb.BGPPath, 0, len(routes))
+	for _, r := range routes {
+		pbPaths = append(pbPaths, &pb.BGPPath{
+			Prefix:           r.Prefix,
+			AsPath:           r.ASPath,
+			Nexthop:          r.NextHop,
+			Communities:      r.Communities,
+			LargeCommunities: r.LargeCommunities,
+		})
+	}
+	return pbPaths
 }
 
 // nowPB returns the current server time as a *timestamppb.Timestamp.
@@ -188,6 +216,7 @@ func (s *LookingGlassService) GetRouters(ctx context.Context, req *pb.GetRouters
 			slog.Uint64("next_page", 0))
 		return &pb.GetRoutersResponse{}, nil
 	}
+	ret = make([]*pb.Router, 0, end-start)
 	for k, v := range s.rts[start:end] {
 		ret = append(ret, &pb.Router{
 			Name:     v.Config.Name,
@@ -332,7 +361,7 @@ func (s *LookingGlassService) BGPSummary(ctx context.Context, req *pb.BGPSummary
 			logRPCError(tag, "bgp_summary_bmp_get", err)
 			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
-		var pbPeers []*pb.BGPPeer
+		pbPeers := make([]*pb.BGPPeer, 0, len(peers))
 		for _, p := range peers {
 			pbPeers = append(pbPeers, &pb.BGPPeer{
 				PeerIp:           p.IP,
@@ -409,16 +438,7 @@ func (s *LookingGlassService) BGPRoute(ctx context.Context, req *pb.BGPRouteRequ
 			logRPCError(tag, "bgp_route_bmp_get", err)
 			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
-		var pbPaths []*pb.BGPPath
-		for _, r := range routes {
-			pbPaths = append(pbPaths, &pb.BGPPath{
-				Prefix:           r.Prefix,
-				AsPath:           r.ASPath,
-				Nexthop:          r.NextHop,
-				Communities:      r.Communities,
-				LargeCommunities: r.LargeCommunities,
-			})
-		}
+		pbPaths := bmpRoutesToProto(routes)
 		resp := &pb.BGPRouteResponse{
 			Result:    []byte("Served from stateless BMP Redis store\n"),
 			Timestamp: nowPB(),
@@ -543,31 +563,25 @@ func (s *LookingGlassService) BGPPeerRoutes(ctx context.Context, req *pb.BGPPeer
 			return nil, connect.NewError(connect.CodeInvalidArgument, "peer IP must be provided or resolvable under BMP mode")
 		}
 
-		routes, err := bmp.GetBMPPeerRoutes(ctx, rpcCacheClient, ri.Config.Name, resolvedIP, qTypeStr)
+		routes, nextCursor, err := bmp.GetBMPPeerRoutesPaginated(ctx, rpcCacheClient, ri.Config.Name, resolvedIP, qTypeStr, cursor, limit)
 		if err != nil {
 			logRPCError(tag, "peer_routes_bmp_get", err)
 			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
 
-		var pbPaths []*pb.BGPPath
-		for _, r := range routes {
-			pbPaths = append(pbPaths, &pb.BGPPath{
-				Prefix:           r.Prefix,
-				AsPath:           r.ASPath,
-				Nexthop:          r.NextHop,
-				Communities:      r.Communities,
-				LargeCommunities: r.LargeCommunities,
-			})
+		nextPageToken := ""
+		if nextCursor != 0 {
+			nextPageToken = strconv.FormatUint(nextCursor, 10)
 		}
 		resp := &pb.BGPPeerRoutesResponse{
 			Result:    []byte("Served from stateless BMP Redis store\n"),
 			Timestamp: nowPB(),
 			Parsed: &pb.BGPPaths{
-				Paths: pbPaths,
+				Paths: bmpRoutesToProto(routes),
 			},
 			ParserKind:    pb.ParserKind_PARSER_KIND_BUILTIN,
 			ParseStatus:   pb.ParseStatus_PARSE_STATUS_OK,
-			NextPageToken: "",
+			NextPageToken: nextPageToken,
 		}
 		rpcCacheSet(ctx, key, resp)
 		logRPCOK(tag, start, resp.Result, parse.Result{Kind: pb.ParserKind_PARSER_KIND_BUILTIN, Status: pb.ParseStatus_PARSE_STATUS_OK})
@@ -642,16 +656,7 @@ func (s *LookingGlassService) BGPCommunity(ctx context.Context, req *pb.BGPCommu
 			logRPCError(tag, "bgp_community_bmp_get", err)
 			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
-		var pbPaths []*pb.BGPPath
-		for _, r := range routes {
-			pbPaths = append(pbPaths, &pb.BGPPath{
-				Prefix:           r.Prefix,
-				AsPath:           r.ASPath,
-				Nexthop:          r.NextHop,
-				Communities:      r.Communities,
-				LargeCommunities: r.LargeCommunities,
-			})
-		}
+		pbPaths := bmpRoutesToProto(routes)
 		resp := &pb.BGPCommunityResponse{
 			Result:    []byte("Served from stateless BMP Redis store\n"),
 			Timestamp: nowPB(),
@@ -722,16 +727,7 @@ func (s *LookingGlassService) BGPLargeCommunity(ctx context.Context, req *pb.BGP
 			logRPCError(tag, "bgp_largecommunity_bmp_get", err)
 			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
-		var pbPaths []*pb.BGPPath
-		for _, r := range routes {
-			pbPaths = append(pbPaths, &pb.BGPPath{
-				Prefix:           r.Prefix,
-				AsPath:           r.ASPath,
-				Nexthop:          r.NextHop,
-				Communities:      r.Communities,
-				LargeCommunities: r.LargeCommunities,
-			})
-		}
+		pbPaths := bmpRoutesToProto(routes)
 		resp := &pb.BGPLargeCommunityResponse{
 			Result:    []byte("Served from stateless BMP Redis store\n"),
 			Timestamp: nowPB(),
@@ -798,16 +794,7 @@ func (s *LookingGlassService) BGPASPath(ctx context.Context, req *pb.BGPASPathRe
 			logRPCError(tag, "bgp_aspath_bmp_get", err)
 			return nil, connect.NewError(connect.CodeInternal, "BMP datastore lookup failed")
 		}
-		var pbPaths []*pb.BGPPath
-		for _, r := range routes {
-			pbPaths = append(pbPaths, &pb.BGPPath{
-				Prefix:           r.Prefix,
-				AsPath:           r.ASPath,
-				Nexthop:          r.NextHop,
-				Communities:      r.Communities,
-				LargeCommunities: r.LargeCommunities,
-			})
-		}
+		pbPaths := bmpRoutesToProto(routes)
 		resp := &pb.BGPASPathResponse{
 			Result:    []byte("Served from stateless BMP Redis store\n"),
 			Timestamp: nowPB(),

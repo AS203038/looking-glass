@@ -3,9 +3,10 @@ package bmp
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
+	"net/netip"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,9 @@ const (
 	redisBMPIndexASPrefix             = "lg:bmp:index:as:"
 	redisBMPIndexCommunityPrefix      = "lg:bmp:index:community:"
 	redisBMPIndexLargeCommunityPrefix = "lg:bmp:index:large_community:"
+
+	maxEmptyHScanRounds = 64
+	hmgetBatchSize      = 500
 )
 
 // PeerInfo records BGP peer session status retrieved via BMP.
@@ -43,6 +47,31 @@ type RouteInfo struct {
 	Accepted         bool     `json:"accepted"`
 	Bestpath         bool     `json:"bestpath"`
 	Rejected         bool     `json:"rejected"`
+}
+
+func asIndexKey(router string, asn uint32) string {
+	return redisBMPIndexASPrefix + router + ":" + strconv.FormatUint(uint64(asn), 10)
+}
+
+func communityIndexKey(router, comm string) string {
+	return redisBMPIndexCommunityPrefix + router + ":" + comm
+}
+
+func largeCommunityIndexKey(router, lc string) string {
+	return redisBMPIndexLargeCommunityPrefix + router + ":" + lc
+}
+
+func matchQueryType(r RouteInfo, queryType string) bool {
+	switch queryType {
+	case "rejected":
+		return r.Rejected
+	case "accepted":
+		return r.Accepted
+	case "bestpath":
+		return r.Bestpath
+	default:
+		return true
+	}
 }
 
 // UpdateBMPPeerStatus writes/updates a peer's connectivity status in Redis.
@@ -80,7 +109,7 @@ func UpdateBMPPeerStatus(ctx context.Context, rdb *redis.Client, router string, 
 	}
 
 	raw, _ := json.Marshal(peer)
-	return rdb.HSet(ctx, key, ip, string(raw)).Err()
+	return rdb.HSet(ctx, key, ip, raw).Err()
 }
 
 // UpdateBMPRib processes BGP updates (announcements and withdrawals) in Redis.
@@ -93,9 +122,11 @@ func UpdateBMPRib(ctx context.Context, rdb *redis.Client, router string, peerIP 
 
 	now := time.Now().Unix()
 
-	allPrefixes := append(append([]string{}, update.WithdrawnPrefixes...), update.AnnouncedPrefixes...)
+	allPrefixes := make([]string, 0, len(update.WithdrawnPrefixes)+len(update.AnnouncedPrefixes))
+	allPrefixes = append(allPrefixes, update.WithdrawnPrefixes...)
+	allPrefixes = append(allPrefixes, update.AnnouncedPrefixes...)
 
-	existingRoutes := make(map[string]RouteInfo)
+	existingRoutes := make(map[string]RouteInfo, len(allPrefixes))
 	if len(allPrefixes) > 0 {
 		vals, err := rdb.HMGet(ctx, ribKey, allPrefixes...).Result()
 		if err == nil {
@@ -144,7 +175,7 @@ func UpdateBMPRib(ctx context.Context, rdb *redis.Client, router string, peerIP 
 				Rejected:         false,
 			}
 			raw, _ := json.Marshal(ri)
-			pipe.HSet(ctx, ribKey, prefix, string(raw))
+			pipe.HSet(ctx, ribKey, prefix, raw)
 
 			addRouteIndex(ctx, pipe, router, peerIP, prefix, ri)
 		}
@@ -160,7 +191,7 @@ func UpdateBMPRib(ctx context.Context, rdb *redis.Client, router string, peerIP 
 			peer.PrefixesReceived = uint64(count)
 			peer.PrefixesAccepted = uint64(count)
 			raw, _ := json.Marshal(peer)
-			_ = rdb.HSet(ctx, peersKey, peerIP, string(raw)).Err()
+			_ = rdb.HSet(ctx, peersKey, peerIP, raw).Err()
 		}
 	}
 
@@ -177,7 +208,7 @@ func GetBMPPeers(ctx context.Context, rdb *redis.Client, router string) ([]PeerI
 	if err != nil {
 		return nil, err
 	}
-	var peers []PeerInfo
+	peers := make([]PeerInfo, 0, len(res))
 	for _, val := range res {
 		var peer PeerInfo
 		if err := json.Unmarshal([]byte(val), &peer); err == nil {
@@ -197,19 +228,10 @@ func GetBMPPeerRoutes(ctx context.Context, rdb *redis.Client, router string, pee
 	if err != nil {
 		return nil, err
 	}
-	var routes []RouteInfo
+	routes := make([]RouteInfo, 0, len(res))
 	for _, val := range res {
 		var r RouteInfo
-		if err := json.Unmarshal([]byte(val), &r); err == nil {
-			if queryType == "rejected" && !r.Rejected {
-				continue
-			}
-			if queryType == "accepted" && !r.Accepted {
-				continue
-			}
-			if queryType == "bestpath" && !r.Bestpath {
-				continue
-			}
+		if err := json.Unmarshal([]byte(val), &r); err == nil && matchQueryType(r, queryType) {
 			routes = append(routes, r)
 		}
 	}
@@ -230,33 +252,28 @@ func GetBMPPeerRoutesPaginated(ctx context.Context, rdb *redis.Client, router st
 		limit = 50000
 	}
 
-	keys, nextCursor, err := rdb.HScan(ctx, ribKey, cursor, "*", limit).Result()
-	if err != nil {
-		return nil, 0, err
-	}
-
 	var routes []RouteInfo
-	for i := 0; i < len(keys); i += 2 {
-		if i+1 >= len(keys) {
+	for round := 0; round < maxEmptyHScanRounds; round++ {
+		keys, nextCursor, err := rdb.HScan(ctx, ribKey, cursor, "*", limit).Result()
+		if err != nil {
+			return nil, 0, err
+		}
+		if routes == nil {
+			routes = make([]RouteInfo, 0, len(keys)/2)
+		}
+		for i := 0; i+1 < len(keys); i += 2 {
+			var r RouteInfo
+			if err := json.Unmarshal([]byte(keys[i+1]), &r); err == nil && matchQueryType(r, queryType) {
+				routes = append(routes, r)
+			}
+		}
+		cursor = nextCursor
+		if len(routes) > 0 || cursor == 0 {
 			break
 		}
-		valStr := keys[i+1]
-		var r RouteInfo
-		if err := json.Unmarshal([]byte(valStr), &r); err == nil {
-			if queryType == "rejected" && !r.Rejected {
-				continue
-			}
-			if queryType == "accepted" && !r.Accepted {
-				continue
-			}
-			if queryType == "bestpath" && !r.Bestpath {
-				continue
-			}
-			routes = append(routes, r)
-		}
 	}
 
-	return routes, nextCursor, nil
+	return routes, cursor, nil
 }
 
 // FindBMPRoutesByPrefix searches all peer RIBs on a router to locate a specific destination prefix.
@@ -312,29 +329,22 @@ func FindBMPRoutesByPrefix(ctx context.Context, rdb *redis.Client, router string
 
 // generateIPPrefixes generates the possible enclosing CIDR candidates for a given IP address.
 func generateIPPrefixes(target string) []string {
-	ip := net.ParseIP(target)
-	if ip == nil {
-		if targetIP, _, err := net.ParseCIDR(target); err == nil {
-			ip = targetIP
-		} else {
+	addr, err := netip.ParseAddr(target)
+	if err != nil {
+		pfx, perr := netip.ParsePrefix(target)
+		if perr != nil {
 			return nil
 		}
+		addr = pfx.Addr()
 	}
-
-	var prefixes []string
-	if ip.To4() != nil {
-		ipv4 := ip.To4()
-		for maskLen := 32; maskLen >= 0; maskLen-- {
-			mask := net.CIDRMask(maskLen, 32)
-			netIP := ipv4.Mask(mask)
-			prefixes = append(prefixes, fmt.Sprintf("%s/%d", netIP.String(), maskLen))
-		}
-	} else {
-		for maskLen := 128; maskLen >= 0; maskLen-- {
-			mask := net.CIDRMask(maskLen, 128)
-			netIP := ip.Mask(mask)
-			prefixes = append(prefixes, fmt.Sprintf("%s/%d", netIP.String(), maskLen))
-		}
+	addr = addr.Unmap()
+	bits := 128
+	if addr.Is4() {
+		bits = 32
+	}
+	prefixes := make([]string, 0, bits+1)
+	for maskLen := bits; maskLen >= 0; maskLen-- {
+		prefixes = append(prefixes, netip.PrefixFrom(addr, maskLen).Masked().String())
 	}
 	return prefixes
 }
@@ -378,22 +388,10 @@ func cleanPeerIndexes(ctx context.Context, rdb *redis.Client, router string, ip 
 			break
 		}
 		pipe := rdb.Pipeline()
-		for i := 0; i < len(keys); i += 2 {
-			if i+1 >= len(keys) {
-				break
-			}
+		for i := 0; i+1 < len(keys); i += 2 {
 			var r RouteInfo
 			if err := json.Unmarshal([]byte(keys[i+1]), &r); err == nil {
-				member := fmt.Sprintf("%s:%s", ip, r.Prefix)
-				for _, asn := range r.ASPath {
-					pipe.SRem(ctx, fmt.Sprintf("%s%s:%d", redisBMPIndexASPrefix, router, asn), member)
-				}
-				for _, comm := range r.Communities {
-					pipe.SRem(ctx, fmt.Sprintf("%s%s:%s", redisBMPIndexCommunityPrefix, router, comm), member)
-				}
-				for _, lc := range r.LargeCommunities {
-					pipe.SRem(ctx, fmt.Sprintf("%s%s:%s", redisBMPIndexLargeCommunityPrefix, router, lc), member)
-				}
+				deleteRouteIndex(ctx, pipe, router, ip, r.Prefix, r)
 			}
 		}
 		_, _ = pipe.Exec(ctx)
@@ -406,29 +404,29 @@ func cleanPeerIndexes(ctx context.Context, rdb *redis.Client, router string, ip 
 
 // deleteRouteIndex removes index entries for a single prefix from Redis Sets.
 func deleteRouteIndex(ctx context.Context, pipe redis.Pipeliner, router string, peerIP string, prefix string, ri RouteInfo) {
-	member := fmt.Sprintf("%s:%s", peerIP, prefix)
+	member := peerIP + ":" + prefix
 	for _, asn := range ri.ASPath {
-		pipe.SRem(ctx, fmt.Sprintf("%s%s:%d", redisBMPIndexASPrefix, router, asn), member)
+		pipe.SRem(ctx, asIndexKey(router, asn), member)
 	}
 	for _, comm := range ri.Communities {
-		pipe.SRem(ctx, fmt.Sprintf("%s%s:%s", redisBMPIndexCommunityPrefix, router, comm), member)
+		pipe.SRem(ctx, communityIndexKey(router, comm), member)
 	}
 	for _, lc := range ri.LargeCommunities {
-		pipe.SRem(ctx, fmt.Sprintf("%s%s:%s", redisBMPIndexLargeCommunityPrefix, router, lc), member)
+		pipe.SRem(ctx, largeCommunityIndexKey(router, lc), member)
 	}
 }
 
 // addRouteIndex adds index entries for a single prefix to Redis Sets.
 func addRouteIndex(ctx context.Context, pipe redis.Pipeliner, router string, peerIP string, prefix string, ri RouteInfo) {
-	member := fmt.Sprintf("%s:%s", peerIP, prefix)
+	member := peerIP + ":" + prefix
 	for _, asn := range ri.ASPath {
-		pipe.SAdd(ctx, fmt.Sprintf("%s%s:%d", redisBMPIndexASPrefix, router, asn), member)
+		pipe.SAdd(ctx, asIndexKey(router, asn), member)
 	}
 	for _, comm := range ri.Communities {
-		pipe.SAdd(ctx, fmt.Sprintf("%s%s:%s", redisBMPIndexCommunityPrefix, router, comm), member)
+		pipe.SAdd(ctx, communityIndexKey(router, comm), member)
 	}
 	for _, lc := range ri.LargeCommunities {
-		pipe.SAdd(ctx, fmt.Sprintf("%s%s:%s", redisBMPIndexLargeCommunityPrefix, router, lc), member)
+		pipe.SAdd(ctx, largeCommunityIndexKey(router, lc), member)
 	}
 }
 
@@ -437,7 +435,7 @@ func FindBMPRoutesByCommunity(ctx context.Context, rdb *redis.Client, router str
 	if rdb == nil {
 		return nil, nil
 	}
-	key := fmt.Sprintf("%s%s:%s", redisBMPIndexCommunityPrefix, router, community)
+	key := communityIndexKey(router, community)
 	members, err := rdb.SMembers(ctx, key).Result()
 	if err != nil {
 		return nil, err
@@ -450,7 +448,7 @@ func FindBMPRoutesByLargeCommunity(ctx context.Context, rdb *redis.Client, route
 	if rdb == nil {
 		return nil, nil
 	}
-	key := fmt.Sprintf("%s%s:%s", redisBMPIndexLargeCommunityPrefix, router, largeCommunity)
+	key := largeCommunityIndexKey(router, largeCommunity)
 	members, err := rdb.SMembers(ctx, key).Result()
 	if err != nil {
 		return nil, err
@@ -464,13 +462,15 @@ func FindBMPRoutesByASPath(ctx context.Context, rdb *redis.Client, router string
 		return nil, nil
 	}
 	asns := extractASNsFromPattern(pattern)
-	var members []string
-	var err error
 	if len(asns) > 0 {
-		var keys []string
+		keys := make([]string, 0, len(asns))
 		for _, asn := range asns {
-			keys = append(keys, fmt.Sprintf("%s%s:%d", redisBMPIndexASPrefix, router, asn))
+			keys = append(keys, asIndexKey(router, asn))
 		}
+		var (
+			members []string
+			err     error
+		)
 		if len(keys) == 1 {
 			members, err = rdb.SMembers(ctx, keys[0]).Result()
 		} else {
@@ -479,26 +479,48 @@ func FindBMPRoutesByASPath(ctx context.Context, rdb *redis.Client, router string
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		peers, err := GetBMPPeers(ctx, rdb, router)
+		routes, err := fetchRoutesFromIndexMembers(ctx, rdb, router, members)
 		if err != nil {
 			return nil, err
 		}
-		var allRoutes []RouteInfo
-		for _, p := range peers {
-			routes, err := GetBMPPeerRoutes(ctx, rdb, router, p.IP, "accepted")
-			if err == nil {
-				allRoutes = append(allRoutes, routes...)
-			}
-		}
-		return matchASPathRegex(pattern, allRoutes)
+		return matchASPathRegex(pattern, routes)
 	}
 
-	routes, err := fetchRoutesFromIndexMembers(ctx, rdb, router, members)
+	re, err := compileASPathRegex(pattern)
 	if err != nil {
 		return nil, err
 	}
-	return matchASPathRegex(pattern, routes)
+	peers, err := GetBMPPeers(ctx, rdb, router)
+	if err != nil {
+		return nil, err
+	}
+	var matched []RouteInfo
+	scratch := make([]byte, 0, 128)
+	for _, p := range peers {
+		ribKey := redisBMPRibPrefix + router + ":" + p.IP
+		cursor := uint64(0)
+		for {
+			keys, nextCursor, err := rdb.HScan(ctx, ribKey, cursor, "*", 1000).Result()
+			if err != nil {
+				break
+			}
+			for i := 0; i+1 < len(keys); i += 2 {
+				var r RouteInfo
+				if err := json.Unmarshal([]byte(keys[i+1]), &r); err == nil && r.Accepted {
+					var ok bool
+					ok, scratch = matchASPathBytes(re, r.ASPath, scratch)
+					if ok {
+						matched = append(matched, r)
+					}
+				}
+			}
+			cursor = nextCursor
+			if cursor == 0 {
+				break
+			}
+		}
+	}
+	return matched, nil
 }
 
 var asnRegex = regexp.MustCompile(`[0-9]+`)
@@ -508,11 +530,12 @@ func extractASNsFromPattern(pattern string) []uint32 {
 	if len(matches) == 0 {
 		return nil
 	}
-	seen := make(map[uint32]bool)
-	var asns []uint32
+	seen := make(map[uint32]bool, len(matches))
+	asns := make([]uint32, 0, len(matches))
 	for _, m := range matches {
-		var asn uint32
-		if _, err := fmt.Sscanf(m, "%d", &asn); err == nil {
+		v, err := strconv.ParseUint(m, 10, 32)
+		if err == nil {
+			asn := uint32(v)
 			if !seen[asn] {
 				seen[asn] = true
 				asns = append(asns, asn)
@@ -522,21 +545,34 @@ func extractASNsFromPattern(pattern string) []uint32 {
 	return asns
 }
 
-func matchASPathRegex(pattern string, routes []RouteInfo) ([]RouteInfo, error) {
+func compileASPathRegex(pattern string) (*regexp.Regexp, error) {
 	translated := strings.ReplaceAll(pattern, "_", `(?:^|\s|$)`)
-	re, err := regexp.Compile(translated)
+	return regexp.Compile(translated)
+}
+
+func matchASPathBytes(re *regexp.Regexp, asPath []uint32, scratch []byte) (bool, []byte) {
+	scratch = scratch[:0]
+	for i, asn := range asPath {
+		if i > 0 {
+			scratch = append(scratch, ' ')
+		}
+		scratch = strconv.AppendUint(scratch, uint64(asn), 10)
+	}
+	return re.Match(scratch), scratch
+}
+
+func matchASPathRegex(pattern string, routes []RouteInfo) ([]RouteInfo, error) {
+	re, err := compileASPathRegex(pattern)
 	if err != nil {
 		return nil, err
 	}
 
 	var matched []RouteInfo
+	scratch := make([]byte, 0, 128)
 	for _, r := range routes {
-		var pathParts []string
-		for _, asn := range r.ASPath {
-			pathParts = append(pathParts, fmt.Sprintf("%d", asn))
-		}
-		pathStr := strings.Join(pathParts, " ")
-		if re.MatchString(pathStr) {
+		var ok bool
+		ok, scratch = matchASPathBytes(re, r.ASPath, scratch)
+		if ok {
 			matched = append(matched, r)
 		}
 	}
@@ -551,23 +587,24 @@ func fetchRoutesFromIndexMembers(ctx context.Context, rdb *redis.Client, router 
 
 	byPeer := make(map[string][]string)
 	for _, m := range members {
-		parts := strings.SplitN(m, ":", 2)
-		if len(parts) == 2 {
-			peerIP := parts[0]
-			prefix := parts[1]
+		if peerIP, prefix, ok := strings.Cut(m, ":"); ok {
 			byPeer[peerIP] = append(byPeer[peerIP], prefix)
 		}
 	}
 
-	var routes []RouteInfo
+	routes := make([]RouteInfo, 0, len(members))
 	for peerIP, prefixes := range byPeer {
 		ribKey := redisBMPRibPrefix + router + ":" + peerIP
-		vals, err := rdb.HMGet(ctx, ribKey, prefixes...).Result()
-		if err != nil {
-			continue
-		}
-		for _, val := range vals {
-			if val != nil {
+		for start := 0; start < len(prefixes); start += hmgetBatchSize {
+			end := start + hmgetBatchSize
+			if end > len(prefixes) {
+				end = len(prefixes)
+			}
+			vals, err := rdb.HMGet(ctx, ribKey, prefixes[start:end]...).Result()
+			if err != nil {
+				continue
+			}
+			for _, val := range vals {
 				if valStr, ok := val.(string); ok && valStr != "" {
 					var r RouteInfo
 					if err := json.Unmarshal([]byte(valStr), &r); err == nil {

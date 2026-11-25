@@ -170,6 +170,14 @@ func TestHelperParsersErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error for empty prefix")
 	}
+	_, _, err = parsePrefix([]byte{33, 192, 0, 2, 0, 0}, false)
+	if err == nil {
+		t.Errorf("expected error for IPv4 prefix length > 32")
+	}
+	_, _, err = parsePrefix([]byte{129, 0x20, 0x01}, true)
+	if err == nil {
+		t.Errorf("expected error for IPv6 prefix length > 128")
+	}
 
 	asns := parseASPath([]byte{2, 1})
 	if len(asns) != 0 {

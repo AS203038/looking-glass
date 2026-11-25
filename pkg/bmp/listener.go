@@ -1,16 +1,21 @@
 package bmp
 
 import (
+	"bufio"
 	"context"
 	"encoding/binary"
 	"io"
 	"log/slog"
 	"net"
+	"time"
 
 	"github.com/AS203038/looking-glass/pkg/logging"
 	"github.com/AS203038/looking-glass/pkg/utils"
 	"github.com/redis/go-redis/v9"
 )
+
+// maxBMPMessageLen caps the maximum accepted BMP message size (1 MiB).
+var maxBMPMessageLen uint32 = 1 << 20
 
 // StartBMPListener initializes the concurrent TCP server to receive BMP feeds.
 func StartBMPListener(ctx context.Context, listenAddr string, rdb *redis.Client, rm utils.RouterMap) error {
@@ -40,7 +45,7 @@ func StartBMPListener(ctx context.Context, listenAddr string, rdb *redis.Client,
 					continue
 				}
 			}
-			go handleBMPConnection(conn, rdb, rm)
+			go handleBMPConnection(ctx, conn, rdb, rm)
 		}
 	}()
 
@@ -48,8 +53,10 @@ func StartBMPListener(ctx context.Context, listenAddr string, rdb *redis.Client,
 }
 
 // handleBMPConnection consumes BMP messages on a single session.
-func handleBMPConnection(conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
+func handleBMPConnection(ctx context.Context, conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
 	defer conn.Close()
+	stopClose := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stopClose()
 
 	routerName := findRouterByRemoteIP(conn.RemoteAddr(), rm)
 	if routerName == "" {
@@ -62,9 +69,11 @@ func handleBMPConnection(conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
 		slog.String("remote", conn.RemoteAddr().String()))
 	log.Info("BMP router telemetry feed connected")
 
+	br := bufio.NewReaderSize(conn, 16*1024)
 	headerBuf := make([]byte, bmpCommonHeaderLen)
+	var payloadBuf []byte
 	for {
-		_, err := io.ReadFull(conn, headerBuf)
+		_, err := io.ReadFull(br, headerBuf)
 		if err != nil {
 			log.Info("BMP telemetry feed disconnected", slog.Any("err", err))
 			break
@@ -82,10 +91,17 @@ func handleBMPConnection(conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
 			log.Error("invalid BMP message length", slog.Any("length", length))
 			break
 		}
+		if length > maxBMPMessageLen {
+			log.Error("BMP message exceeds max length", slog.Uint64("length", uint64(length)))
+			break
+		}
 
-		payloadLen := length - bmpCommonHeaderLen
-		payload := make([]byte, payloadLen)
-		_, err = io.ReadFull(conn, payload)
+		payloadLen := int(length - bmpCommonHeaderLen)
+		if cap(payloadBuf) < payloadLen {
+			payloadBuf = make([]byte, payloadLen)
+		}
+		payload := payloadBuf[:payloadLen]
+		_, err = io.ReadFull(br, payload)
 		if err != nil {
 			log.Error("failed to read BMP payload", slog.Any("err", err))
 			break
@@ -103,7 +119,7 @@ func handleBMPConnection(conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
 			log.Info("BMP BGP Peer session established",
 				slog.String("peer_ip", peer.PeerAddress),
 				slog.Int("peer_asn", int(peer.PeerAS)))
-			_ = UpdateBMPPeerStatus(context.Background(), rdb, routerName, peer.PeerAddress, peer.PeerAS, "established", peer.PeerBGPID)
+			_ = UpdateBMPPeerStatus(ctx, rdb, routerName, peer.PeerAddress, peer.PeerAS, "established", peer.PeerBGPID)
 
 		case BMPMsgTypePeerDown:
 			if len(payload) < bmpPerPeerHeaderLen {
@@ -116,7 +132,7 @@ func handleBMPConnection(conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
 			log.Info("BMP BGP Peer session terminated",
 				slog.String("peer_ip", peer.PeerAddress),
 				slog.Int("peer_asn", int(peer.PeerAS)))
-			_ = UpdateBMPPeerStatus(context.Background(), rdb, routerName, peer.PeerAddress, peer.PeerAS, "down", peer.PeerBGPID)
+			_ = UpdateBMPPeerStatus(ctx, rdb, routerName, peer.PeerAddress, peer.PeerAS, "down", peer.PeerBGPID)
 
 		case BMPMsgTypeRouteMonitoring:
 			if len(payload) < bmpPerPeerHeaderLen {
@@ -136,7 +152,7 @@ func handleBMPConnection(conn net.Conn, rdb *redis.Client, rm utils.RouterMap) {
 			if bgpType == 2 && len(bgpPayload) >= int(bgpLength) && bgpLength > 19 {
 				update, err := ParseBGPUpdate(bgpPayload[19:bgpLength])
 				if err == nil {
-					_ = UpdateBMPRib(context.Background(), rdb, routerName, peer.PeerAddress, update)
+					_ = UpdateBMPRib(ctx, rdb, routerName, peer.PeerAddress, update)
 				}
 			}
 		}
@@ -157,7 +173,12 @@ func findRouterByRemoteIP(remoteAddr net.Addr, rm utils.RouterMap) string {
 		if cfgHost == host {
 			return dev.Config.Name
 		}
-		addrs, err := net.LookupHost(cfgHost)
+		if net.ParseIP(cfgHost) != nil {
+			continue
+		}
+		lookupCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		addrs, err := net.DefaultResolver.LookupHost(lookupCtx, cfgHost)
+		cancel()
 		if err == nil {
 			for _, a := range addrs {
 				if a == host {

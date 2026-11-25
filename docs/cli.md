@@ -159,7 +159,7 @@ lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=accepted --name=peer_member_1
 lg-cli bgp peer-routes as203038 1 'fe80::1%et-0/0/1:0.0'
 ```
 
-Calls `BGPPeerRoutes` to query routing details on a per-peer session basis. Useful for route-server debugging at IXPs.
+Calls `BGPPeerRoutes` to query routing details on a per-peer session basis (automatically paging through `next_page_token` when paginated by BMP mode). Useful for route-server debugging at IXPs.
 A link-local IPv6 peer can have its interface after `%`, as the router shows it in the BGP summary.
 
 Supported flags:
