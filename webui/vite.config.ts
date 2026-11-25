@@ -5,5 +5,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), svelteTesting()],
-	test: { environment: 'jsdom' }
+	test: {
+		environment: 'jsdom',
+		setupFiles: ['./src/test/setup.ts']
+	}
 });

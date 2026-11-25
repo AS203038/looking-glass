@@ -1,28 +1,12 @@
 <script lang="ts">
 	import type { Pb } from '$lib/grpc';
+	import { bgpStateBadgeClass } from '$lib/bgp';
 
 	interface Props {
 		oldSummary: Pb.BGPSummaryParsed;
 		newSummary: Pb.BGPSummaryParsed;
 	}
 	let { oldSummary, newSummary }: Props = $props();
-
-	function stateColor(state: string): string {
-		// A state can have a reason, for example "idle (removal in progress)" or "idle(noif)": only the state selects the color.
-		switch (state.split(/[\s(]/)[0]) {
-			case 'established':
-				return 'lg-badge-success';
-			case 'idle':
-			case 'connect':
-				return 'lg-badge-warning';
-			case 'active':
-			case 'opensent':
-			case 'openconfirm':
-				return 'lg-badge-info';
-			default:
-				return 'lg-badge-danger';
-		}
-	}
 
 	interface DiffPeer {
 		key: string;
@@ -34,7 +18,6 @@
 	}
 
 	const rows = $derived.by(() => {
-		// A peer can have one record per address family: compare each family with its own counterpart.
 		const keyOf = (p: Pb.BGPPeer) => `${p.peerIp}|${p.addressFamily}`;
 		const differ = (a: Pb.BGPPeer, b: Pb.BGPPeer) =>
 			a.state !== b.state || a.prefixesReceived !== b.prefixesReceived;
@@ -54,7 +37,6 @@
 			}
 		}
 		const all = Array.from(map.values());
-		// A peer that went down or came up has one record without a family: compare it with each family record of the peer.
 		const paired = new Set<DiffPeer>();
 		for (const lone of all.filter(
 			(r) => !r.family && (r.status === 'added' || r.status === 'removed')
@@ -71,8 +53,8 @@
 	});
 </script>
 
-<div class="flex-1 overflow-auto bg-(--color-bg-base)">
-	<table class="w-full font-mono text-xs">
+<div class="flex-1 overflow-auto bg-(--color-bg)">
+	<table class="w-full font-mono text-xs tabular-nums">
 		<thead
 			class="sticky top-0"
 			style="background-color: var(--color-bg-inset); color: var(--color-fg-subtle);"
@@ -110,12 +92,14 @@
 					<td class="px-3 py-1.5">
 						{#if r.status === 'changed' && r.old?.state !== r.new?.state}
 							<span class="mr-1 line-through opacity-50">{r.old?.state}</span>
-							<span class="lg-badge {stateColor(r.new!.state)} !px-1.5 !py-0 text-[10px]"
+							<span class="lg-badge {bgpStateBadgeClass(r.new!.state)} !px-1.5 !py-0 text-[10px]"
 								>{r.new!.state}</span
 							>
 						{:else}
-							<span class="lg-badge {stateColor((r.new || r.old)!.state)} !px-1.5 !py-0 text-[10px]"
-								>{(r.new || r.old)!.state}</span
+							<span
+								class="lg-badge {bgpStateBadgeClass(
+									(r.new || r.old)!.state
+								)} !px-1.5 !py-0 text-[10px]">{(r.new || r.old)!.state}</span
 							>
 						{/if}
 					</td>

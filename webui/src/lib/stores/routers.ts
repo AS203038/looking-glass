@@ -8,6 +8,7 @@ export type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 export const routers = writable<Router[]>([]);
 export const loadState = writable<LoadState>('idle');
+export const loadError = writable<string | null>(null);
 export const selectedIds = writable<Set<bigint>>(new Set());
 
 /** Derived store carrying the currently-selected router objects. */
@@ -32,10 +33,19 @@ export function clearSelection() {
 }
 
 /** Adds the given router ids to the selection. */
-export function selectMany(ids: bigint[]) {
+export function selectMany(ids: Iterable<bigint>) {
 	selectedIds.update((s) => {
 		const next = new Set(s);
 		for (const id of ids) next.add(id);
+		return next;
+	});
+}
+
+/** Removes the given router ids from the selection in a single update. */
+export function deselectMany(ids: Iterable<bigint>) {
+	selectedIds.update((s) => {
+		const next = new Set(s);
+		for (const id of ids) next.delete(id);
 		return next;
 	});
 }
@@ -60,11 +70,32 @@ async function fetchAllRouters(): Promise<Router[]> {
 	return collected;
 }
 
-/** Performs the initial router-catalogue load (idempotent). */
+function pruneInvalidSelections(catalogue: Router[]) {
+	const healthyById = new Map<bigint, Router>();
+	for (const r of catalogue) {
+		if (r.health?.healthy === true) healthyById.set(r.id, r);
+	}
+	const current = get(selectedIds);
+	if (current.size === 0) return;
+	const dropped: bigint[] = [];
+	for (const id of current) {
+		if (!healthyById.has(id)) dropped.push(id);
+	}
+	if (dropped.length === 0) return;
+	deselectMany(dropped);
+	pushToast({
+		kind: 'warning',
+		title: 'Selection updated',
+		message: `${dropped.length} router${dropped.length === 1 ? ' is' : 's are'} no longer available and ${dropped.length === 1 ? 'was' : 'were'} deselected.`
+	});
+}
+
+/** Performs the initial router-catalogue load (idempotent while active/ready). */
 export async function loadRouters() {
 	if (loadStarted) return;
 	loadStarted = true;
 	loadState.set('loading');
+	loadError.set(null);
 	try {
 		const client = LookingGlassClient();
 		let page = 1;
@@ -78,8 +109,10 @@ export async function loadRouters() {
 		loadState.set('ready');
 		startPeriodicRefresh();
 	} catch (err) {
+		loadStarted = false;
 		loadState.set('error');
 		const message = err instanceof Error ? err.message : String(err);
+		loadError.set(message);
 		pushToast({
 			kind: 'error',
 			title: 'Could not load routers',
@@ -89,13 +122,20 @@ export async function loadRouters() {
 	}
 }
 
-/** Silently re-fetches the catalogue and swaps the `routers` store atomically. */
+/** Retries loading the router catalogue after an error. */
+export async function retryLoadRouters() {
+	loadStarted = false;
+	return loadRouters();
+}
+
+/** Silently re-fetches the catalogue, swaps the `routers` store atomically, and prunes stale selections. */
 export async function refreshRouters(): Promise<void> {
 	if (refreshing) return;
 	refreshing = true;
 	try {
 		const next = await fetchAllRouters();
 		routers.set(next);
+		pruneInvalidSelections(next);
 	} catch (err) {
 		console.warn('refreshRouters failed (will retry on next interval):', err);
 	} finally {
@@ -131,6 +171,7 @@ export function _reset() {
 	routers.set([]);
 	selectedIds.set(new Set());
 	loadState.set('idle');
+	loadError.set(null);
 }
 
 /** Returns the current selection synchronously. */

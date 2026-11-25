@@ -34,7 +34,7 @@ func TestConfigInjector(t *testing.T) {
 			wantSentry: false,
 		},
 		{
-			name: "Sentry Enabled",
+			name: "Sentry Enabled with Replay",
 			cfg: utils.WebConfig{
 				Title: "Test LG",
 				Header: utils.HFBlock{
@@ -49,6 +49,7 @@ func TestConfigInjector(t *testing.T) {
 					DSN:         "https://example.com/sentry",
 					Environment: "production",
 					SampleRate:  0.5,
+					Replay:      true,
 				},
 			},
 			wantSentry: true,
@@ -64,6 +65,22 @@ func TestConfigInjector(t *testing.T) {
 
 			if rec.Code != http.StatusOK {
 				t.Fatalf("expected HTTP 200, got %d", rec.Code)
+			}
+
+			if cc := rec.Header().Get("Cache-Control"); cc != "no-cache" {
+				t.Errorf("expected Cache-Control no-cache, got %q", cc)
+			}
+			etag := rec.Header().Get("ETag")
+			if etag == "" {
+				t.Errorf("expected non-empty ETag")
+			}
+
+			req304 := httptest.NewRequest(http.MethodGet, "/_app/env.js", nil)
+			req304.Header.Set("If-None-Match", etag)
+			rec304 := httptest.NewRecorder()
+			handler.ServeHTTP(rec304, req304)
+			if rec304.Code != http.StatusNotModified {
+				t.Errorf("expected 304 Not Modified on matching ETag, got %d", rec304.Code)
 			}
 
 			contentType := rec.Header().Get("Content-Type")
@@ -101,11 +118,27 @@ func TestConfigInjector(t *testing.T) {
 				if env.SentrySampleRate != tt.cfg.Sentry.SampleRate {
 					t.Errorf("expected SentrySampleRate %f, got %f", tt.cfg.Sentry.SampleRate, env.SentrySampleRate)
 				}
+				if env.SentryReplay != tt.cfg.Sentry.Replay {
+					t.Errorf("expected SentryReplay %v, got %v", tt.cfg.Sentry.Replay, env.SentryReplay)
+				}
 			} else {
 				if env.SentryDSN != "" {
 					t.Errorf("expected empty SentryDSN, got %q", env.SentryDSN)
 				}
+				if env.SentryReplay {
+					t.Errorf("expected SentryReplay false when sentry disabled")
+				}
 			}
 		})
+	}
+
+	h1 := ConfigInjector(utils.WebConfig{Title: "First"})
+	h2 := ConfigInjector(utils.WebConfig{Title: "Second"})
+	r1 := httptest.NewRecorder()
+	r2 := httptest.NewRecorder()
+	h1.ServeHTTP(r1, httptest.NewRequest(http.MethodGet, "/_app/env.js", nil))
+	h2.ServeHTTP(r2, httptest.NewRequest(http.MethodGet, "/_app/env.js", nil))
+	if r1.Header().Get("ETag") == r2.Header().Get("ETag") {
+		t.Errorf("expected distinct ETags for distinct configs, got %q", r1.Header().Get("ETag"))
 	}
 }

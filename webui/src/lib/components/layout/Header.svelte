@@ -1,18 +1,31 @@
 <script lang="ts">
 	import { getEnv, parseLinks } from '$lib/env';
+	import { history } from '$lib/stores/history';
 	import Menu from '@lucide/svelte/icons/menu';
 	import X from '@lucide/svelte/icons/x';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import History from '@lucide/svelte/icons/history';
 	import ThemeToggle from './ThemeToggle.svelte';
+	import HistoryDrawer from '../HistoryDrawer.svelte';
 
 	const env = getEnv();
 	const links = parseLinks(env.PUBLIC_HEADER_LINKS);
 
 	let drawerOpen = $state(false);
+	let historyOpen = $state(false);
+
 	function closeDrawer() {
 		drawerOpen = false;
 	}
+
+	function onKeyDown(e: KeyboardEvent) {
+		if (drawerOpen && e.key === 'Escape') {
+			drawerOpen = false;
+		}
+	}
 </script>
+
+<svelte:window onkeydown={onKeyDown} />
 
 <header
 	class="sticky top-0 z-30 border-b backdrop-blur-md"
@@ -30,22 +43,49 @@
 		</a>
 
 		<nav class="ml-auto hidden items-center gap-1 md:flex">
-			{#each links as { name, href } (href)}
-				<a {href} target="_blank" rel="noreferrer" class="lg-btn lg-btn-ghost h-9 !px-3 text-sm">
+			{#each links as { name, href }, i (i)}
+				<a
+					{href}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="lg-btn lg-btn-ghost h-9 !px-3 text-sm"
+				>
 					<span>{name}</span>
 					<ExternalLink size={14} class="opacity-60" />
 				</a>
 			{/each}
+			<button
+				type="button"
+				class="lg-btn lg-btn-ghost h-9 !px-3 text-sm"
+				onclick={() => (historyOpen = true)}
+				aria-label="Open query history"
+				title="Query history"
+			>
+				<History size={16} />
+				<span>History</span>
+				{#if $history.length > 0}
+					<span class="lg-badge !px-1.5 !py-0 text-[10px]">{$history.length}</span>
+				{/if}
+			</button>
 			<div class="ml-1"><ThemeToggle /></div>
 		</nav>
 
 		<div class="ml-auto flex items-center gap-1 md:hidden">
+			<button
+				type="button"
+				class="lg-btn lg-btn-ghost relative h-9 w-9 !p-0"
+				onclick={() => (historyOpen = true)}
+				aria-label="Open query history"
+				title="Query history"
+			>
+				<History size={18} />
+			</button>
 			<ThemeToggle />
 			{#if links.length > 0}
 				<button
 					type="button"
 					class="lg-btn lg-btn-ghost h-9 w-9 !p-0"
-					aria-label="Open navigation menu"
+					aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
 					aria-expanded={drawerOpen}
 					onclick={() => (drawerOpen = !drawerOpen)}
 				>
@@ -61,11 +101,11 @@
 			style="background-color: var(--color-bg-mantle); border-color: var(--color-border);"
 		>
 			<nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
-				{#each links as { name, href } (href)}
+				{#each links as { name, href }, i (i)}
 					<a
 						{href}
 						target="_blank"
-						rel="noreferrer"
+						rel="noopener noreferrer"
 						class="lg-btn lg-btn-ghost justify-start"
 						onclick={closeDrawer}
 					>
@@ -77,3 +117,5 @@
 		</div>
 	{/if}
 </header>
+
+<HistoryDrawer open={historyOpen} onClose={() => (historyOpen = false)} />

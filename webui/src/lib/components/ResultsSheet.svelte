@@ -7,41 +7,39 @@
 		setSheetState,
 		hideSheet,
 		maxHeight,
-		HEADER_RESERVED_PX,
-		type SheetState
+		HEADER_RESERVED_PX
 	} from '$lib/stores/sheet';
-	import { results, hasRun } from '$lib/stores/query';
-	import { selectedRouters } from '$lib/stores/routers';
-	import type { Pb } from '$lib/grpc';
+	import { results, lastRun, hasRun, isRunning, rerunLast, COMMANDS } from '$lib/stores/query';
 	import type { ExecResult } from '$lib/stores/query';
+	import { transitionDuration } from '$lib/motion';
 	import ResultCard from './ResultCard.svelte';
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import X from '@lucide/svelte/icons/x';
 
-	let sheetCurrent: SheetState = $state('hidden');
-	let dockPx = $state(0);
-	let res = $state<Record<string, ExecResult>>({});
-	let selected = $state<Pb.Router[]>([]);
-	let ran = $state(false);
-
-	sheetState.subscribe((s) => (sheetCurrent = s));
-	dockHeight.subscribe((d) => (dockPx = d));
-	results.subscribe((v) => (res = v));
-	selectedRouters.subscribe((v) => (selected = v));
-	hasRun.subscribe((v) => (ran = v));
+	let innerHeight = $state(typeof window !== 'undefined' ? window.innerHeight : 992);
+	let handleHeight = $state(44);
 
 	const maxHeightCss = $derived(
-		`calc(100dvh - ${HEADER_RESERVED_PX}px - ${Math.max(0, dockPx)}px)`
+		`calc(100dvh - ${HEADER_RESERVED_PX}px - ${Math.max(0, $dockHeight)}px)`
 	);
 
 	const ordered = $derived.by(() => {
-		const out: ExecResult[] = [];
-		for (const r of selected) {
-			const key = r.id.toString();
-			if (res[key]) out.push(res[key]);
+		if ($lastRun?.routerOrder?.length) {
+			const out: ExecResult[] = [];
+			for (const id of $lastRun.routerOrder) {
+				if ($results[id]) out.push($results[id]);
+			}
+			return out;
 		}
-		return out;
+		return Object.values($results);
+	});
+
+	const querySummary = $derived.by(() => {
+		if (!$lastRun) return '';
+		const label = COMMANDS.find((c) => c.value === $lastRun.command)?.label ?? $lastRun.command;
+		return $lastRun.parameter ? `${label}: ${$lastRun.parameter}` : label;
 	});
 
 	const counts = $derived.by(() => {
@@ -54,19 +52,16 @@
 		return c;
 	});
 
-	let bodyEl = $state<HTMLDivElement | null>(null);
-	let handleEl = $state<HTMLDivElement | null>(null);
-
 	let dragHeightPx = $state(0);
 
-	const maxPx = $derived(maxHeight());
+	const maxPx = $derived(maxHeight(innerHeight, $dockHeight));
 	const halfPx = $derived(Math.max(200, maxPx / 2));
-	const peekPx = $derived(handleEl ? handleEl.offsetHeight : 44);
+	const peekPx = $derived(handleHeight || 44);
 
 	const currentHeightPx = $derived.by(() => {
 		if (dragging) return dragHeightPx;
-		if (sheetCurrent === 'full') return maxPx;
-		if (sheetCurrent === 'half') return halfPx;
+		if ($sheetState === 'full') return maxPx;
+		if ($sheetState === 'half') return halfPx;
 		return peekPx;
 	});
 
@@ -134,24 +129,21 @@
 	}
 
 	function onHandleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter' || e.key === ' ') {
+		if (e.key === 'ArrowUp') {
 			e.preventDefault();
-			toggleSheet();
-			return;
-		}
-		if (sheetCurrent === 'half' || sheetCurrent === 'full') {
-			if (e.key === 'ArrowUp') {
-				e.preventDefault();
-				setSheetState(sheetCurrent === 'half' ? 'full' : 'full');
-			} else if (e.key === 'ArrowDown') {
-				e.preventDefault();
-				setSheetState(sheetCurrent === 'full' ? 'half' : 'peek');
-			}
+			if ($sheetState === 'peek') setSheetState('half');
+			else if ($sheetState === 'half') setSheetState('full');
+		} else if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			if ($sheetState === 'full') setSheetState('half');
+			else if ($sheetState === 'half') setSheetState('peek');
 		}
 	}
 </script>
 
-{#if sheetCurrent !== 'hidden' && ran}
+<svelte:window bind:innerHeight />
+
+{#if $sheetState !== 'hidden' && $hasRun}
 	<aside
 		role="region"
 		aria-label="Results"
@@ -159,29 +151,23 @@
 		style="background-color: color-mix(in oklab, var(--color-bg-mantle) 96%, transparent);
 		       border-color: var(--color-border);
 		       height: {currentHeightPx}px;
-		       transition-duration: {dragging ? '0ms' : '200ms'};
+		       transition-duration: {dragging ? '0ms' : `${transitionDuration(200)}ms`};
 		       transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 		       max-height: {maxHeightCss};"
-		in:fly={{ y: 16, duration: 160 }}
+		in:fly={{ y: 16, duration: transitionDuration(160) }}
 	>
 		<div
-			role="button"
-			tabindex="0"
-			bind:this={handleEl}
-			class="relative flex h-11 shrink-0 cursor-row-resize items-center gap-3 border-b px-4 select-none sm:h-9 sm:px-6"
+			role="toolbar"
+			tabindex="-1"
+			aria-label="Results controls"
+			bind:offsetHeight={handleHeight}
+			class="relative flex h-11 shrink-0 cursor-row-resize items-center gap-2 border-b px-4 select-none sm:h-9 sm:px-6"
 			style="border-color: var(--color-border); touch-action: none; -webkit-user-select: none; -webkit-touch-callout: none;"
-			aria-expanded={sheetCurrent === 'half' || sheetCurrent === 'full'}
-			aria-controls="lg-results-body"
 			onpointerdown={onHandlePointerDown}
 			onpointermove={onHandlePointerMove}
 			onpointerup={endDrag}
 			onpointercancel={endDrag}
 			oncontextmenu={(e) => e.preventDefault()}
-			onkeydown={onHandleKeyDown}
-			onclick={onHandleClick}
-			title={sheetCurrent === 'half' || sheetCurrent === 'full'
-				? 'Drag to resize. Click to collapse.'
-				: 'Click to expand results. Drag to resize.'}
 		>
 			<span
 				class="pointer-events-none absolute top-1.5 left-1/2 h-1.5 w-12 -translate-x-1/2 rounded-full sm:top-1 sm:h-1 sm:w-10"
@@ -189,19 +175,38 @@
 				aria-hidden="true"
 			></span>
 
-			<span class="flex items-center gap-2 text-xs">
-				{#if sheetCurrent === 'half' || sheetCurrent === 'full'}
-					<ChevronDown size={14} class="opacity-60" />
+			<button
+				type="button"
+				class="flex min-w-0 items-center gap-2 rounded py-0.5 pr-2 text-left text-xs hover:opacity-80"
+				aria-expanded={$sheetState === 'half' || $sheetState === 'full'}
+				aria-controls="lg-results-body"
+				onkeydown={onHandleKeyDown}
+				onclick={onHandleClick}
+				title={$sheetState === 'half' || $sheetState === 'full'
+					? 'Drag to resize. Click to collapse.'
+					: 'Click to expand results. Drag to resize.'}
+			>
+				{#if $sheetState === 'half' || $sheetState === 'full'}
+					<ChevronDown size={14} class="shrink-0 opacity-60" />
 				{:else}
-					<ChevronUp size={14} class="opacity-60" />
+					<ChevronUp size={14} class="shrink-0 opacity-60" />
 				{/if}
-				<span class="font-semibold tracking-wide uppercase">Results</span>
-				<span style="color: var(--color-fg-muted);">
+				<span class="shrink-0 font-semibold tracking-wide uppercase">Results</span>
+				<span class="shrink-0" style="color: var(--color-fg-muted);">
 					· {ordered.length} router{ordered.length === 1 ? '' : 's'}
 				</span>
-			</span>
+				{#if querySummary}
+					<span
+						class="hidden truncate font-mono text-[11px] sm:inline"
+						style="color: var(--color-fg-subtle);"
+						title={querySummary}
+					>
+						· {querySummary}
+					</span>
+				{/if}
+			</button>
 
-			<span class="ml-auto flex items-center gap-1.5" aria-live="polite">
+			<span class="ml-auto flex shrink-0 items-center gap-1.5" aria-live="polite">
 				{#if counts.running > 0}
 					<span class="lg-badge lg-badge-info">{counts.running} running</span>
 				{/if}
@@ -212,6 +217,24 @@
 					<span class="lg-badge lg-badge-danger">{counts.error} failed</span>
 				{/if}
 			</span>
+
+			{#if $lastRun}
+				<button
+					type="button"
+					class="lg-btn lg-btn-ghost h-8 shrink-0 !px-2 text-xs sm:h-7"
+					aria-label="Re-run query"
+					title="Re-run query (captures a new snapshot to compare)"
+					disabled={$isRunning}
+					onpointerdown={(e) => e.stopPropagation()}
+					onclick={(e) => {
+						e.stopPropagation();
+						void rerunLast();
+					}}
+				>
+					<RotateCcw size={13} />
+					<span class="hidden sm:inline">Re-run</span>
+				</button>
+			{/if}
 
 			<button
 				type="button"
@@ -228,13 +251,11 @@
 			</button>
 		</div>
 
-		{#if sheetCurrent === 'half' || sheetCurrent === 'full' || dragging}
+		{#if $sheetState === 'half' || $sheetState === 'full' || dragging}
 			<div
 				id="lg-results-body"
 				class="flex flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-6"
-				style="overscroll-behavior: contain; --sheet-body-height: {currentHeightPx -
-					(handleEl ? handleEl.offsetHeight : 44)}px;"
-				bind:this={bodyEl}
+				style="overscroll-behavior: contain; --sheet-body-height: {currentHeightPx - peekPx}px;"
 			>
 				<div
 					class="grid w-full flex-1 items-start gap-3"

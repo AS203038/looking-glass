@@ -58,10 +58,11 @@ func loggingHandler(h http.Handler) http.Handler {
 
 		wr := &httpwriter{ResponseWriter: w}
 		v := utils.Version()
-		if v != "untracked" && r.Header.Get("If-None-Match") == v {
+		staticCacheable := (r.Method == http.MethodGet || r.Method == http.MethodHead) && r.URL.Path != "/_app/env.js"
+		if staticCacheable && v != "untracked" && r.Header.Get("If-None-Match") == v {
 			wr.WriteHeader(http.StatusNotModified)
 		} else {
-			if v != "untracked" {
+			if staticCacheable && v != "untracked" {
 				wr.Header().Set("Etag", v)
 			}
 			h.ServeHTTP(wr, r)
@@ -83,6 +84,17 @@ func loggingHandler(h http.Handler) http.Handler {
 			slog.Duration("duration", time.Since(start)),
 			slog.String("cache", wr.Header().Get("X-Cache")),
 		)
+	})
+}
+
+// securityHeadersHandler wraps h and sets baseline HTTP security headers
+// on every response.
+func securityHeadersHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("X-Frame-Options", "DENY")
+		h.ServeHTTP(w, r)
 	})
 }
 
@@ -171,7 +183,7 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 		},
 	})
 
-	handler := loggingHandler(corsHandler.Handler(mux))
+	handler := loggingHandler(securityHeadersHandler(corsHandler.Handler(mux)))
 
 	if cfg.Web.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{

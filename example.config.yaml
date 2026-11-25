@@ -65,6 +65,7 @@ web:                                                                      # WebU
         dsn: "https://xxx.sentry.io/yyy"                                  #     DSN (optional, URL is not validated for correctness)
         environment: "production"                                         #     Environment (optional, defaults to nothing which is interpreted by sentry as 'production')
         sample_rate: 1.0                                                  #     Trace sample rate (optional, defaults to 0.0 which disables trace sampling but not error reporting)
+        replay: false                                                     #     Enable Sentry Session Replay in the WebUI (optional, defaults to false)
 
 security.txt:                                                             # See https://www.rfc-editor.org/rfc/rfc9116 for field descriptions
     enabled: true                                                         # Enable or disable security.txt generation

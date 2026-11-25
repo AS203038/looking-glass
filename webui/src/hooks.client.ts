@@ -8,10 +8,16 @@ if (env.PUBLIC_SENTRY_DSN) {
 			dsn: env.PUBLIC_SENTRY_DSN,
 			environment: env.PUBLIC_SENTRY_ENV,
 			release: env.PUBLIC_LG_VERSION?.split('+')[0],
-			integrations: [browserTracingIntegration(), replayIntegration()],
+			integrations: env.PUBLIC_SENTRY_REPLAY
+				? [browserTracingIntegration(), replayIntegration()]
+				: [browserTracingIntegration()],
 			tracesSampleRate: env.PUBLIC_SENTRY_SAMPLE_RATE,
-			replaysSessionSampleRate: 0.1,
-			replaysOnErrorSampleRate: 1.0
+			...(env.PUBLIC_SENTRY_REPLAY
+				? {
+						replaysSessionSampleRate: 0.1,
+						replaysOnErrorSampleRate: 1.0
+					}
+				: {})
 		});
 	});
 }

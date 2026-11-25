@@ -75,8 +75,8 @@ export function onRunStarted() {
 }
 
 /** Returns the maximum height the sheet can occupy. */
-export function maxHeight(): number {
-	if (!browser) return 800;
-	const dh = get(dockHeight);
-	return Math.max(200, window.innerHeight - HEADER_RESERVED_PX - dh);
+export function maxHeight(viewportHeight?: number, dockPx?: number): number {
+	const vh = viewportHeight ?? (browser ? window.innerHeight : 992);
+	const dh = dockPx ?? get(dockHeight);
+	return Math.max(200, vh - HEADER_RESERVED_PX - dh);
 }
