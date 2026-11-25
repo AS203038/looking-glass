@@ -1236,6 +1236,7 @@
 </span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="nt">dsn</span><span class="p">:</span><span class="w"> </span><span class="s">"https://...sentry.io/..."</span>
 </span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">"production"</span>
 </span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">    </span><span class="nt">sample_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">    </span><span class="nt">replay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -1324,6 +1325,12 @@
 <td>float</td>
 <td><code>0.0</code></td>
 <td>Traces-sample-rate <code>[0,1]</code>. <code>0</code> keeps error reporting but disables performance tracing.</td>
+</tr>
+<tr>
+<td><code>sentry.replay</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Enables Sentry Session Replay in the browser when <code>sentry.enabled</code> is true.</td>
 </tr>
 </tbody>
 </table>
