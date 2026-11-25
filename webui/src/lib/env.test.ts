@@ -2,8 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRawEnv = vi.hoisted(() => ({}) as Record<string, string | undefined>);
 
-vi.mock('$env/dynamic/public', () => ({
-	env: mockRawEnv
+vi.mock('$app/env/public', () => ({
+	get PUBLIC_PAGE_TITLE() {
+		return mockRawEnv.PUBLIC_PAGE_TITLE;
+	},
+	get PUBLIC_SENTRY_SAMPLE_RATE() {
+		return mockRawEnv.PUBLIC_SENTRY_SAMPLE_RATE;
+	},
+	get PUBLIC_SENTRY_REPLAY() {
+		return mockRawEnv.PUBLIC_SENTRY_REPLAY;
+	}
 }));
 
 import { _resetEnvCache, getEnv, isSafeUrl, parseLinks } from './env';

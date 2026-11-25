@@ -6,9 +6,12 @@ import svelte from 'eslint-plugin-svelte';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
+import { loadConfig } from '@sveltejs/load-config';
 
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
+const loadedSvelteConfig = await loadConfig(import.meta.dirname, { traverse: false });
+const svelteConfig =
+	loadedSvelteConfig && 'config' in loadedSvelteConfig ? loadedSvelteConfig.config : undefined;
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),

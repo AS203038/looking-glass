@@ -1,5 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 export type Mode = 'light' | 'dark';
 const STORAGE_KEY = 'lg-mode';

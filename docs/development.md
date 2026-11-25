@@ -9,7 +9,7 @@ For an architectural overview, read [architecture.md](./architecture.md) first.
 | Tool        | Purpose                          | Version            |
 | ----------- | -------------------------------- | ------------------ |
 | Go          | Backend                          | 1.25+              |
-| Node.js     | WebUI build / dev server         | 20.x LTS           |
+| Node.js     | WebUI build / dev server         | 22.17+ (26.x LTS recommended) |
 | pnpm        | WebUI package manager (workspace) | 11.x               |
 | `buf`       | Protobuf codegen                  | latest             |
 | Docker      | (optional) container builds       | any recent version |
@@ -19,9 +19,8 @@ For an architectural overview, read [architecture.md](./architecture.md) first.
 Install Go and Node from your distro / nvm. For everything else:
 
 ```bash
-# pnpm via corepack (ships with Node ≥ 16; reads `packageManager` from root package.json)
-corepack enable
-corepack prepare --activate
+# pnpm (pinned in root package.json; Node 25+ dropped Corepack, so install via npm)
+npm install -g "$(node -p "require('./package.json').packageManager.split('+')[0]")"
 
 # buf (optional, only needed when regenerating protobuf)
 make install-tools     # equivalent to: go install github.com/bufbuild/buf/cmd/buf@latest
@@ -73,7 +72,7 @@ web:
   grpc_url: "http://localhost:8080"
 ```
 
-…or override at the env level (the WebUI reads `$env/dynamic/public`):
+…or override at the env level (the WebUI reads `$app/env/public`):
 
 ```bash
 PUBLIC_GRPC_URL=http://localhost:8080 pnpm --dir webui dev
@@ -193,13 +192,13 @@ webui/
 │   ├── lib/         # Reusable building blocks
 │   │   ├── stores/  # Svelte stores (routers, query, sheet)
 │   │   ├── components/  # Visual components (CommandDock, ResultsSheet, …)
-│   │   ├── env.ts   # Wraps $env/dynamic/public with defaults
+│   │   ├── env.ts   # Wraps $app/env/public with defaults
 │   │   └── grpc.ts  # Singleton ConnectRPC client
 │   ├── routes/      # SvelteKit pages and layouts
 │   ├── hooks.client.ts  # Sentry lazy-init
 │   └── app.html     # HTML shell (pre-paint theme script lives here)
 ├── static/          # Favicons, manifest, robots.txt
-├── svelte.config.js # adapter-static → ../cmd/server/dist
+├── vite.config.ts   # sveltekit() + adapter-static → ../cmd/server/dist
 └── package.json     # workspace:* to ../protobuf
 
 docs/                # ← this documentation

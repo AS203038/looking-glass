@@ -1,4 +1,4 @@
-import { env as rawEnv } from '$env/dynamic/public';
+import * as rawEnv from '$app/env/public';
 
 export interface PublicEnv {
 	PUBLIC_PAGE_TITLE: string;

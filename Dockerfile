@@ -8,11 +8,9 @@ RUN buf generate
 
 # CI reads the Node version from this line (.github/actions/setup-node).
 FROM --platform=$BUILDPLATFORM node:26-alpine AS node-builder
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable
 WORKDIR /opt
 COPY package.json ./
-RUN corepack prepare --activate
+RUN npm install -g "$(node -p "require('./package.json').packageManager.split('+')[0]")"
 COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY webui/package.json ./webui/
 COPY protobuf/package.json ./protobuf/

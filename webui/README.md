@@ -4,9 +4,9 @@ SvelteKit 5 static web application for [AS203038/looking-glass](https://github.c
 
 ## Architecture
 
-- **Framework**: SvelteKit 2 + Svelte 5 runes (`runes: true`), Tailwind CSS v4 (Catppuccin Latte & Mocha).
+- **Framework**: SvelteKit 3 + Svelte 5 runes (`runes: true`), Tailwind CSS v4 (Catppuccin Latte & Mocha).
 - **Transport**: ConnectRPC gRPC-Web (`@connectrpc/connect-web`) using binary protobuf payloads from `@as203038/lg-protobuf`.
-- **Runtime Config**: Read from `/_app/env.js` (`$env/dynamic/public`) served by `pkg/http/webui` so a single static build works across environments.
+- **Runtime Config**: Read from `/_app/env.js` (`$app/env/public`) served by `pkg/http/webui` so a single static build works across environments.
 - **State & Views**:
   - `src/lib/stores/routers.ts` — paginated router catalogue, periodic health refresh, and selection state.
   - `src/lib/stores/query.ts` — command execution, bounded retries, abort support, peer-route pagination, and interactive pivoting.
