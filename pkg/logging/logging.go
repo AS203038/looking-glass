@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // ComponentKey is the slog attribute name carrying the subsystem label.
@@ -97,6 +98,9 @@ func Init(cfg Config) error {
 	case "text":
 		inner = slog.NewTextHandler(out, opts)
 	default:
+		if f, ok := out.(*os.File); ok && f != os.Stdout && f != os.Stderr {
+			_ = f.Close()
+		}
 		return fmt.Errorf("unknown log format %q", cfg.Format)
 	}
 	h := &levelHandler{
@@ -108,8 +112,25 @@ func Init(cfg Config) error {
 	slog.SetDefault(logger)
 	log.SetFlags(0)
 	log.SetOutput(stdlibBridge{logger: logger})
+
+	outputMu.Lock()
+	prevFile := outputFile
+	if f, ok := out.(*os.File); ok && f != os.Stdout && f != os.Stderr {
+		outputFile = f
+	} else {
+		outputFile = nil
+	}
+	outputMu.Unlock()
+	if prevFile != nil && prevFile != outputFile {
+		_ = prevFile.Close()
+	}
 	return nil
 }
+
+var (
+	outputMu   sync.Mutex
+	outputFile *os.File
+)
 
 // initOnce ensures the package's safety-net default handler is installed
 // exactly once, prior to any user-provided Init call.
@@ -139,6 +160,11 @@ func Component(name string) *slog.Logger {
 	return slog.New(&componentHandler{component: name})
 }
 
+type cachedHandler struct {
+	def      *slog.Logger
+	resolved slog.Handler
+}
+
 // componentHandler is a thin wrapper that resolves the underlying
 // handler from [slog.Default] at every call. This decouples loggers
 // captured at package-init time from the safety-net default, so a
@@ -146,12 +172,19 @@ func Component(name string) *slog.Logger {
 // through the configured handler afterwards.
 type componentHandler struct {
 	component string
+	cache     atomic.Pointer[cachedHandler]
 }
 
 // current returns the active handler bound with the component attribute.
 func (h *componentHandler) current() slog.Handler {
-	return slog.Default().Handler().WithAttrs(
+	def := slog.Default()
+	if c := h.cache.Load(); c != nil && c.def == def {
+		return c.resolved
+	}
+	resolved := def.Handler().WithAttrs(
 		[]slog.Attr{slog.String(ComponentKey, h.component)})
+	h.cache.Store(&cachedHandler{def: def, resolved: resolved})
+	return resolved
 }
 
 // Enabled forwards to the current handler.
@@ -181,12 +214,19 @@ func (h *componentHandler) WithGroup(name string) slog.Handler {
 type componentHandlerWithAttrs struct {
 	component string
 	attrs     []slog.Attr
+	cache     atomic.Pointer[cachedHandler]
 }
 
 func (h *componentHandlerWithAttrs) current() slog.Handler {
-	return slog.Default().Handler().
+	def := slog.Default()
+	if c := h.cache.Load(); c != nil && c.def == def {
+		return c.resolved
+	}
+	resolved := def.Handler().
 		WithAttrs([]slog.Attr{slog.String(ComponentKey, h.component)}).
 		WithAttrs(h.attrs)
+	h.cache.Store(&cachedHandler{def: def, resolved: resolved})
+	return resolved
 }
 func (h *componentHandlerWithAttrs) Enabled(ctx context.Context, l slog.Level) bool {
 	return h.current().Enabled(ctx, l)
@@ -210,15 +250,22 @@ type componentHandlerWithGroup struct {
 	component string
 	attrs     []slog.Attr
 	group     string
+	cache     atomic.Pointer[cachedHandler]
 }
 
 func (h *componentHandlerWithGroup) current() slog.Handler {
-	hh := slog.Default().Handler().
+	def := slog.Default()
+	if c := h.cache.Load(); c != nil && c.def == def {
+		return c.resolved
+	}
+	hh := def.Handler().
 		WithAttrs([]slog.Attr{slog.String(ComponentKey, h.component)})
 	if len(h.attrs) > 0 {
 		hh = hh.WithAttrs(h.attrs)
 	}
-	return hh.WithGroup(h.group)
+	resolved := hh.WithGroup(h.group)
+	h.cache.Store(&cachedHandler{def: def, resolved: resolved})
+	return resolved
 }
 func (h *componentHandlerWithGroup) Enabled(ctx context.Context, l slog.Level) bool {
 	return h.current().Enabled(ctx, l)
@@ -227,14 +274,13 @@ func (h *componentHandlerWithGroup) Handle(ctx context.Context, r slog.Record) e
 	return h.current().Handle(ctx, r)
 }
 func (h *componentHandlerWithGroup) WithAttrs(attrs []slog.Attr) slog.Handler {
-	nh := *h
-	nh.attrs = append(append([]slog.Attr{}, h.attrs...), attrs...)
-	return &nh
+	merged := make([]slog.Attr, 0, len(h.attrs)+len(attrs))
+	merged = append(merged, h.attrs...)
+	merged = append(merged, attrs...)
+	return &componentHandlerWithGroup{component: h.component, attrs: merged, group: h.group}
 }
 func (h *componentHandlerWithGroup) WithGroup(name string) slog.Handler {
-	nh := *h
-	nh.group = name
-	return &nh
+	return &componentHandlerWithGroup{component: h.component, attrs: h.attrs, group: name}
 }
 
 // init installs the safety-net handler at package load time so any

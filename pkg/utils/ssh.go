@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,6 +29,55 @@ var sshKeepaliveTimeout = 10 * time.Second
 // reverse proxy's gateway timeout so the server returns deadline_exceeded
 // before the proxy responds with HTTP 504).
 var sshCommandTimeout = 60 * time.Second
+
+// maxSSHOutputBytes bounds buffered stdout/NETCONF reply size per command (64 MiB).
+var maxSSHOutputBytes = 64 << 20
+
+// maxSSHStderrBytes retains enough stderr for the 512-byte log truncation marker.
+const maxSSHStderrBytes = 513
+
+var errOutputTooLarge = errors.New("command output exceeded maximum size")
+
+type cappedBuffer struct {
+	buf bytes.Buffer
+	max int
+}
+
+func (b *cappedBuffer) Write(p []byte) (int, error) {
+	if b.max > 0 {
+		rem := b.max - b.buf.Len()
+		if rem > 0 {
+			if len(p) > rem {
+				_, _ = b.buf.Write(p[:rem])
+			} else {
+				_, _ = b.buf.Write(p)
+			}
+		}
+	}
+	return len(p), nil
+}
+
+func (b *cappedBuffer) String() string {
+	return b.buf.String()
+}
+
+type limitedStringBuilder struct {
+	b        strings.Builder
+	max      int
+	exceeded bool
+}
+
+func (w *limitedStringBuilder) Write(p []byte) (int, error) {
+	if w.max > 0 && w.b.Len()+len(p) > w.max {
+		w.exceeded = true
+		return 0, errOutputTooLarge
+	}
+	return w.b.Write(p)
+}
+
+func (w *limitedStringBuilder) String() string {
+	return w.b.String()
+}
 
 // sshLog is the component-tagged logger for SSH-related events.
 var sshLog = logging.Component("ssh")
@@ -66,10 +116,12 @@ func isAlive(client *ssh.Client) bool {
 		_, _, err := client.SendRequest("keepalive@openssh.com", true, nil)
 		done <- err
 	}()
+	timer := time.NewTimer(sshKeepaliveTimeout)
+	defer timer.Stop()
 	select {
 	case err := <-done:
 		return err == nil
-	case <-time.After(sshKeepaliveTimeout):
+	case <-timer.C:
 		return false
 	}
 }
@@ -83,6 +135,7 @@ func (p *sshPool) Checkout(router *RouterConfig, reuse bool, newConfig func() (*
 		if reuse && len(p.conns) > 0 {
 			idx := len(p.conns) - 1
 			client := p.conns[idx]
+			p.conns[idx] = nil
 			p.conns = p.conns[:idx]
 			p.mu.Unlock()
 
@@ -248,10 +301,21 @@ func execOnClient(ctx context.Context, client *ssh.Client, router *RouterConfig,
 				slog.Any("err", err))
 			return nil, errs.ExecFailed
 		}
-		var stderr bytes.Buffer
+		stdout := limitedStringBuilder{max: maxSSHOutputBytes}
+		stderr := cappedBuffer{max: maxSSHStderrBytes}
+		session.Stdout = &stdout
 		session.Stderr = &stderr
-		output, err := session.Output(c)
-		if err != nil {
+		err = session.Run(c)
+		if err != nil || stdout.exceeded {
+			if stdout.exceeded || errors.Is(err, errOutputTooLarge) {
+				sshLogAt(slog.LevelWarn, "command output exceeded maximum size", router,
+					slog.Int("cmd_index", i),
+					slog.String("cmd", c),
+					slog.Int("max_bytes", maxSSHOutputBytes),
+					slog.Duration("duration", time.Since(execStart)))
+				session.Close()
+				return nil, errs.ExecFailed
+			}
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				sshLogAt(slog.LevelWarn, "command timed out", router,
 					slog.Int("cmd_index", i),
@@ -271,11 +335,12 @@ func execOnClient(ctx context.Context, client *ssh.Client, router *RouterConfig,
 			session.Close()
 			return nil, errs.ExecFailed
 		}
+		output := stdout.String()
 		sshLogAt(slog.LevelDebug, "ssh exec ok", router,
 			slog.Int("cmd_index", i),
 			slog.Duration("duration", time.Since(execStart)),
 			slog.Int("output_bytes", len(output)))
-		ret[i] = string(output)
+		ret[i] = output
 		session.Close()
 	}
 	return ret, nil

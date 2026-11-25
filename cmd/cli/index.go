@@ -154,30 +154,29 @@ func levenshtein(s, t string) int {
 		return len(s)
 	}
 
-	d := make([][]int, len(s)+1)
-	for i := range d {
-		d[i] = make([]int, len(t)+1)
-		d[i][0] = i
-	}
-	for j := range d[0] {
-		d[0][j] = j
+	prev := make([]int, len(t)+1)
+	curr := make([]int, len(t)+1)
+	for j := range prev {
+		prev[j] = j
 	}
 
-	for j := 1; j <= len(t); j++ {
-		for i := 1; i <= len(s); i++ {
+	for i := 1; i <= len(s); i++ {
+		curr[0] = i
+		for j := 1; j <= len(t); j++ {
 			cost := 1
 			if s[i-1] == t[j-1] {
 				cost = 0
 			}
-			min := d[i-1][j] + 1
-			if d[i][j-1]+1 < min {
-				min = d[i][j-1] + 1
+			m := prev[j] + 1
+			if curr[j-1]+1 < m {
+				m = curr[j-1] + 1
 			}
-			if d[i-1][j-1]+cost < min {
-				min = d[i-1][j-1] + cost
+			if prev[j-1]+cost < m {
+				m = prev[j-1] + cost
 			}
-			d[i][j] = min
+			curr[j] = m
 		}
+		prev, curr = curr, prev
 	}
-	return d[len(s)][len(t)]
+	return prev[len(t)]
 }

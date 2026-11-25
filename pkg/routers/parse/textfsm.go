@@ -139,13 +139,59 @@ func (p TextFSMParser) Parse(op Op, raw []byte, cfg Config) Result {
 	}
 }
 
+var upperColumns = map[string]string{
+	"target":            "TARGET",
+	"source":            "SOURCE",
+	"packets_sent":      "PACKETS_SENT",
+	"packets_received":  "PACKETS_RECEIVED",
+	"loss_pct":          "LOSS_PCT",
+	"rtt_min_ms":        "RTT_MIN_MS",
+	"rtt_avg_ms":        "RTT_AVG_MS",
+	"rtt_max_ms":        "RTT_MAX_MS",
+	"rtt_mdev_ms":       "RTT_MDEV_MS",
+	"ttl":               "TTL",
+	"ip":                "IP",
+	"hostname":          "HOSTNAME",
+	"rtt_ms":            "RTT_MS",
+	"asn":               "ASN",
+	"local_asn":         "LOCAL_ASN",
+	"router_id":         "ROUTER_ID",
+	"peer_ip":           "PEER_IP",
+	"peer_asn":          "PEER_ASN",
+	"description":       "DESCRIPTION",
+	"state":             "STATE",
+	"state_detail":      "STATE_DETAIL",
+	"uptime":            "UPTIME",
+	"prefixes_received": "PREFIXES_RECEIVED",
+	"prefixes_accepted": "PREFIXES_ACCEPTED",
+	"prefixes_sent":     "PREFIXES_SENT",
+	"address_family":    "ADDRESS_FAMILY",
+	"prefix":            "PREFIX",
+	"nexthop":           "NEXTHOP",
+	"as_path":           "AS_PATH",
+	"origin":            "ORIGIN",
+	"med":               "MED",
+	"local_pref":        "LOCAL_PREF",
+	"communities":       "COMMUNITIES",
+	"large_communities": "LARGE_COMMUNITIES",
+	"best":              "BEST",
+	"age":               "AGE",
+}
+
+func upperColumn(name string) string {
+	if u, ok := upperColumns[name]; ok {
+		return u
+	}
+	return strings.ToUpper(name)
+}
+
 // recVal returns the value of the named column from rec, accepting the
 // template's case or its upper-snake-case form. Returns nil if absent.
 func recVal(rec map[string]interface{}, name string) interface{} {
 	if v, ok := rec[name]; ok {
 		return v
 	}
-	if v, ok := rec[strings.ToUpper(name)]; ok {
+	if v, ok := rec[upperColumn(name)]; ok {
 		return v
 	}
 	return nil
@@ -264,7 +310,19 @@ func recBool(rec map[string]interface{}, name string) bool {
 // embedded whitespace/comma-separated tokens. Entries that fail to parse
 // as decimals are dropped.
 func recUint32List(rec map[string]interface{}, name string) []uint32 {
-	raw := recStringList(rec, name)
+	return uint32ListFromVal(recVal(rec, name))
+}
+
+func uint32ListFromVal(val interface{}) []uint32 {
+	var raw []string
+	switch v := val.(type) {
+	case []string:
+		raw = v
+	case string:
+		if v != "" {
+			raw = splitListToken(v)
+		}
+	}
 	expanded := make([]string, 0, len(raw))
 	for _, s := range raw {
 		if strings.ContainsAny(s, " \t,") {
@@ -291,18 +349,30 @@ func recAgeSeconds(rec map[string]interface{}, name string) uint64 {
 
 // clockSeconds parses "M:SS" or "H:MM:SS". ok is false when a part is not a number or a part after the first is above 59.
 func clockSeconds(s string) (uint64, bool) {
-	if n := strings.Count(s, ":"); n != 1 && n != 2 {
+	first, rest, ok := strings.Cut(s, ":")
+	if !ok {
 		return 0, false
 	}
-	var total uint64
-	for i, part := range strings.Split(s, ":") {
-		v, err := strconv.ParseUint(part, 10, 64)
-		if err != nil || (i > 0 && v > 59) {
-			return 0, false
-		}
-		total = total*60 + v
+	v0, err := strconv.ParseUint(first, 10, 64)
+	if err != nil {
+		return 0, false
 	}
-	return total, true
+	second, third, hasThird := strings.Cut(rest, ":")
+	if strings.Contains(third, ":") {
+		return 0, false
+	}
+	v1, err := strconv.ParseUint(second, 10, 64)
+	if err != nil || v1 > 59 {
+		return 0, false
+	}
+	if !hasThird {
+		return v0*60 + v1, true
+	}
+	v2, err := strconv.ParseUint(third, 10, 64)
+	if err != nil || v2 > 59 {
+		return 0, false
+	}
+	return (v0*60+v1)*60 + v2, true
 }
 
 // ageSeconds parses an age such as "1d2h", "0:01:00", Junos "5:55" (M:SS) or Junos "32w6d 9:04:08".
@@ -478,7 +548,7 @@ func columnDeclared(rec map[string]interface{}, name string) bool {
 	if _, ok := rec[name]; ok {
 		return true
 	}
-	if _, ok := rec[strings.ToUpper(name)]; ok {
+	if _, ok := rec[upperColumn(name)]; ok {
 		return true
 	}
 	return false
@@ -490,7 +560,9 @@ func columnDeclared(rec map[string]interface{}, name string) bool {
 // to prefixes_received, and vendor abbreviations are expanded). An empty
 // peer list is reported as OK, not Failed.
 func tfsmBGPSummaryResult(records []map[string]interface{}) Result {
-	summary := &pb.BGPSummaryParsed{}
+	summary := &pb.BGPSummaryParsed{
+		Peers: make([]*pb.BGPPeer, 0, len(records)),
+	}
 	if len(records) > 0 {
 		summary.LocalAsn = recUint32(records[0], "local_asn")
 		summary.RouterId = recString(records[0], "router_id")
@@ -540,18 +612,27 @@ func tfsmBGPSummaryResult(records []map[string]interface{}) Result {
 // are skipped to filter trailing Filldown-only residue. Empty path lists
 // are reported as OK, not Failed.
 func tfsmBGPPathsResult(records []map[string]interface{}) Result {
-	paths := &pb.BGPPaths{}
+	paths := &pb.BGPPaths{
+		Paths: make([]*pb.BGPPath, 0, len(records)),
+	}
 	for _, rec := range records {
-		if recString(rec, "nexthop") == "" &&
-			recString(rec, "peer_ip") == "" &&
-			recString(rec, "as_path") == "" &&
-			len(recStringList(rec, "as_path")) == 0 {
+		nexthop := recString(rec, "nexthop")
+		peerIP := recString(rec, "peer_ip")
+		asPathVal := recVal(rec, "as_path")
+		hasASPath := false
+		switch v := asPathVal.(type) {
+		case string:
+			hasASPath = v != ""
+		case []string:
+			hasASPath = len(v) > 0
+		}
+		if nexthop == "" && peerIP == "" && !hasASPath {
 			continue
 		}
 		path := &pb.BGPPath{
 			Prefix:           recString(rec, "prefix"),
-			Nexthop:          recString(rec, "nexthop"),
-			AsPath:           recUint32List(rec, "as_path"),
+			Nexthop:          nexthop,
+			AsPath:           uint32ListFromVal(asPathVal),
 			Origin:           strings.ToLower(recString(rec, "origin")),
 			Med:              recUint32(rec, "med"),
 			LocalPref:        recUint32(rec, "local_pref"),
@@ -559,7 +640,7 @@ func tfsmBGPPathsResult(records []map[string]interface{}) Result {
 			LargeCommunities: recStringList(rec, "large_communities"),
 			Best:             recBool(rec, "best"),
 			PeerAsn:          recUint32(rec, "peer_asn"),
-			PeerIp:           recString(rec, "peer_ip"),
+			PeerIp:           peerIP,
 			AgeSeconds:       recAgeSeconds(rec, "age"),
 		}
 		paths.Paths = append(paths.Paths, path)

@@ -2,7 +2,7 @@
 
 Looking Glass is configured by a single YAML file: `config.yaml` in the server's working directory. There is no command-line flag for config path, no environment-variable equivalents for individual keys, and no runtime reload — restart the server to apply changes.
 
-The only environment variable consulted by the server itself is **`ROUTER_DIR`** (see [Router templates](#router-templates)).
+The application-specific environment variable consulted by the server itself is **`ROUTER_DIR`** (see [Router templates](#router-templates)). At startup, `cmd/server` also honors Go's standard **`GOMAXPROCS`** and **`GOMEMLIMIT`** environment variables as well as **`AUTOMEMLIMIT`** (`0.0`–`1.0` cgroup memory ratio, default `0.9`, or `off` to disable automatic memory-limit tuning).
 
 The canonical, fully-annotated example lives at [`example.config.yaml`](../example.config.yaml). This page is the spec.
 
@@ -237,7 +237,7 @@ Each component emits events at the levels below. Setting `level: debug` globally
 
 | Component    | DEBUG events                                                                                  | INFO/WARN/ERROR events                                                       |
 | ------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `server`     | —                                                                                             | `server starting` (version, pid, devices) / `server shutting down`.          |
+| `server`     | —                                                                                             | `maxprocs:` / `GOMEMLIMIT` startup messages; `server starting` (`version`, `pid`, `devices`, `gomaxprocs`, `gomemlimit`) / `server shutting down`. |
 | `http`       | —                                                                                             | `listening` / `connecting to redis` / TLS choice / Sentry init.              |
 | `httpaccess` | —                                                                                             | One `INFO http access` record per request.                                   |
 | `cache`      | `cache hit` / `cache miss` / `cache entry malformed` / `cache store ok`.                      | `marshal cache entry failed` / `store cache entry failed` (ERROR).           |

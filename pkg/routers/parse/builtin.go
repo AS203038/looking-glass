@@ -72,7 +72,7 @@ func parseLinuxPing(raw []byte) *pb.PingStats {
 	if strings.Count(text, "\n") > 128 {
 		return nil
 	}
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		if len(line) > 512 {
 			return nil
 		}
@@ -152,7 +152,7 @@ func parseLinuxTraceroute(raw []byte) *pb.TracerouteParsed {
 	if strings.Count(text, "\n") > 128 {
 		return nil
 	}
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		if len(line) > 512 {
 			return nil
 		}
@@ -171,7 +171,7 @@ func parseLinuxTraceroute(raw []byte) *pb.TracerouteParsed {
 		return nil
 	}
 
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		if len(line) > 2048 {
 			continue
 		}

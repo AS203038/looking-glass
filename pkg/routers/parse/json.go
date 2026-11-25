@@ -3,6 +3,7 @@ package parse
 import (
 	"encoding/json"
 	"log/slog"
+	"slices"
 	"strings"
 
 	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
@@ -88,22 +89,34 @@ type frrBGPPath struct {
 	LastUpdate *frrBGPLastUpdate `json:"lastUpdate,omitempty"`
 }
 
+func firstNonSpace(b []byte) byte {
+	for _, c := range b {
+		switch c {
+		case ' ', '\t', '\r', '\n':
+		default:
+			return c
+		}
+	}
+	return 0
+}
+
 // frrBestpath extracts the boolean best-path flag from FRR's
 // dual-shape bestpath field. Accepts a bare bool, the object
 // {"overall": bool}, or a missing field (returns false).
 func frrBestpath(raw json.RawMessage) bool {
-	if len(raw) == 0 {
-		return false
-	}
-	var b bool
-	if err := json.Unmarshal(raw, &b); err == nil {
-		return b
-	}
-	var obj struct {
-		Overall bool `json:"overall"`
-	}
-	if err := json.Unmarshal(raw, &obj); err == nil {
-		return obj.Overall
+	switch firstNonSpace(raw) {
+	case 't', 'f':
+		var b bool
+		if err := json.Unmarshal(raw, &b); err == nil {
+			return b
+		}
+	case '{':
+		var obj struct {
+			Overall bool `json:"overall"`
+		}
+		if err := json.Unmarshal(raw, &obj); err == nil {
+			return obj.Overall
+		}
 	}
 	return false
 }
@@ -145,6 +158,13 @@ type frrBGPLastUpdate struct {
 // structurally but produced zero paths is reported as OK with an
 // empty payload; PARSE_FAILED is reserved for the case where no
 // envelope shape matched anywhere.
+type frrBGPRoutesChunk struct {
+	Routes  map[string][]frrBGPPath `json:"routes"`
+	Prefix  string                  `json:"prefix"`
+	Paths   []frrBGPPath            `json:"paths"`
+	Network string                  `json:"network"`
+}
+
 func parseFRRBGPPaths(raw []byte) Result {
 	paths := &pb.BGPPaths{}
 	chunks := splitJSONObjects(raw)
@@ -154,19 +174,34 @@ func parseFRRBGPPaths(raw []byte) Result {
 	}
 	decodedAny := false
 	for _, chunk := range chunks {
-		var env frrBGPRoutesEnvelope
-		if err := json.Unmarshal(chunk, &env); err == nil && env.Routes != nil {
-			decodedAny = true
-			for prefix, ps := range env.Routes {
-				for _, p := range ps {
+		var env frrBGPRoutesChunk
+		if err := json.Unmarshal(chunk, &env); err == nil {
+			if env.Routes != nil {
+				decodedAny = true
+				total := 0
+				for _, ps := range env.Routes {
+					total += len(ps)
+				}
+				paths.Paths = slices.Grow(paths.Paths, total)
+				for prefix, ps := range env.Routes {
+					for _, p := range ps {
+						paths.Paths = append(paths.Paths, projectFRRPath(prefix, p))
+					}
+				}
+				continue
+			}
+			prefix := env.Prefix
+			if prefix == "" {
+				prefix = env.Network
+			}
+			if prefix != "" && len(env.Paths) > 0 {
+				decodedAny = true
+				paths.Paths = slices.Grow(paths.Paths, len(env.Paths))
+				for _, p := range env.Paths {
 					paths.Paths = append(paths.Paths, projectFRRPath(prefix, p))
 				}
+				continue
 			}
-			continue
-		}
-		if tryFRRSinglePrefixJSON(chunk, paths) {
-			decodedAny = true
-			continue
 		}
 		parseLog.Warn("frr bgp json: neither routes-map nor single-prefix envelope matched")
 	}
@@ -203,16 +238,17 @@ func tryFRRSinglePrefixJSON(chunk []byte, paths *pb.BGPPaths) bool {
 // extractFRRASPathString returns the AS-path string from raw,
 // accepting both the bare-string and {"string": "..."} forms.
 func extractFRRASPathString(raw json.RawMessage) string {
-	if len(raw) == 0 {
-		return ""
-	}
-	var s string
-	if err := json.Unmarshal(raw, &s); err == nil {
-		return s
-	}
-	var obj frrBGPASPathObject
-	if err := json.Unmarshal(raw, &obj); err == nil {
-		return obj.String
+	switch firstNonSpace(raw) {
+	case '"':
+		var s string
+		if err := json.Unmarshal(raw, &s); err == nil {
+			return s
+		}
+	case '{':
+		var obj frrBGPASPathObject
+		if err := json.Unmarshal(raw, &obj); err == nil {
+			return obj.String
+		}
 	}
 	return ""
 }
@@ -430,6 +466,14 @@ type frrBGPSummaryPeer struct {
 // json` envelopes into [pb.BGPSummaryParsed]. Wrapped multi-AFI
 // and direct single-AFI shapes are both accepted; a chunk with
 // an empty peers map is reported as OK with no peer rows.
+type frrBGPSummaryChunk struct {
+	IPv4Unicast *frrBGPSummaryAFI            `json:"ipv4Unicast,omitempty"`
+	IPv6Unicast *frrBGPSummaryAFI            `json:"ipv6Unicast,omitempty"`
+	RouterID    string                       `json:"routerId"`
+	AS          uint32                       `json:"as"`
+	Peers       map[string]frrBGPSummaryPeer `json:"peers"`
+}
+
 func parseFRRBGPSummary(raw []byte) Result {
 	out := &pb.BGPSummaryParsed{}
 	chunks := splitJSONObjects(raw)
@@ -439,24 +483,23 @@ func parseFRRBGPSummary(raw []byte) Result {
 	}
 	decodedAny := false
 	for _, chunk := range chunks {
-		var root frrBGPSummaryRoot
-		if err := json.Unmarshal(chunk, &root); err == nil &&
-			(root.IPv4Unicast != nil || root.IPv6Unicast != nil) {
-			decodedAny = true
-			mergeFRRSummary(out, root.IPv4Unicast, "ipv4-unicast")
-			mergeFRRSummary(out, root.IPv6Unicast, "ipv6-unicast")
-			continue
-		}
-		var direct frrBGPSummaryAFI
-		if err := json.Unmarshal(chunk, &direct); err != nil {
+		var c frrBGPSummaryChunk
+		if err := json.Unmarshal(chunk, &c); err != nil {
 			parseLog.Warn("frr bgp summary json unmarshal",
 				slog.Any("err", err))
 			continue
 		}
-		if direct.Peers == nil {
+		if c.IPv4Unicast != nil || c.IPv6Unicast != nil {
+			decodedAny = true
+			mergeFRRSummary(out, c.IPv4Unicast, "ipv4-unicast")
+			mergeFRRSummary(out, c.IPv6Unicast, "ipv6-unicast")
+			continue
+		}
+		if c.Peers == nil {
 			continue
 		}
 		decodedAny = true
+		direct := frrBGPSummaryAFI{RouterID: c.RouterID, AS: c.AS, Peers: c.Peers}
 		mergeFRRSummary(out, &direct, inferAFILabel(direct.Peers))
 	}
 	if !decodedAny {
@@ -499,6 +542,7 @@ func mergeFRRSummary(out *pb.BGPSummaryParsed, afi *frrBGPSummaryAFI, label stri
 	if out.LocalAsn == 0 {
 		out.LocalAsn = afi.AS
 	}
+	out.Peers = slices.Grow(out.Peers, len(afi.Peers))
 	for ip, p := range afi.Peers {
 		out.Peers = append(out.Peers, &pb.BGPPeer{
 			PeerIp:           ip,

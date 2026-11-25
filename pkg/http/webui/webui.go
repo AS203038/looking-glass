@@ -62,8 +62,8 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 		envobj.SentryReplay = cfg.Sentry.Replay
 	}
 	envjson, _ := json.Marshal(envobj)
-	envjs := "export const env = " + string(envjson)
-	etag := fmt.Sprintf("\"%x\"", sha256.Sum256([]byte(envjs)))
+	envjs := []byte("export const env = " + string(envjson))
+	etag := fmt.Sprintf("\"%x\"", sha256.Sum256(envjs))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -72,6 +72,6 @@ func ConfigInjector(cfg utils.WebConfig) http.Handler {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
-		w.Write([]byte(envjs))
+		w.Write(envjs)
 	})
 }

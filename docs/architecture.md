@@ -205,7 +205,9 @@ The HealthCheck struct is technically read concurrently from RPC handlers and wr
    * Calls `Start(ctx, web)`.
 3. `Start(ctx, web)`:
    * `utils.ParseConfigYaml("config.yaml")` → `*Config` (fatal on error).
-   * `routers.CreateRouterMap(cfg)` → spawns one health-check goroutine per device.
+   * `logging.Init(cfg.Logging)` configures the process-wide `slog` handler.
+   * `configureRuntime(serverLog)` adjusts `GOMAXPROCS` (`go.uber.org/automaxprocs`) and `GOMEMLIMIT` (`github.com/KimMachineGun/automemlimit`) from cgroup limits and returns the `GOMAXPROCS` restore callback.
+   * `routers.CreateRouterMap(cfg)` → binds configured devices to router templates.
    * `http.ListenAndServe(ctx, cfg, rm, web)` blocks for the lifetime of the listener.
 
 There is currently **no graceful shutdown**. Cancelling `ctx` stops the health-check ticker but does not propagate to the HTTP server. This is a known limitation; for now, SIGTERM kills the process and any in-flight requests are lost. The stateless design makes this acceptable in practice.

@@ -86,6 +86,7 @@ bmp:
 
 *   **`enabled`**: Set to `true` to start the concurrent background TCP server and enable BMP lookups. Requires a configured `redis` cache block.
 *   **`listen`**: The address and TCP port where Looking Glass listens for BMP client connections. BMP-capable routers must be configured to dial this IP/port as a BMP Collector.
+*   **Frame Size Cap & Pagination**: Incoming BMP frames larger than 1 MiB are rejected before payload allocation. `BGPPeerRoutes` queries stream via Redis `HScan` (`limit` / `page_token`) rather than loading an entire peer RIB in one `HGetAll` call.
 
 ### Device Matching (The Remote IP Quirk)
 

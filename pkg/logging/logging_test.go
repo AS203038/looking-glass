@@ -219,4 +219,30 @@ func TestLoggingExtraCases(t *testing.T) {
 	_ = hCompGroup.Handle(ctx, rec)
 	_ = hCompGroup.WithAttrs([]slog.Attr{slog.String("a", "b")})
 	_ = hCompGroup.WithGroup("g2")
+
+	// 6. Verify handler cache invalidation on slog.SetDefault and Init file closing
+	prevDefault := slog.Default()
+	defer slog.SetDefault(prevDefault)
+
+	cachedComp := Component("cachetest")
+	var buf1 bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf1, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	cachedComp.Info("first sink")
+	if !strings.Contains(buf1.String(), "first sink") {
+		t.Errorf("expected first sink to receive record, got %q", buf1.String())
+	}
+
+	var buf2 bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf2, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	cachedComp.Info("second sink")
+	if !strings.Contains(buf2.String(), "second sink") {
+		t.Errorf("expected second sink to receive record after SetDefault, got %q", buf2.String())
+	}
+
+	if err := Init(Config{Format: "unknown", Output: tmpFile.Name()}); err == nil {
+		t.Errorf("expected Init to fail for unknown format")
+	}
+	if err := Init(Config{Level: "info", Format: "json", Output: "stdout"}); err != nil {
+		t.Fatalf("Init stdout reset failed: %v", err)
+	}
 }

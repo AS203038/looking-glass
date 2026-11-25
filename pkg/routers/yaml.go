@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"os"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/AS203038/looking-glass/pkg/errs"
@@ -170,12 +171,35 @@ type parserSpec struct {
 	Schema string `yaml:"schema"`
 }
 
+var yamlTplFuncs = template.FuncMap{
+	"bird_community": func(c string) string {
+		if a, v, ok := strings.Cut(c, ":"); ok && !strings.Contains(v, ":") {
+			return "(" + a + ", " + v + ")"
+		}
+		return c
+	},
+	"bird_large_community": func(c string) string {
+		if g, rest, ok := strings.Cut(c, ":"); ok {
+			if l1, l2, ok2 := strings.Cut(rest, ":"); ok2 && !strings.Contains(l2, ":") {
+				return "(" + g + ", " + l1 + ", " + l2 + ")"
+			}
+		}
+		return c
+	},
+}
+
+var tplBufPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
+
 // Yaml is the [utils.Router] implementation that backs every shipped vendor template.
 type Yaml struct {
 	// Path is the source filename, used only for log messages.
 	Path string
 	// netconf is set by compile when the template selects the netconf transport.
 	netconf *utils.NetconfSpec
+	// compiledTpls caches parsed Go text/templates keyed by raw template string.
+	compiledTpls sync.Map
 	// Template holds the unmarshalled template body.
 	Template struct {
 		// Name is the unique template identifier.
@@ -337,9 +361,10 @@ func loadBuiltin() {
 	}
 }
 
-// compile checks the transport settings and prepares the NETCONF RPC
-// template when the template selects the netconf transport.
+// compile checks the transport settings, prepares the NETCONF RPC
+// template when selected, and warms the parsed command template cache.
 func (rt *Yaml) compile() error {
+	rt.warmTemplates()
 	nc := rt.Template.Netconf
 	switch rt.Template.Transport {
 	case "", transportSSH:
@@ -361,6 +386,55 @@ func (rt *Yaml) compile() error {
 		return fmt.Errorf("unknown transport %q (want %q or %q)",
 			rt.Template.Transport, transportSSH, transportNetconf)
 	}
+}
+
+func (rt *Yaml) warmTemplates() {
+	groups := [][]string{
+		rt.Template.Ping.Any,
+		rt.Template.Ping.IPv4,
+		rt.Template.Ping.IPv6,
+		rt.Template.Traceroute.Any,
+		rt.Template.Traceroute.IPv4,
+		rt.Template.Traceroute.IPv6,
+		rt.Template.BGP.Summary,
+		rt.Template.BGP.Route,
+		rt.Template.BGP.Community,
+		rt.Template.BGP.LargeCommunity,
+		rt.Template.BGP.ASPath,
+		rt.Template.BGP.PeerRoutes.Received.Any,
+		rt.Template.BGP.PeerRoutes.Received.IPv4,
+		rt.Template.BGP.PeerRoutes.Received.IPv6,
+		rt.Template.BGP.PeerRoutes.Received.Name,
+		rt.Template.BGP.PeerRoutes.Accepted.Any,
+		rt.Template.BGP.PeerRoutes.Accepted.IPv4,
+		rt.Template.BGP.PeerRoutes.Accepted.IPv6,
+		rt.Template.BGP.PeerRoutes.Accepted.Name,
+		rt.Template.BGP.PeerRoutes.Rejected.Any,
+		rt.Template.BGP.PeerRoutes.Rejected.IPv4,
+		rt.Template.BGP.PeerRoutes.Rejected.IPv6,
+		rt.Template.BGP.PeerRoutes.Rejected.Name,
+		rt.Template.BGP.PeerRoutes.Advertised.Any,
+		rt.Template.BGP.PeerRoutes.Advertised.IPv4,
+		rt.Template.BGP.PeerRoutes.Advertised.IPv6,
+		rt.Template.BGP.PeerRoutes.Advertised.Name,
+	}
+	for _, list := range groups {
+		for _, raw := range list {
+			_, _ = rt.compiledTemplate(raw)
+		}
+	}
+}
+
+func (rt *Yaml) compiledTemplate(raw string) (*template.Template, error) {
+	if v, ok := rt.compiledTpls.Load(raw); ok {
+		return v.(*template.Template), nil
+	}
+	tt, err := template.New(raw).Funcs(yamlTplFuncs).Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	actual, _ := rt.compiledTpls.LoadOrStore(raw, tt)
+	return actual.(*template.Template), nil
 }
 
 // Netconf returns the NETCONF settings, or nil when the template uses SSH exec.
@@ -425,24 +499,10 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 		tplLog.LogAttrs(context.Background(), slog.LevelWarn, "operation not defined for router", attrs...)
 		return nil, errs.OperationUnknown
 	}
+	ret = make([]string, 0, len(tpl))
+	debugEnabled := tplLog.Enabled(context.Background(), slog.LevelDebug)
 	for i, t := range tpl {
-		var buf bytes.Buffer
-		tt, err := template.New(t).Funcs(template.FuncMap{
-			"bird_community": func(c string) string {
-				parts := strings.Split(c, ":")
-				if len(parts) == 2 {
-					return "(" + parts[0] + ", " + parts[1] + ")"
-				}
-				return c
-			},
-			"bird_large_community": func(c string) string {
-				parts := strings.Split(c, ":")
-				if len(parts) == 3 {
-					return "(" + parts[0] + ", " + parts[1] + ", " + parts[2] + ")"
-				}
-				return c
-			},
-		}).Parse(t)
+		tt, err := rt.compiledTemplate(t)
 		if err != nil {
 			attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
 			attrs = append(attrs,
@@ -452,11 +512,19 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 			tplLog.LogAttrs(context.Background(), slog.LevelError, "parse failed", attrs...)
 			return nil, errs.OperationUnknown
 		}
-		err = tt.Execute(&buf, data)
+		buf := tplBufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		err = tt.Execute(buf, data)
 		if errors.Is(err, errs.PeerIPRequired) || errors.Is(err, errs.PeerNameRequired) {
+			if buf.Cap() <= 4096 {
+				tplBufPool.Put(buf)
+			}
 			return nil, err
 		}
 		if err != nil {
+			if buf.Cap() <= 4096 {
+				tplBufPool.Put(buf)
+			}
 			attrs := tplAttrs(rt.Template.Name, name, data.Cfg)
 			attrs = append(attrs,
 				slog.Int("cmd_index", i),
@@ -466,11 +534,16 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 			return nil, errs.OperationUnknown
 		}
 		rendered := buf.String()
-		debugAttrs := tplAttrs(rt.Template.Name, name, data.Cfg)
-		debugAttrs = append(debugAttrs,
-			slog.Int("cmd_index", i),
-			slog.String("rendered", rendered))
-		tplLog.LogAttrs(context.Background(), slog.LevelDebug, "tpl render", debugAttrs...)
+		if buf.Cap() <= 4096 {
+			tplBufPool.Put(buf)
+		}
+		if debugEnabled {
+			debugAttrs := tplAttrs(rt.Template.Name, name, data.Cfg)
+			debugAttrs = append(debugAttrs,
+				slog.Int("cmd_index", i),
+				slog.String("rendered", rendered))
+			tplLog.LogAttrs(context.Background(), slog.LevelDebug, "tpl render", debugAttrs...)
+		}
 		ret = append(ret, rendered)
 	}
 	return ret, nil

@@ -103,6 +103,8 @@ docker run -d --name lg \
 
 If you reference router credentials via `ssh_key:`, the path inside the container must match the volume mount path (`/ssh-key` in the example above). Use Docker `secrets` or Podman `--secret` for the key file in production.
 
+At startup, the server automatically aligns `GOMAXPROCS` (via `go.uber.org/automaxprocs`) and `GOMEMLIMIT` (via `github.com/KimMachineGun/automemlimit`, defaulting to `90%` of the cgroup memory limit) with container CPU and memory limits. Set `GOMAXPROCS`, `GOMEMLIMIT`, or `AUTOMEMLIMIT` (`0.0`–`1.0` or `off`) in the container environment to override or disable these defaults.
+
 ## Kubernetes
 
 Looking Glass scales horizontally; deploy it as a regular `Deployment` with `replicas > 1` and a `Service` in front. The manifest below uses a `Secret` for sensitive material and a `ConfigMap` for the rest of `config.yaml`.

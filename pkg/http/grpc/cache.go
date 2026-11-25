@@ -69,11 +69,20 @@ func rpcCacheGet(ctx context.Context, key string, dst proto.Message) bool {
 	return true
 }
 
+// rpcCacheMaxBytes skips caching serialized responses larger than 8 MiB.
+var rpcCacheMaxBytes = 8 << 20
+
 // rpcCacheSet marshals msg and writes it under key with the
 // configured TTL. Fire-and-forget; errors are logged at debug. A
 // disabled cache is a no-op.
 func rpcCacheSet(ctx context.Context, key string, msg proto.Message) {
 	if rpcCacheClient == nil {
+		return
+	}
+	if sz := proto.Size(msg); rpcCacheMaxBytes > 0 && sz > rpcCacheMaxBytes {
+		rpcCacheLog.Debug("cache skip oversized entry",
+			slog.String("key", key),
+			slog.Int("bytes", sz))
 		return
 	}
 	buf, err := proto.Marshal(msg)
