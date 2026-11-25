@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const eslint = new ESLint({ cwd: import.meta.dirname });
 
@@ -14,6 +14,10 @@ async function floatRuleHits(mustache: string, field = 'rttMs'): Promise<number>
 }
 
 describe('the *Ms / *Pct display rule', () => {
+	beforeAll(async () => {
+		await floatRuleHits('{0}');
+	}, 30_000);
+
 	it.each([
 		'{p.rttMs}',
 		"{p.rttMs + ' ms'}",
