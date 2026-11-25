@@ -1761,17 +1761,32 @@
 <tr>
 <td><code>ConnectionFailed</code></td>
 <td><code>ssh.Dial</code></td>
-<td>TCP or SSH handshake failed before authentication.</td>
+<td>TCP or SSH handshake failed before authentication (<code>unavailable</code>).</td>
 </tr>
 <tr>
 <td><code>AuthFailed</code></td>
 <td>SSH auth</td>
-<td>SSH credentials rejected, or <code>ssh_key</code> unreadable / unparseable.</td>
+<td>SSH credentials rejected, or <code>ssh_key</code> unreadable / unparseable (<code>unavailable</code>).</td>
 </tr>
 <tr>
 <td><code>ExecFailed</code></td>
 <td>SSH session execution</td>
-<td>Session creation, command exit, or stderr capture failed.</td>
+<td>Session creation, command exit, or stderr capture failed (<code>unavailable</code>).</td>
+</tr>
+<tr>
+<td><code>ExecTimeout</code></td>
+<td>SSH / NETCONF command timeout</td>
+<td>Command execution exceeded <code>command_timeout</code> (default <code>60s</code> SSH / <code>10m</code> NETCONF) or caller deadline (<code>deadline_exceeded</code>).</td>
+</tr>
+<tr>
+<td><code>ExecCanceled</code></td>
+<td>Request context cancellation</td>
+<td>Caller aborted or disconnected before the router finished (<code>canceled</code>).</td>
+</tr>
+<tr>
+<td><code>PoolExhausted</code></td>
+<td>SSH connection pool</td>
+<td>All <code>ssh_pool_size</code> slots for this device are in use (<code>resource_exhausted</code>).</td>
 </tr>
 </tbody>
 </table>

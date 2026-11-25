@@ -1759,7 +1759,7 @@
 <li>a <code>text/template</code> execute error (e.g. referencing a nil field).</li>
 </ul>
 <p>The underlying <code>text/template</code> error is logged server-side with a detailed tag (router type, op, command index, raw template) — see <code>tplLogTag</code> in <code>yaml.go</code>. RPC clients only ever see the sentinel.</p>
-<p>After rendering, command execution failures (SSH dial, auth, exec non-zero, …) are also surfaced as coarse sentinel errors (<code>errs.ConnectionFailed</code>, <code>errs.AuthFailed</code>, <code>errs.ExecFailed</code>); see <a href="../architecture/">architecture.md</a> for the full error propagation story.</p>
+<p>After rendering, command execution failures (SSH dial, auth, exec non-zero, command timeout, …) are also surfaced as coarse sentinel errors (<code>errs.ConnectionFailed</code>, <code>errs.AuthFailed</code>, <code>errs.ExecFailed</code>, <code>errs.ExecTimeout</code>, <code>errs.ExecCanceled</code>, <code>errs.PoolExhausted</code>); see <a href="../architecture/">architecture.md</a> for the full error propagation story. By default, <code>SSHExec</code> bounds command execution to <code>60s</code>, which can be tuned globally via <code>grpc.command_timeout</code> or per device via <code>devices[].command_timeout</code>.</p>
 <h2 id="loading-rules">Loading rules<a class="headerlink" href="#loading-rules" title="Permanent link">&para;</a></h2>
 <p>Templates are loaded from two sources in this order:</p>
 <ol>

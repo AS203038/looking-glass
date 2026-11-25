@@ -1051,6 +1051,7 @@
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">source6</span><span class="p">:</span><span class="w">  </span><span class="s">"2001:db8::1"</span><span class="w">           </span><span class="c1"># required for IPv6 ping/traceroute</span>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">vrf</span><span class="p">:</span><span class="w">      </span><span class="s">"default"</span><span class="w">               </span><span class="c1"># required (use "default" / "main" / "Base" if you don't run VRFs)</span>
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">ssh_pool_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                  </span><span class="c1"># optional maximum open connections to this device, idle ones are pooled (0 disables pooling)</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nt">command_timeout</span><span class="p">:</span><span class="w"> </span><span class="s">"60s"</span><span class="w">            </span><span class="c1"># optional command execution timeout override (Go duration)</span>
 </span></code></pre></div>
 <h3 id="field-semantics">Field semantics<a class="headerlink" href="#field-semantics" title="Permanent link">&para;</a></h3>
 <table>
@@ -1135,6 +1136,12 @@
 <td><code>0</code></td>
 <td>Maximum number of open SSH connections to this device. <code>0</code> means no limit and no pooling. With a value <code>&gt; 0</code>, SSH exec keeps idle connections open and uses them again. When all connections are in use, a request fails at once with a <code>resource_exhausted</code> error, and the health check marks the device unhealthy unless BMP is active for it. A NETCONF template never uses a connection again, see <a href="../router-templates/#connection-and-sessions">Connection and sessions</a>.</td>
 </tr>
+<tr>
+<td><code>command_timeout</code></td>
+<td>duration</td>
+<td><code>grpc.command_timeout</code> (or <code>60s</code> SSH / <code>10m</code> NETCONF)</td>
+<td>Optional Go <a href="https://pkg.go.dev/time#ParseDuration"><code>time.ParseDuration</code></a> string bounding command execution for this device. Negative values fail startup validation.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="a-note-on-credentials">A note on credentials<a class="headerlink" href="#a-note-on-credentials" title="Permanent link">&para;</a></h3>
@@ -1150,11 +1157,12 @@
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">grpc</span><span class="p">:</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">listen</span><span class="p">:</span><span class="w"> </span><span class="s">":8080"</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">self_signed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">cert</span><span class="p">:</span><span class="w"> </span><span class="s">"/path/to/fullchain.pem"</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w">  </span><span class="s">"/path/to/privkey.pem"</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">command_timeout</span><span class="p">:</span><span class="w"> </span><span class="s">"60s"</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">self_signed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">cert</span><span class="p">:</span><span class="w"> </span><span class="s">"/path/to/fullchain.pem"</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w">  </span><span class="s">"/path/to/privkey.pem"</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -1177,6 +1185,12 @@
 <td>string</td>
 <td>—</td>
 <td>Bind address. <code>:8080</code> for "all interfaces, port 8080".</td>
+</tr>
+<tr>
+<td><code>command_timeout</code></td>
+<td>duration</td>
+<td><code>60s</code> (SSH) / <code>10m</code> (NETCONF)</td>
+<td>Default Go <a href="https://pkg.go.dev/time#ParseDuration"><code>time.ParseDuration</code></a> string inherited by devices that omit <code>command_timeout</code>. Operators behind a reverse proxy with a 60s upstream timeout can set a lower value (e.g. <code>45s</code>) or raise the proxy timeout so slow commands surface as <code>deadline_exceeded</code> instead of an upstream HTTP 504. Negative values fail startup validation.</td>
 </tr>
 <tr>
 <td><code>tls.enabled</code></td>
