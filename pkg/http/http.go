@@ -5,10 +5,12 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io/fs"
 	stdlog "log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -107,6 +109,60 @@ func SecurityTxtInjector(cfg utils.SecurityTxtConfig) http.Handler {
 	})
 }
 
+// redactRedisURI strips userinfo credentials and sensitive query parameters
+// from raw before it is written to logs. Unparseable URIs return "<redacted>".
+func redactRedisURI(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "<redacted>"
+	}
+	if u.User != nil {
+		if _, hasPass := u.User.Password(); hasPass {
+			u.User = url.UserPassword(u.User.Username(), "xxxxx")
+		} else if u.User.Username() != "" {
+			u.User = url.User("xxxxx")
+		}
+	}
+	if u.RawQuery != "" {
+		q, qerr := url.ParseQuery(u.RawQuery)
+		if qerr != nil {
+			u.RawQuery = "redacted"
+		} else {
+			changed := false
+			for k := range q {
+				switch strings.ToLower(k) {
+				case "password", "pass", "passwd", "pwd", "auth", "token", "secret":
+					q.Set(k, "xxxxx")
+					changed = true
+				}
+			}
+			if changed {
+				u.RawQuery = q.Encode()
+			}
+		}
+	}
+	return u.String()
+}
+
+// sanitizeRedisParseErr redacts any embedded URL and invalid escape sequence
+// from err so Redis credentials are not echoed in parse-failure logs.
+func sanitizeRedisParseErr(err error) error {
+	var urlErr *url.Error
+	if !errors.As(err, &urlErr) {
+		return err
+	}
+	cause := urlErr.Err
+	var escErr url.EscapeError
+	if errors.As(cause, &escErr) {
+		cause = errors.New("invalid URL escape")
+	}
+	return &url.Error{
+		Op:  urlErr.Op,
+		URL: redactRedisURI(urlErr.URL),
+		Err: cause,
+	}
+}
+
 // ListenAndServe builds the middleware stack and starts the HTTP/2
 // listener described by cfg. It blocks for the lifetime of the listener.
 func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap, webfs fs.FS) error {
@@ -116,10 +172,10 @@ func ListenAndServe(ctx context.Context, cfg *utils.Config, rts utils.RouterMap,
 		opts, err := redis.ParseURL(cfg.Redis.URI)
 		if err != nil {
 			log.Error("redis url parse failed; cache and health-coordination disabled",
-				slog.String("uri", cfg.Redis.URI),
-				slog.Any("err", err))
+				slog.String("uri", redactRedisURI(cfg.Redis.URI)),
+				slog.Any("err", sanitizeRedisParseErr(err)))
 		} else {
-			log.Info("connecting to redis", slog.String("uri", cfg.Redis.URI))
+			log.Info("connecting to redis", slog.String("uri", redactRedisURI(cfg.Redis.URI)))
 			client := redis.NewClient(opts)
 			grpc.SetRedis(client)
 			ttl, perr := time.ParseDuration(cfg.Redis.TTL)
