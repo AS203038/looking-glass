@@ -894,3 +894,79 @@ func TestBGPPeerRoutesCommandNeedsPeerOperand(t *testing.T) {
 		t.Fatal("no router command for advertised peer1")
 	}
 }
+
+// TestBGPPeerRoutesAristaEOSFamilySelection verifies Arista EOS executes only the peer IP family command and rejects name-only queries.
+func TestBGPPeerRoutesAristaEOSFamilySelection(t *testing.T) {
+	cmds := make(chan string, 8)
+	addr := startExecRecorder(t, cmds)
+	ri := &utils.RouterInstance{
+		Config: &utils.RouterConfig{
+			Name:     "rt3.sto1.se",
+			Hostname: addr,
+			Username: "test",
+			VRF:      "PROUD-BEAVER",
+		},
+		Router:      routers.Get("arista_eos"),
+		HealthCheck: &utils.HealthCheck{Healthy: true},
+	}
+	server := newServer(NewLookingGlassService(context.Background(), utils.RouterMap{ri}))
+	cli := lookingglassconnect.NewLookingGlassServiceClient(connect.NewClient(connectinprocess.New(server)))
+
+	if _, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+		RouterId:  1,
+		PeerIp:    "10.19.0.14",
+		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
+	}); err != nil {
+		t.Fatalf("BGPPeerRoutes(10.19.0.14): %v", err)
+	}
+	select {
+	case got := <-cmds:
+		want := "show ip bgp neighbors 10.19.0.14 received-routes detail vrf PROUD-BEAVER"
+		if got != want {
+			t.Errorf("command = %q, want %q", got, want)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for IPv4 command")
+	}
+	select {
+	case extra := <-cmds:
+		t.Errorf("unexpected extra command for IPv4 peer: %q", extra)
+	default:
+	}
+
+	if _, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+		RouterId:  1,
+		PeerIp:    "2001:db8::1",
+		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
+	}); err != nil {
+		t.Fatalf("BGPPeerRoutes(2001:db8::1): %v", err)
+	}
+	select {
+	case got := <-cmds:
+		want := "show ipv6 bgp neighbors 2001:db8::1 received-routes detail vrf PROUD-BEAVER"
+		if got != want {
+			t.Errorf("command = %q, want %q", got, want)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for IPv6 command")
+	}
+	select {
+	case extra := <-cmds:
+		t.Errorf("unexpected extra command for IPv6 peer: %q", extra)
+	default:
+	}
+
+	_, err := cli.BGPPeerRoutes(context.Background(), &pb.BGPPeerRoutesRequest{
+		RouterId:  1,
+		PeerName:  "UPSTREAM",
+		QueryType: pb.PeerRouteQueryType_PEER_ROUTE_QUERY_TYPE_RECEIVED,
+	})
+	if !errors.Is(err, errs.PeerIPRequired) || connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("BGPPeerRoutes(UPSTREAM) = %v (code %v), want PeerIPRequired (InvalidArgument)", err, connect.CodeOf(err))
+	}
+	select {
+	case extra := <-cmds:
+		t.Errorf("unexpected command for name-only query: %q", extra)
+	default:
+	}
+}

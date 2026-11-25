@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"net/netip"
 	"os"
 	"strings"
 	"text/template"
@@ -91,6 +92,74 @@ func (d _tpl_data) PeerName() (string, error) {
 	return d.peerName, nil
 }
 
+// peerRouteCommands holds the command lists for one peer_routes query type,
+// keyed by peer IP family (IPv4, IPv6), peer name (Name), or fallback (Any).
+type peerRouteCommands struct {
+	Any  []string `yaml:"any"`
+	IPv4 []string `yaml:"ipv4"`
+	IPv6 []string `yaml:"ipv6"`
+	Name []string `yaml:"name"`
+}
+
+// UnmarshalYAML decodes a YAML sequence into Any or a mapping into Any, IPv4, IPv6, and Name.
+func (p *peerRouteCommands) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var list []string
+	if err := unmarshal(&list); err == nil {
+		p.Any = list
+		return nil
+	}
+	type rawPeerRouteCommands peerRouteCommands
+	var m rawPeerRouteCommands
+	if err := unmarshal(&m); err != nil {
+		return err
+	}
+	*p = peerRouteCommands(m)
+	return nil
+}
+
+// commands selects the command list for peerIP and peerName, returning
+// [errs.IPInvalid], [errs.PeerIPRequired], or [errs.PeerNameRequired] on invalid operands.
+func (p peerRouteCommands) commands(peerIP, peerName string) ([]string, error) {
+	if len(p.Any) == 0 && len(p.IPv4) == 0 && len(p.IPv6) == 0 && len(p.Name) == 0 {
+		return nil, nil
+	}
+	if peerIP != "" {
+		addr, err := netip.ParseAddr(peerIP)
+		if err != nil {
+			return nil, errs.IPInvalid
+		}
+		if addr.Is4() && len(p.IPv4) > 0 {
+			return p.IPv4, nil
+		}
+		if addr.Is6() && len(p.IPv6) > 0 {
+			return p.IPv6, nil
+		}
+		if len(p.Any) > 0 {
+			return p.Any, nil
+		}
+		if len(p.Name) > 0 {
+			return p.Name, nil
+		}
+		return nil, nil
+	}
+	if peerName != "" {
+		if len(p.Name) > 0 {
+			return p.Name, nil
+		}
+		if len(p.Any) > 0 {
+			return p.Any, nil
+		}
+		return nil, errs.PeerIPRequired
+	}
+	if len(p.Any) > 0 {
+		return p.Any, nil
+	}
+	if len(p.IPv4) > 0 || len(p.IPv6) > 0 {
+		return nil, errs.PeerIPRequired
+	}
+	return nil, errs.PeerNameRequired
+}
+
 // parserSpec is the YAML projection of a per-operation parser declaration.
 type parserSpec struct {
 	// Kind selects the parser pipe: "raw", "textfsm", "native_json", or "builtin".
@@ -143,10 +212,10 @@ type Yaml struct {
 			LargeCommunity []string `yaml:"largecommunity"`
 			ASPath         []string `yaml:"aspath"`
 			PeerRoutes     struct {
-				Received   []string `yaml:"received"`
-				Accepted   []string `yaml:"accepted"`
-				Rejected   []string `yaml:"rejected"`
-				Advertised []string `yaml:"advertised"`
+				Received   peerRouteCommands `yaml:"received"`
+				Accepted   peerRouteCommands `yaml:"accepted"`
+				Rejected   peerRouteCommands `yaml:"rejected"`
+				Advertised peerRouteCommands `yaml:"advertised"`
 			} `yaml:"peer_routes"`
 		} `yaml:"bgp"`
 		// Parsers is the per-operation parser declaration map.
@@ -331,13 +400,25 @@ func (rt *Yaml) _tpl(name string, data _tpl_data) ([]string, error) {
 	case "bgp.aspath":
 		tpl = rt.Template.BGP.ASPath
 	case "bgp.peer_routes.received":
-		tpl = rt.Template.BGP.PeerRoutes.Received
+		var err error
+		if tpl, err = rt.Template.BGP.PeerRoutes.Received.commands(data.peerIP, data.peerName); err != nil {
+			return nil, err
+		}
 	case "bgp.peer_routes.accepted":
-		tpl = rt.Template.BGP.PeerRoutes.Accepted
+		var err error
+		if tpl, err = rt.Template.BGP.PeerRoutes.Accepted.commands(data.peerIP, data.peerName); err != nil {
+			return nil, err
+		}
 	case "bgp.peer_routes.rejected":
-		tpl = rt.Template.BGP.PeerRoutes.Rejected
+		var err error
+		if tpl, err = rt.Template.BGP.PeerRoutes.Rejected.commands(data.peerIP, data.peerName); err != nil {
+			return nil, err
+		}
 	case "bgp.peer_routes.advertised":
-		tpl = rt.Template.BGP.PeerRoutes.Advertised
+		var err error
+		if tpl, err = rt.Template.BGP.PeerRoutes.Advertised.commands(data.peerIP, data.peerName); err != nil {
+			return nil, err
+		}
 	}
 	if tpl == nil {
 		attrs := tplAttrs(rt.Template.Name, name, data.Cfg)

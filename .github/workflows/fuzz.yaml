@@ -1,0 +1,59 @@
+name: Nightly Deep Fuzz
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: 'Fuzz execution budget per target (count or duration)'
+        required: false
+        default: '2000000x'
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Deep Fuzzers
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Resolve Go Fuzz Cache Path
+        id: fuzz-cache
+        run: echo "dir=$(go env GOCACHE)/fuzz" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Go Fuzz Corpus
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.fuzz-cache.outputs.dir }}
+          key: go-fuzz-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            go-fuzz-${{ runner.os }}-
+
+      - name: Run Deep Go Fuzzers
+        env:
+          FUZZTIME: ${{ inputs.fuzztime || '2000000x' }}
+        run: make test-fuzz
+
+      - name: Upload Fuzz Crashers
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashers-nightly
+          path: '**/testdata/fuzz/**'
+          if-no-files-found: ignore

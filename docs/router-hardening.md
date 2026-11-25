@@ -46,10 +46,10 @@ A naive "just run the LG as admin" deployment hands the upper stratum *and* ever
 ping vrf <vrf> ip <addr>      | ping vrf <vrf> ipv6 <addr>
 traceroute vrf <vrf> ip <addr>| traceroute vrf <vrf> ipv6 <addr>
 show ip bgp …                 | show ipv6 bgp …
-show ip bgp neighbors <peer> received-routes detail vrf <vrf>
-show ip bgp neighbors <peer> routes detail vrf <vrf>
-show ip bgp neighbors <peer> filtered-routes detail vrf <vrf>
-show ip bgp neighbors <peer> advertised-routes detail vrf <vrf>
+show ip/ipv6 bgp neighbors <peer> received-routes detail vrf <vrf>
+show ip/ipv6 bgp neighbors <peer> routes detail vrf <vrf>
+show ip/ipv6 bgp neighbors <peer> filtered-routes detail vrf <vrf>
+show ip/ipv6 bgp neighbors <peer> advertised-routes detail vrf <vrf>
 ```
 
 That is the *complete* surface from [`pkg/routers/arista_eos.yml`](../pkg/routers/arista_eos.yml).
