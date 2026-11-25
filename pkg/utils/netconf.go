@@ -454,7 +454,7 @@ func netconfCommand(dl *netconfDeadlines, sess *netconf.Session, router *RouterC
 			slog.Any("err", err))
 		return "", errs.ExecFailed
 	}
-	ctx, done := dl.start(netconfTimeout)
+	ctx, done := dl.start(router.commandTimeout(netconfTimeout))
 	defer done()
 	out := &netconfOutput{local: spec.Output, errLocal: spec.Error}
 	err = sess.Exec(ctx, body, out)

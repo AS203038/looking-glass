@@ -45,6 +45,42 @@ export const COMMANDS_NO_PARAM: ReadonlyArray<CommandValue> = ['bgp_summary'];
 
 export type ExecStatus = 'pending' | 'running' | 'done' | 'error';
 
+export type ErrorKind = 'error' | 'timeout' | 'canceled';
+
+/** Formats an RPC or client error into a user-facing message and category. */
+export function formatRpcError(
+	err: unknown,
+	aborted = false
+): { message: string; kind: ErrorKind } {
+	if (
+		aborted ||
+		(err instanceof DOMException && err.name === 'AbortError') ||
+		(err instanceof ConnectError && err.code === Code.Canceled)
+	) {
+		return { message: 'Canceled', kind: 'canceled' };
+	}
+	if (err instanceof ConnectError && err.code === Code.DeadlineExceeded) {
+		return {
+			message: err.rawMessage ? `Command timed out: ${err.rawMessage}` : 'Command timed out',
+			kind: 'timeout'
+		};
+	}
+	if (
+		err instanceof ConnectError &&
+		err.code === Code.Unavailable &&
+		/^HTTP 504\b/i.test(err.rawMessage)
+	) {
+		return {
+			message: 'Command timed out (upstream gateway timeout: HTTP 504)',
+			kind: 'timeout'
+		};
+	}
+	return {
+		message: err instanceof Error ? err.message : String(err),
+		kind: 'error'
+	};
+}
+
 /** Parsed payload variants carried alongside each result. */
 export type ParsedPayload =
 	| { kind: 'ping'; data: Pb.PingStats }
@@ -62,6 +98,8 @@ export interface ExecResult {
 	bytes: Uint8Array | null;
 	/** Populated only when status is 'error'. */
 	error: string | null;
+	/** Categorizes an error result for UI presentation. */
+	errorKind?: ErrorKind;
 	/** Original user command. */
 	queryCommand: CommandValue;
 	/** Original user parameter. */
@@ -421,22 +459,19 @@ async function runOne(
 		}
 		return done;
 	} catch (err) {
-		const isAbort =
-			signal.aborted ||
-			(err instanceof DOMException && err.name === 'AbortError') ||
-			(err instanceof ConnectError && err.code === Code.Canceled);
-		const message = isAbort ? 'Canceled' : err instanceof Error ? err.message : String(err);
+		const { message, kind } = formatRpcError(err, signal.aborted);
 		const failed: ExecResult = {
 			...base,
 			status: 'error',
 			error: message,
+			errorKind: kind,
 			timestamp: new Date(),
 			retryAttempt: 0
 		};
 		if (runId === activeRunId) {
 			results.update((r) => ({ ...r, [key]: failed }));
 		}
-		if (!isAbort) {
+		if (kind !== 'canceled') {
 			console.error(`[${router.name}] ${cmd} failed:`, err);
 		}
 		return failed;
@@ -573,10 +608,10 @@ export async function loadMorePeerRoutes(routerId: string) {
 			};
 		});
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const { message, kind } = formatRpcError(err);
 		pushToast({
 			kind: 'error',
-			title: 'Could not load more routes',
+			title: kind === 'timeout' ? 'Command timed out' : 'Could not load more routes',
 			message
 		});
 		results.update((r) => {

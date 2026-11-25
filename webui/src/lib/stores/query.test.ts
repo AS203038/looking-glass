@@ -23,11 +23,13 @@ vi.mock('$lib/grpc', async () => {
 	};
 });
 
+import { clearToasts, toasts } from '$lib/toast';
 import { _reset as resetRouters, routers, selectMany } from './routers';
 import {
 	_resetQuery,
 	cancelRun,
 	formatPeerRoutesParam,
+	formatRpcError,
 	isRunning,
 	loadMorePeerRoutes,
 	parsePeerRoutesParam,
@@ -40,6 +42,7 @@ const makeRouter = (id: number, name: string) =>
 
 describe('query store', () => {
 	beforeEach(() => {
+		clearToasts();
 		resetRouters();
 		_resetQuery();
 		for (const fn of Object.values(clientMock)) fn.mockReset();
@@ -139,5 +142,54 @@ describe('query store', () => {
 				'198.51.100.0/24'
 			]);
 		}
+	});
+
+	it('formats DeadlineExceeded and HTTP 504 fallback as command timeouts', async () => {
+		expect(
+			formatRpcError(new ConnectError('router did not answer in time', Code.DeadlineExceeded))
+		).toEqual({
+			message: 'Command timed out: router did not answer in time',
+			kind: 'timeout'
+		});
+		expect(formatRpcError(new ConnectError('', Code.DeadlineExceeded))).toEqual({
+			message: 'Command timed out',
+			kind: 'timeout'
+		});
+		expect(formatRpcError(new ConnectError('HTTP 504', Code.Unavailable))).toEqual({
+			message: 'Command timed out (upstream gateway timeout: HTTP 504)',
+			kind: 'timeout'
+		});
+
+		clientMock.bGPLargeCommunity.mockRejectedValueOnce(
+			new ConnectError('router did not answer in time', Code.DeadlineExceeded)
+		);
+		await run('bgp_community', '214503:5:30893');
+		expect(get(results)['1'].status).toBe('error');
+		expect(get(results)['1'].errorKind).toBe('timeout');
+		expect(get(results)['1'].error).toBe('Command timed out: router did not answer in time');
+	});
+
+	it('surfaces a timeout toast when loadMorePeerRoutes times out', async () => {
+		clientMock.bGPPeerRoutes
+			.mockResolvedValueOnce(
+				fromJson(Pb.BGPPeerRoutesResponseSchema, {
+					result: btoa('page1'),
+					parseStatus: 'PARSE_STATUS_OK',
+					nextPageToken: '50',
+					parsed: { paths: [{ prefix: '192.0.2.0/24', nexthop: '10.0.0.1' }] }
+				})
+			)
+			.mockRejectedValueOnce(
+				new ConnectError('router did not answer in time', Code.DeadlineExceeded)
+			);
+
+		await run('bgp_peer_routes', '192.0.2.1 received');
+		await loadMorePeerRoutes('1');
+
+		const list = get(toasts);
+		expect(list).toHaveLength(1);
+		expect(list[0].kind).toBe('error');
+		expect(list[0].title).toBe('Command timed out');
+		expect(list[0].message).toBe('Command timed out: router did not answer in time');
 	});
 });

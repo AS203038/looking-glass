@@ -1034,3 +1034,20 @@ func TestRouterInstanceNetconf(t *testing.T) {
 		t.Errorf("exec Healthcheck: %v", err)
 	}
 }
+
+// TestNetconfExecDeviceCommandTimeout verifies RouterConfig.CommandTimeout overrides netconfTimeout.
+func TestNetconfExecDeviceCommandTimeout(t *testing.T) {
+	srv := startNetconfServer(t, true, false)
+	spec := netconfTestSpec(t, netconfTestSROSRPC, "md-cli-output-block")
+	router := netconfTestRouter("nc-device-timeout", srv.addr, 1)
+	router.CommandTimeout = 200 * time.Millisecond
+
+	start := time.Now()
+	_, err := NetconfExec(context.Background(), router, spec, []string{"show hang"})
+	if !errors.Is(err, errs.ExecTimeout) {
+		t.Fatalf("err = %v, want errs.ExecTimeout", err)
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Errorf("NetconfExec took %v, device CommandTimeout did not override netconfTimeout", d)
+	}
+}

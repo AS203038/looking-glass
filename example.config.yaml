@@ -11,10 +11,12 @@ devices:                                                                  # List
       source6: "2001:db8::1"                                              #   IPv6 source, such as your rt's loopback (required)
       vrf: "vrf1"                                                         #   VRF name, most platforms use 'default' if no VRF is used (required)
       ssh_pool_size: 5                                                    #   maximum open SSH connections to this device, idle ones are pooled, 0 disables pooling (optional)
+      command_timeout: "60s"                                              #   per-device command execution timeout override (optional; inherits grpc.command_timeout)
 
 grpc:                                                                     # gRPC Server Settings
     enabled: true                                                         #   Enable or disable GRPC endpoints
     listen: ":8080"                                                       #   gRPC listener
+    command_timeout: "60s"                                                #   default command timeout for devices that omit command_timeout (optional; default 60s for SSH exec, 10m for NETCONF)
     tls:                                                                  #   TLS Settings often required for h2c
         enabled: false                                                    #     Enable or disable TLS
         self_signed: true                                                 #     Generate self-signed dummy certificate on-the-fly, this usually suffices for most ingress/proxy setups

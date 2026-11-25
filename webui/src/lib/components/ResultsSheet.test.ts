@@ -85,4 +85,20 @@ describe('ResultsSheet', () => {
 		await fireEvent.keyDown(toggleBtn, { key: 'ArrowDown' });
 		expect(get(sheetState)).toBe('half');
 	});
+
+	it('renders a warning timed out badge and message for command timeout errors', () => {
+		results.set({
+			'1': {
+				...get(results)['1'],
+				status: 'error',
+				bytes: null,
+				parsed: null,
+				errorKind: 'timeout',
+				error: 'Command timed out: router did not answer in time'
+			}
+		});
+		const { getByText } = render(ResultsSheet);
+		expect(getByText('timed out')).toBeTruthy();
+		expect(getByText('Command timed out: router did not answer in time')).toBeTruthy();
+	});
 });

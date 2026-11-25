@@ -42,6 +42,7 @@ devices:
     source6:  "2001:db8::1"           # required for IPv6 ping/traceroute
     vrf:      "default"               # required (use "default" / "main" / "Base" if you don't run VRFs)
     ssh_pool_size: 5                  # optional maximum open connections to this device, idle ones are pooled (0 disables pooling)
+    command_timeout: "60s"            # optional command execution timeout override (Go duration)
 ```
 
 ### Field semantics
@@ -60,6 +61,7 @@ devices:
 | `source6`   | IPNet  | `::1`       | IPv6 source address bound on ping/traceroute.                                                                                                  |
 | `vrf`       | string | `""`        | Routing-instance name interpolated as `{{.Cfg.VRF}}`. **Every bundled template threads this through every operation.** Use the platform default (`default` for IOS/EOS/FRR, `main` for RouterOS, `Base` for SR OS, `inet` for JunOS) if you don't run VRFs. |
 | `ssh_pool_size` | int | `0`        | Maximum number of open SSH connections to this device. `0` means no limit and no pooling. With a value `> 0`, SSH exec keeps idle connections open and uses them again. When all connections are in use, a request fails at once with a `resource_exhausted` error, and the health check marks the device unhealthy unless BMP is active for it. A NETCONF template never uses a connection again, see [Connection and sessions](router-templates.md#connection-and-sessions). |
+| `command_timeout` | duration | `grpc.command_timeout` (or `60s` SSH / `10m` NETCONF) | Optional Go [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) string bounding command execution for this device. Negative values fail startup validation. |
 
 ### A note on credentials
 
@@ -77,6 +79,7 @@ Credentials are stored in plain text in the config file. The recommended deploym
 grpc:
   enabled: true
   listen: ":8080"
+  command_timeout: "60s"
   tls:
     enabled: false
     self_signed: false
@@ -84,11 +87,12 @@ grpc:
     key:  "/path/to/privkey.pem"
 ```
 
-| Key                | Type   | Default | Notes                                                                                              |
-| ------------------ | ------ | ------- | -------------------------------------------------------------------------------------------------- |
-| `enabled`          | bool   | `false` | When false, the gRPC service handlers are not mounted. The WebUI can still serve, but it will be useless. |
-| `listen`           | string | —       | Bind address. `:8080` for "all interfaces, port 8080".                                              |
-| `tls.enabled`      | bool   | `false` | When false the listener runs h2c (HTTP/2 cleartext). Required for gRPC clients that won't downgrade. |
+| Key                | Type     | Default | Notes                                                                                              |
+| ------------------ | -------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `enabled`          | bool     | `false` | When false, the gRPC service handlers are not mounted. The WebUI can still serve, but it will be useless. |
+| `listen`           | string   | —       | Bind address. `:8080` for "all interfaces, port 8080".                                              |
+| `command_timeout`  | duration | `60s` (SSH) / `10m` (NETCONF) | Default Go [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) string inherited by devices that omit `command_timeout`. Operators behind a reverse proxy with a 60s upstream timeout can set a lower value (e.g. `45s`) or raise the proxy timeout so slow commands surface as `deadline_exceeded` instead of an upstream HTTP 504. Negative values fail startup validation. |
+| `tls.enabled`      | bool     | `false` | When false the listener runs h2c (HTTP/2 cleartext). Required for gRPC clients that won't downgrade. |
 | `tls.self_signed`  | bool   | `false` | Generate an in-memory cert at startup via `utils.GenerateSelfSignedPair`. Useful behind an ingress that re-terminates TLS. |
 | `tls.cert`         | string | —       | PEM-encoded chain. Ignored when `self_signed` is true.                                              |
 | `tls.key`          | string | —       | PEM-encoded private key. Ignored when `self_signed` is true.                                        |

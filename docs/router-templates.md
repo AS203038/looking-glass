@@ -239,7 +239,7 @@ The template-rendering layer returns one of two states:
 
 The underlying `text/template` error is logged server-side with a detailed tag (router type, op, command index, raw template) — see `tplLogTag` in `yaml.go`. RPC clients only ever see the sentinel.
 
-After rendering, command execution failures (SSH dial, auth, exec non-zero, …) are also surfaced as coarse sentinel errors (`errs.ConnectionFailed`, `errs.AuthFailed`, `errs.ExecFailed`); see [architecture.md](./architecture.md) for the full error propagation story.
+After rendering, command execution failures (SSH dial, auth, exec non-zero, command timeout, …) are also surfaced as coarse sentinel errors (`errs.ConnectionFailed`, `errs.AuthFailed`, `errs.ExecFailed`, `errs.ExecTimeout`, `errs.ExecCanceled`, `errs.PoolExhausted`); see [architecture.md](./architecture.md) for the full error propagation story. By default, `SSHExec` bounds command execution to `60s`, which can be tuned globally via `grpc.command_timeout` or per device via `devices[].command_timeout`.
 
 ## Loading rules
 

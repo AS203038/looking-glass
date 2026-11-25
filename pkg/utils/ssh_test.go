@@ -511,3 +511,203 @@ func TestSSHExecHandshakeTimeout(t *testing.T) {
 		}
 	}
 }
+
+// startCommandHangServer starts an SSH server where commands containing "hang" never reply,
+// commands containing "slow" sleep for 120ms before replying, and all other commands reply immediately.
+// When cmdCh is non-nil, each exec command string is sent to it.
+func startCommandHangServer(t *testing.T, cmdCh chan<- string) string {
+	t.Helper()
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &ssh.ServerConfig{NoClientAuth: true}
+	config.AddHostKey(signer)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { listener.Close() })
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				_, chans, reqs, err := ssh.NewServerConn(conn, config)
+				if err != nil {
+					return
+				}
+				go ssh.DiscardRequests(reqs)
+				for newChan := range chans {
+					ch, chReqs, err := newChan.Accept()
+					if err != nil {
+						continue
+					}
+					go func() {
+						defer ch.Close()
+						for req := range chReqs {
+							req.Reply(true, nil)
+							if req.Type != "exec" {
+								continue
+							}
+							payload := string(req.Payload)
+							if cmdCh != nil {
+								select {
+								case cmdCh <- payload:
+								default:
+								}
+							}
+							if strings.Contains(payload, "hang") {
+								// Hold the channel open without replying until the client closes it.
+								for range chReqs {
+								}
+								return
+							}
+							if strings.Contains(payload, "slow") {
+								time.Sleep(120 * time.Millisecond)
+							}
+							ch.Write([]byte("output\n"))
+							ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+							return
+						}
+					}()
+				}
+			}()
+		}
+	}()
+	return listener.Addr().String()
+}
+
+// TestSSHExecCommandTimeout verifies default sshCommandTimeout and per-device CommandTimeout
+// return errs.ExecTimeout, discard the timed-out connection, and free the pool slot.
+func TestSSHExecCommandTimeout(t *testing.T) {
+	old := sshCommandTimeout
+	sshCommandTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { sshCommandTimeout = old })
+
+	addr := startCommandHangServer(t, nil)
+
+	// 1. Default sshCommandTimeout path (CommandTimeout == 0).
+	routerDefault := &RouterConfig{
+		Name:        "cmd-timeout-default@" + addr,
+		Hostname:    addr,
+		Username:    "test",
+		SSHPoolSize: 1,
+	}
+	start := time.Now()
+	_, err := SSHExec(context.Background(), routerDefault, []string{"show hang"})
+	if !errors.Is(err, errs.ExecTimeout) {
+		t.Fatalf("default timeout err = %v, want errs.ExecTimeout", err)
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Fatalf("SSHExec took %v, default sshCommandTimeout did not apply", d)
+	}
+
+	pool := getPool(routerDefault)
+	pool.mu.Lock()
+	idle, open := len(pool.conns), pool.numOpen
+	pool.mu.Unlock()
+	if idle != 0 || open != 0 {
+		t.Errorf("pool idle=%d open=%d after timeout, want 0 and 0", idle, open)
+	}
+
+	out, err := SSHExec(context.Background(), routerDefault, []string{"show version"})
+	if err != nil || len(out) != 1 || out[0] != "output\n" {
+		t.Errorf("SSHExec after timeout: out=%q err=%v, want output", out, err)
+	}
+
+	// 2. Per-device CommandTimeout override (shorter than sshCommandTimeout).
+	sshCommandTimeout = 5 * time.Second
+	routerOverride := &RouterConfig{
+		Name:           "cmd-timeout-override@" + addr,
+		Hostname:       addr,
+		Username:       "test",
+		SSHPoolSize:    1,
+		CommandTimeout: 150 * time.Millisecond,
+	}
+	start = time.Now()
+	_, err = SSHExec(context.Background(), routerOverride, []string{"show hang"})
+	if !errors.Is(err, errs.ExecTimeout) {
+		t.Fatalf("override timeout err = %v, want errs.ExecTimeout", err)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("SSHExec took %v, per-device CommandTimeout did not override sshCommandTimeout", d)
+	}
+}
+
+// TestSSHExecMultiCommandTimeout verifies a single shared CommandTimeout bounds
+// multi-command sequences and returns errs.ExecTimeout.
+func TestSSHExecMultiCommandTimeout(t *testing.T) {
+	addr := startCommandHangServer(t, nil)
+	router := &RouterConfig{
+		Name:           "cmd-timeout-multi@" + addr,
+		Hostname:       addr,
+		Username:       "test",
+		SSHPoolSize:    1,
+		CommandTimeout: 250 * time.Millisecond,
+	}
+
+	start := time.Now()
+	_, err := SSHExec(context.Background(), router, []string{"show slow", "show hang"})
+	if !errors.Is(err, errs.ExecTimeout) {
+		t.Fatalf("err = %v, want errs.ExecTimeout", err)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("SSHExec took %v, shared timeout did not bound multi-command run", d)
+	}
+}
+
+// TestSSHExecCallerCanceled verifies caller cancellation returns errs.ExecCanceled
+// rather than errs.ExecTimeout and frees the pool slot.
+func TestSSHExecCallerCanceled(t *testing.T) {
+	old := sshCommandTimeout
+	sshCommandTimeout = 5 * time.Second
+	t.Cleanup(func() { sshCommandTimeout = old })
+
+	cmdCh := make(chan string, 1)
+	addr := startCommandHangServer(t, cmdCh)
+	router := &RouterConfig{
+		Name:        "cmd-canceled@" + addr,
+		Hostname:    addr,
+		Username:    "test",
+		SSHPoolSize: 1,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := SSHExec(ctx, router, []string{"show hang"})
+		done <- err
+	}()
+
+	select {
+	case <-cmdCh:
+	case <-time.After(5 * time.Second):
+		t.Fatal("mock SSH server did not receive command")
+	}
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, errs.ExecCanceled) {
+			t.Fatalf("err = %v, want errs.ExecCanceled", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("SSHExec did not return after cancel")
+	}
+
+	pool := getPool(router)
+	pool.mu.Lock()
+	idle, open := len(pool.conns), pool.numOpen
+	pool.mu.Unlock()
+	if idle != 0 || open != 0 {
+		t.Errorf("pool idle=%d open=%d after cancel, want 0 and 0", idle, open)
+	}
+}
