@@ -29,17 +29,25 @@ bgp:
         - show ipv6 bgp regexp {{.ASPath}} vrf {{.Cfg.VRF}}
     peer_routes:
         received:
-            - show ip bgp neighbors {{.PeerIP}} received-routes detail vrf {{.Cfg.VRF}}
-            - show ipv6 bgp neighbors {{.PeerIP}} received-routes detail vrf {{.Cfg.VRF}}
+            ipv4:
+                - show ip bgp neighbors {{.PeerIP}} received-routes detail vrf {{.Cfg.VRF}}
+            ipv6:
+                - show ipv6 bgp neighbors {{.PeerIP}} received-routes detail vrf {{.Cfg.VRF}}
         accepted:
-            - show ip bgp neighbors {{.PeerIP}} routes detail vrf {{.Cfg.VRF}}
-            - show ipv6 bgp neighbors {{.PeerIP}} routes detail vrf {{.Cfg.VRF}}
+            ipv4:
+                - show ip bgp neighbors {{.PeerIP}} routes detail vrf {{.Cfg.VRF}}
+            ipv6:
+                - show ipv6 bgp neighbors {{.PeerIP}} routes detail vrf {{.Cfg.VRF}}
         rejected:
-            - show ip bgp neighbors {{.PeerIP}} filtered-routes detail vrf {{.Cfg.VRF}}
-            - show ipv6 bgp neighbors {{.PeerIP}} filtered-routes detail vrf {{.Cfg.VRF}}
+            ipv4:
+                - show ip bgp neighbors {{.PeerIP}} filtered-routes detail vrf {{.Cfg.VRF}}
+            ipv6:
+                - show ipv6 bgp neighbors {{.PeerIP}} filtered-routes detail vrf {{.Cfg.VRF}}
         advertised:
-            - show ip bgp neighbors {{.PeerIP}} advertised-routes detail vrf {{.Cfg.VRF}}
-            - show ipv6 bgp neighbors {{.PeerIP}} advertised-routes detail vrf {{.Cfg.VRF}}
+            ipv4:
+                - show ip bgp neighbors {{.PeerIP}} advertised-routes detail vrf {{.Cfg.VRF}}
+            ipv6:
+                - show ipv6 bgp neighbors {{.PeerIP}} advertised-routes detail vrf {{.Cfg.VRF}}
 
 parsers:
     ping:

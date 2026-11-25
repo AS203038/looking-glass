@@ -22,7 +22,7 @@ GO_LDFLAGS_SERVER := -X github.com/AS203038/looking-glass/pkg/utils.release=$(VE
 GO_LDFLAGS_CLI    := -X main.Version=$(VERSION)
 GOFLAGS           ?=
 GOTOOLCHAIN       := auto
-FUZZTIME          ?= 10s
+FUZZTIME          ?= 250000x
 
 IMAGE_NAME     ?= looking-glass
 IMAGE_TAG      ?= $(VERSION)

@@ -82,6 +82,18 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
+      - name: Resolve Go Fuzz Cache Path
+        id: fuzz-cache
+        run: echo "dir=$(go env GOCACHE)/fuzz" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Go Fuzz Corpus
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.fuzz-cache.outputs.dir }}
+          key: go-fuzz-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            go-fuzz-${{ runner.os }}-
+
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
@@ -106,7 +118,15 @@ jobs:
         run: make test-go
 
       - name: Run Go Fuzzers
-        run: FUZZTIME=10s make test-fuzz
+        run: FUZZTIME=250000x make test-fuzz
+
+      - name: Upload Fuzz Crashers
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashers-pr
+          path: '**/testdata/fuzz/**'
+          if-no-files-found: ignore
 
   build:
     name: Build Verification

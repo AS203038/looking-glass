@@ -29,17 +29,25 @@ bgp:
         - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast regexp {{.ASPath}} json'
     peer_routes:
         received:
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes json'
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes json'
+            ipv4:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes json'
+            ipv6:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes json'
         accepted:
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} routes json'
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} routes json'
+            ipv4:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} routes json'
+            ipv6:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} routes json'
         rejected:
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes filtered json'
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes filtered json'
+            ipv4:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} received-routes filtered json'
+            ipv6:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} received-routes filtered json'
         advertised:
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} advertised-routes json'
-            - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} advertised-routes json'
+            ipv4:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv4 unicast neighbors {{.PeerIP}} advertised-routes json'
+            ipv6:
+                - vtysh -c 'show bgp vrf {{.Cfg.VRF}} ipv6 unicast neighbors {{.PeerIP}} advertised-routes json'
 
 parsers:
     ping:

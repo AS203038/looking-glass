@@ -141,7 +141,7 @@ make test-fuzz       # Runs all Go fuzzers sequentially
 make test-cover      # Runs Go standard tests with coverage
 ```
 
-By default, each Go fuzzer runs for `10s` during `make test` or `make test-fuzz`. You can customize this duration by setting the `FUZZTIME` variable (e.g., `make test FUZZTIME=2s` or `make test-fuzz FUZZTIME=5s`).
+By default, each Go fuzzer runs for `250000x` executions during `make test` or `make test-fuzz`. You can customize this budget using an execution count or duration by setting the `FUZZTIME` variable (e.g., `make test FUZZTIME=50000x` or `make test-fuzz FUZZTIME=5s`). In CI, PR checks cache the generated fuzz corpus (`$(go env GOCACHE)/fuzz`) across runs and [`.github/workflows/fuzz.yaml`](../.github/workflows/fuzz.yaml) runs a nightly deep-fuzz sweep at `2000000x` per target.
 
 There aren't many tests today; this is a known shortcoming and contributions are extremely welcome. When adding tests:
 

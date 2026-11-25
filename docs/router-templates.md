@@ -72,10 +72,15 @@ bgp:                          # BGP operations
     aspath:                   # bgp.aspath — operand: sanitised regex (string)
         - <cmd>
     peer_routes:              # bgp.peer_routes — per-peer session routing lookup
-        received:
+        received:             # flat list (any), or mapping with any/ipv4/ipv6/name
             - <cmd>
         accepted:
-            - <cmd>
+            ipv4:
+                - <cmd>
+            ipv6:
+                - <cmd>
+            name:             # optional: used when only PeerName is supplied
+                - <cmd>
         rejected:
             - <cmd>
         advertised:
@@ -170,7 +175,7 @@ Behaviour:
 * If `ipv4` is provided but `ipv6` is not, IPv6 requests fall back to nothing (template-author bug — surfaced as `operation unknown`).
 * The cleanest pattern is: define both families explicitly; use `any` only for vendors where the v4 / v6 syntax is identical.
 
-For BGP operations there are no per-family lists. `bgp.route`'s single list is rendered against the operand's family; the other three BGP operations don't carry a family hint at all.
+For BGP operations, `bgp.summary`, `bgp.community`, `bgp.largecommunity`, and `bgp.aspath` have no per-family lists (`bgp.route` renders a single list against the operand's family via `{{.IP.Family}}`). Each `bgp.peer_routes.*` action accepts either a flat command list (treated as `any`) or a mapping with `ipv4`, `ipv6`, `any`, and `name`: when `PeerIP` is provided, the server picks `ipv4` or `ipv6` based on the peer address's family (falling back to `any`, then `name`); when only `PeerName` is provided, it picks `name` (falling back to `any`, or failing with `PeerIPRequired` if only address-family lists exist).
 
 ## VRF handling
 

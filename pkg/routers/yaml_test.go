@@ -431,10 +431,10 @@ func Test_tpl_AllCases(t *testing.T) {
 	y.Template.BGP.Community = []string{"show bgp community {{.Community}}"}
 	y.Template.BGP.LargeCommunity = []string{"show bgp large {{.LargeCommunity}}"}
 	y.Template.BGP.ASPath = []string{"show bgp aspath {{.ASPath}}"}
-	y.Template.BGP.PeerRoutes.Received = []string{"show bgp peer {{.PeerIP}} received"}
-	y.Template.BGP.PeerRoutes.Accepted = []string{"show bgp peer {{.PeerIP}} accepted"}
-	y.Template.BGP.PeerRoutes.Rejected = []string{"show bgp peer {{.PeerIP}} rejected"}
-	y.Template.BGP.PeerRoutes.Advertised = []string{"show bgp peer {{.PeerIP}} advertised"}
+	y.Template.BGP.PeerRoutes.Received = peerRouteCommands{Any: []string{"show bgp peer {{.PeerIP}} received"}}
+	y.Template.BGP.PeerRoutes.Accepted = peerRouteCommands{Any: []string{"show bgp peer {{.PeerIP}} accepted"}}
+	y.Template.BGP.PeerRoutes.Rejected = peerRouteCommands{Any: []string{"show bgp peer {{.PeerIP}} rejected"}}
+	y.Template.BGP.PeerRoutes.Advertised = peerRouteCommands{Any: []string{"show bgp peer {{.PeerIP}} advertised"}}
 
 	cfg := &utils.RouterConfig{Name: "test"}
 	ip4, _ := utils.NewIPNET("1.1.1.1")
@@ -715,5 +715,121 @@ func TestLoadBuiltinInvalidSubprocess(t *testing.T) {
 		}
 	} else {
 		t.Errorf("expected exit error, got %v", err)
+	}
+}
+
+// TestBGPPeerRoutesFamilyAndNameSelection verifies bgp.peer_routes family, name, and fallback selection.
+func TestBGPPeerRoutesFamilyAndNameSelection(t *testing.T) {
+	cfg := &utils.RouterConfig{Name: "test-router", VRF: "PROUD-BEAVER"}
+	qTypes := []string{"received", "accepted", "rejected", "advertised"}
+
+	for _, routerName := range []string{"arista_eos", "cisco_ios", "frrouting"} {
+		rt := Get(routerName)
+		if rt == nil {
+			t.Fatalf("%s template not found", routerName)
+		}
+		for _, qt := range qTypes {
+			cmds, err := rt.BGPPeerRoutes(cfg, "10.19.0.14", "", qt)
+			if err != nil {
+				t.Fatalf("%s %s IPv4 failed: %v", routerName, qt, err)
+			}
+			if len(cmds) != 1 || !strings.Contains(cmds[0], "10.19.0.14") {
+				t.Fatalf("%s %s IPv4 = %v, want 1 command with 10.19.0.14", routerName, qt, cmds)
+			}
+			if strings.Contains(cmds[0], "ipv6") {
+				t.Errorf("%s %s IPv4 unexpectedly rendered ipv6 command: %q", routerName, qt, cmds[0])
+			}
+
+			for _, peer6 := range []string{"2001:db8::1", "fe80::1%et-0/0/1:0.0"} {
+				cmds, err := rt.BGPPeerRoutes(cfg, peer6, "", qt)
+				if err != nil {
+					t.Fatalf("%s %s IPv6(%q) failed: %v", routerName, qt, peer6, err)
+				}
+				if len(cmds) != 1 || !strings.Contains(cmds[0], peer6) || !strings.Contains(cmds[0], "ipv6") {
+					t.Errorf("%s %s IPv6(%q) = %v, want 1 ipv6 command", routerName, qt, peer6, cmds)
+				}
+			}
+
+			if _, err := rt.BGPPeerRoutes(cfg, "", "MY-GROUP", qt); !errors.Is(err, errs.PeerIPRequired) {
+				t.Errorf("%s %s name-only = %v, want PeerIPRequired", routerName, qt, err)
+			}
+			if _, err := rt.BGPPeerRoutes(cfg, "", "", qt); !errors.Is(err, errs.PeerIPRequired) {
+				t.Errorf("%s %s empty = %v, want PeerIPRequired", routerName, qt, err)
+			}
+		}
+	}
+
+	junos := Get("juniper_junos")
+	if junos == nil {
+		t.Fatal("juniper_junos template not found")
+	}
+	if cmds, err := junos.BGPPeerRoutes(cfg, "10.19.0.14", "", "accepted"); err != nil || len(cmds) != 1 || !strings.Contains(cmds[0], "PROUD-BEAVER.inet.0") {
+		t.Errorf("junos accepted IPv4 = (%v, %v), want 1 inet.0 cmd", cmds, err)
+	}
+	for _, peer6 := range []string{"2001:db8::1", "fe80::1%et-0/0/1:0.0"} {
+		if cmds, err := junos.BGPPeerRoutes(cfg, peer6, "", "accepted"); err != nil || len(cmds) != 1 || !strings.Contains(cmds[0], "PROUD-BEAVER.inet6.0") {
+			t.Errorf("junos accepted IPv6(%q) = (%v, %v), want 1 inet6.0 cmd", peer6, cmds, err)
+		}
+	}
+
+	customYAML := `
+name: custom_peer_routes
+bgp:
+  peer_routes:
+    received:
+      ipv4:
+        - show ip bgp peer {{.PeerIP}}
+      ipv6:
+        - show ipv6 bgp peer {{.PeerIP}}
+      name:
+        - show ip bgp group {{.PeerName}}
+        - show ipv6 bgp group {{.PeerName}}
+    accepted:
+      name:
+        - show protocol {{.PeerName}}
+    rejected:
+      ipv4:
+        - show ip bgp rejected {{.PeerIP}}
+`
+	y := &Yaml{Path: "custom.yml"}
+	if err := yaml.Unmarshal([]byte(customYAML), &y.Template); err != nil {
+		t.Fatalf("unmarshal customYAML: %v", err)
+	}
+
+	if cmds, err := y.BGPPeerRoutes(cfg, "192.0.2.1", "GRP", "received"); err != nil || len(cmds) != 1 || cmds[0] != "show ip bgp peer 192.0.2.1" {
+		t.Errorf("IPv4 + name = (%v, %v), want IPv4 command", cmds, err)
+	}
+	if cmds, err := y.BGPPeerRoutes(cfg, "2001:db8::2", "GRP", "received"); err != nil || len(cmds) != 1 || cmds[0] != "show ipv6 bgp peer 2001:db8::2" {
+		t.Errorf("IPv6 + name = (%v, %v), want IPv6 command", cmds, err)
+	}
+	if cmds, err := y.BGPPeerRoutes(cfg, "", "GRP", "received"); err != nil || len(cmds) != 2 ||
+		cmds[0] != "show ip bgp group GRP" || cmds[1] != "show ipv6 bgp group GRP" {
+		t.Errorf("name-only = (%v, %v), want both family commands", cmds, err)
+	}
+	if _, err := y.BGPPeerRoutes(cfg, "", "", "received"); !errors.Is(err, errs.PeerIPRequired) {
+		t.Errorf("empty both on received = %v, want PeerIPRequired", err)
+	}
+
+	if _, err := y.BGPPeerRoutes(cfg, "192.0.2.1", "", "accepted"); !errors.Is(err, errs.PeerNameRequired) {
+		t.Errorf("IP-only on name-only op = %v, want PeerNameRequired", err)
+	}
+	if cmds, err := y.BGPPeerRoutes(cfg, "", "GRP", "accepted"); err != nil || len(cmds) != 1 || cmds[0] != "show protocol GRP" {
+		t.Errorf("name-only on accepted = (%v, %v)", cmds, err)
+	}
+	if _, err := y.BGPPeerRoutes(cfg, "", "", "accepted"); !errors.Is(err, errs.PeerNameRequired) {
+		t.Errorf("empty both on accepted = %v, want PeerNameRequired", err)
+	}
+
+	if _, err := y.BGPPeerRoutes(cfg, "2001:db8::2", "", "rejected"); !errors.Is(err, errs.OperationUnknown) {
+		t.Errorf("IPv6 on ipv4-only op = %v, want OperationUnknown", err)
+	}
+
+	if _, err := y.BGPPeerRoutes(cfg, "not-an-ip", "", "received"); !errors.Is(err, errs.IPInvalid) {
+		t.Errorf("invalid peerIP = %v, want IPInvalid", err)
+	}
+
+	var bad Yaml
+	if err := yaml.Unmarshal([]byte("name: bad\nbgp:\n  peer_routes:\n    received: 123\n"), &bad.Template); err == nil {
+		t.Error("expected error unmarshaling scalar under peer_routes.received, got nil")
 	}
 }
