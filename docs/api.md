@@ -231,9 +231,12 @@ The complete list:
 | `ASPathMalformed`      | `SanitizeASPathRegex`               | Pattern contains characters outside the allow-list.                |
 | `ASPathEmpty`          | `SanitizeASPathRegex`               | Pattern is empty.                                                  |
 | `ASPathTooLong`        | `SanitizeASPathRegex`               | Pattern is longer than 30 characters.                              |
-| `ConnectionFailed`     | `ssh.Dial`                          | TCP or SSH handshake failed before authentication.                 |
-| `AuthFailed`           | SSH auth                            | SSH credentials rejected, or `ssh_key` unreadable / unparseable.   |
-| `ExecFailed`           | SSH session execution               | Session creation, command exit, or stderr capture failed.          |
+| `ConnectionFailed`     | `ssh.Dial`                          | TCP or SSH handshake failed before authentication (`unavailable`). |
+| `AuthFailed`           | SSH auth                            | SSH credentials rejected, or `ssh_key` unreadable / unparseable (`unavailable`). |
+| `ExecFailed`           | SSH session execution               | Session creation, command exit, or stderr capture failed (`unavailable`). |
+| `ExecTimeout`          | SSH / NETCONF command timeout       | Command execution exceeded `command_timeout` (default `60s` SSH / `10m` NETCONF) or caller deadline (`deadline_exceeded`). |
+| `ExecCanceled`         | Request context cancellation        | Caller aborted or disconnected before the router finished (`canceled`). |
+| `PoolExhausted`        | SSH connection pool                 | All `ssh_pool_size` slots for this device are in use (`resource_exhausted`). |
 
 The intentional choice is **coarse client errors, detailed server logs**. RPC consumers never see hostnames, command text, stderr, or auth-error messages — those go only to the server's log stream, tagged with `op=` / `router=` / `stage=` for greppability.
 

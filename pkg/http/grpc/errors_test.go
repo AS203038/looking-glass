@@ -1,9 +1,11 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -21,7 +24,9 @@ import (
 
 	"github.com/AS203038/looking-glass/pkg/errs"
 	"github.com/AS203038/looking-glass/pkg/utils"
+	pb "github.com/AS203038/looking-glass/protobuf/lookingglass/v0"
 	"golang.org/x/crypto/ssh"
+	"google.golang.org/protobuf/proto"
 )
 
 type mockTimeoutRouter struct{ mockGrpcRouter }
@@ -234,5 +239,116 @@ func TestPublicErrorsCoverEveryErrsSentinel(t *testing.T) {
 			}
 			return true
 		})
+	}
+}
+
+// TestMuxSSHCommandTimeout verifies that an SSH command timeout surfaces as
+// deadline_exceeded in Connect JSON and HTTP 200 with grpc-status 4 in gRPC-Web,
+// and frees the SSH pool slot for subsequent requests.
+func TestMuxSSHCommandTimeout(t *testing.T) {
+	hung := make(chan struct{}, 2)
+	rts := utils.RouterMap{&utils.RouterInstance{
+		Config: &utils.RouterConfig{
+			Name:           "timeout@" + t.Name(),
+			Hostname:       startHangingSSHServer(t, hung),
+			Username:       "test",
+			SSHPoolSize:    1,
+			CommandTimeout: 200 * time.Millisecond,
+		},
+		Router:      mockGrpcRouter{},
+		HealthCheck: &utils.HealthCheck{Healthy: true},
+	}}
+	ctx, cancel := context.WithCancel(context.Background())
+	mux := http.NewServeMux()
+	done := Mux(ctx, mux, rts)
+	t.Cleanup(func() { cancel(); <-done })
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	// 1. Connect JSON -> HTTP 504 with deadline_exceeded and message.
+	resp, err := http.Post(
+		srv.URL+"/lookingglass.v0.LookingGlassService/Traceroute",
+		"application/json",
+		strings.NewReader(`{"routerId":1,"target":"192.0.2.1"}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	var got struct{ Code, Message string }
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("connect json body %q: %v", raw, err)
+	}
+	if resp.StatusCode != http.StatusGatewayTimeout || got.Code != "deadline_exceeded" || got.Message != errs.ExecTimeout.Error() {
+		t.Errorf("connect json: got %d %q %q, want %d %q %q",
+			resp.StatusCode, got.Code, got.Message, http.StatusGatewayTimeout, "deadline_exceeded", errs.ExecTimeout.Error())
+	}
+
+	// 2. gRPC-Web -> HTTP 200 OK with grpc-status: 4 and grpc-message in headers or trailer frame.
+	payload, err := proto.Marshal(&pb.TracerouteRequest{RouterId: 1, Target: "192.0.2.1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var frame bytes.Buffer
+	frame.WriteByte(0)
+	_ = binary.Write(&frame, binary.BigEndian, uint32(len(payload)))
+	frame.Write(payload)
+
+	gwResp, err := http.Post(
+		srv.URL+"/lookingglass.v0.LookingGlassService/Traceroute",
+		"application/grpc-web+proto",
+		&frame,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gwBody, _ := io.ReadAll(gwResp.Body)
+	gwResp.Body.Close()
+	if gwResp.StatusCode != http.StatusOK {
+		t.Errorf("grpc-web status = %d, want 200 OK", gwResp.StatusCode)
+	}
+
+	grpcStatus := gwResp.Header.Get("Grpc-Status")
+	grpcMessage := gwResp.Header.Get("Grpc-Message")
+	if grpcStatus == "" && len(gwBody) >= 5 && gwBody[0] == 0x80 {
+		frameLen := binary.BigEndian.Uint32(gwBody[1:5])
+		if int(5+frameLen) <= len(gwBody) {
+			for _, line := range strings.Split(string(gwBody[5:5+frameLen]), "\r\n") {
+				k, v, ok := strings.Cut(line, ":")
+				if !ok {
+					continue
+				}
+				switch strings.ToLower(strings.TrimSpace(k)) {
+				case "grpc-status":
+					grpcStatus = strings.TrimSpace(v)
+				case "grpc-message":
+					grpcMessage = strings.TrimSpace(v)
+				}
+			}
+		}
+	}
+	decodedMsg, err := url.PathUnescape(grpcMessage)
+	if err != nil {
+		decodedMsg = grpcMessage
+	}
+	if grpcStatus != "4" || !strings.Contains(decodedMsg, errs.ExecTimeout.Error()) {
+		t.Errorf("grpc-web trailers: status=%q message=%q (raw=%q), want status=4 message containing %q",
+			grpcStatus, decodedMsg, grpcMessage, errs.ExecTimeout.Error())
+	}
+
+	// 3. Subsequent Ping succeeds, proving the SSH pool slot was freed.
+	pingResp, err := http.Post(
+		srv.URL+"/lookingglass.v0.LookingGlassService/Ping",
+		"application/json",
+		strings.NewReader(`{"routerId":1,"target":"192.0.2.1"}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	io.Copy(io.Discard, pingResp.Body)
+	pingResp.Body.Close()
+	if pingResp.StatusCode != http.StatusOK {
+		t.Errorf("ping after timeout status = %d, want 200", pingResp.StatusCode)
 	}
 }

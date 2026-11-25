@@ -86,11 +86,21 @@ type RouterConfig struct {
 	Type string `yaml:"type"`
 	// SSHPoolSize is the maximum number of open SSH connections to this device. A value <= 0 disables pooling.
 	SSHPoolSize int `yaml:"ssh_pool_size"`
+	// CommandTimeout bounds command execution for this device. Zero inherits grpc.command_timeout or the transport default.
+	CommandTimeout time.Duration `yaml:"command_timeout"`
 }
 
 // HasSSHCredentials reports whether the router config has username configured.
 func (rc *RouterConfig) HasSSHCredentials() bool {
 	return rc.Username != ""
+}
+
+// commandTimeout returns the configured per-device command timeout, or def when unset.
+func (rc *RouterConfig) commandTimeout(def time.Duration) time.Duration {
+	if rc != nil && rc.CommandTimeout > 0 {
+		return rc.CommandTimeout
+	}
+	return def
 }
 
 // GrpcConfig controls the gRPC listener.
@@ -101,6 +111,8 @@ type GrpcConfig struct {
 	Listen string `yaml:"listen"`
 	// TLS configures TLS termination.
 	TLS TLSConfig `yaml:"tls"`
+	// CommandTimeout sets the default per-request command timeout for devices that omit command_timeout.
+	CommandTimeout time.Duration `yaml:"command_timeout"`
 }
 
 // TLSConfig configures TLS termination.
@@ -243,13 +255,23 @@ func (s *SecurityTxtConfig) String() string {
 }
 
 // ValidateConfig normalises a freshly-parsed [Config] in place: drops devices
-// without a Hostname and supplies loopback defaults for missing Source4/Source6.
-// It returns an error for a kept device that sets SSHCert without SSHKey.
+// without a Hostname, inherits grpc.command_timeout onto devices that omit
+// command_timeout, and supplies loopback defaults for missing Source4/Source6.
+// It returns an error for negative timeouts or a kept device that sets SSHCert without SSHKey.
 func ValidateConfig(c *Config) error {
+	if c.Grpc.CommandTimeout < 0 {
+		return fmt.Errorf("grpc.command_timeout must not be negative")
+	}
 	var valid []RouterConfig
 	for _, v := range c.Devices {
 		if v.Hostname == "" {
 			continue
+		}
+		if v.CommandTimeout < 0 {
+			return fmt.Errorf("device %q: command_timeout must not be negative", v.Name)
+		}
+		if v.CommandTimeout == 0 && c.Grpc.CommandTimeout > 0 {
+			v.CommandTimeout = c.Grpc.CommandTimeout
 		}
 		if v.SSHCert != "" && v.SSHKey == "" {
 			return fmt.Errorf("device %q: ssh_cert requires ssh_key", v.Name)

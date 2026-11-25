@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestVersion verifies that the Version function behaves correctly in untracked and tagged modes.
@@ -192,6 +193,93 @@ func TestRouterConfigHasSSHCredentials(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.config.HasSSHCredentials(); got != tt.expected {
 				t.Errorf("RouterConfig.HasSSHCredentials() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestCommandTimeoutConfig verifies YAML parsing, inheritance from grpc.command_timeout,
+// per-device overrides, and rejection of negative or invalid durations.
+func TestCommandTimeoutConfig(t *testing.T) {
+	writeTmp := func(t *testing.T, body string) string {
+		t.Helper()
+		f, err := os.CreateTemp("", "lg-config-timeout-")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Remove(f.Name()) })
+		if _, err := f.WriteString(body); err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+		return f.Name()
+	}
+
+	cfg, err := ParseConfigYaml(writeTmp(t, `
+grpc:
+  enabled: true
+  command_timeout: 50s
+devices:
+  - name: "inherited"
+    hostname: "10.0.0.1:22"
+  - name: "overridden"
+    hostname: "10.0.0.2:22"
+    command_timeout: 2m
+`))
+	if err != nil {
+		t.Fatalf("ParseConfigYaml valid timeout config: %v", err)
+	}
+	if cfg.Grpc.CommandTimeout != 50*time.Second {
+		t.Errorf("Grpc.CommandTimeout = %v, want 50s", cfg.Grpc.CommandTimeout)
+	}
+	if got := cfg.Devices[0].CommandTimeout; got != 50*time.Second {
+		t.Errorf("inherited device CommandTimeout = %v, want 50s", got)
+	}
+	if got := cfg.Devices[1].CommandTimeout; got != 2*time.Minute {
+		t.Errorf("overridden device CommandTimeout = %v, want 2m", got)
+	}
+
+	// Unset everywhere leaves device CommandTimeout at 0 and commandTimeout() returns default.
+	cfgDefault, err := ParseConfigYaml(writeTmp(t, `
+devices:
+  - name: "defaulted"
+    hostname: "10.0.0.3:22"
+`))
+	if err != nil {
+		t.Fatalf("ParseConfigYaml default timeout config: %v", err)
+	}
+	if got := cfgDefault.Devices[0].CommandTimeout; got != 0 {
+		t.Errorf("defaulted device CommandTimeout = %v, want 0", got)
+	}
+	if got := cfgDefault.Devices[0].commandTimeout(60 * time.Second); got != 60*time.Second {
+		t.Errorf("commandTimeout(60s) = %v, want 60s", got)
+	}
+
+	for _, tc := range []struct {
+		name string
+		yaml string
+		want string
+	}{
+		{
+			name: "negative grpc.command_timeout",
+			yaml: "grpc:\n  command_timeout: -5s\ndevices: []\n",
+			want: "grpc.command_timeout must not be negative",
+		},
+		{
+			name: "negative device command_timeout",
+			yaml: "devices:\n  - name: \"rt1\"\n    hostname: \"10.0.0.1:22\"\n    command_timeout: -1s\n",
+			want: `device "rt1": command_timeout must not be negative`,
+		},
+		{
+			name: "invalid duration string",
+			yaml: "grpc:\n  command_timeout: not-a-duration\ndevices: []\n",
+			want: "cannot unmarshal",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := ParseConfigYaml(writeTmp(t, tc.yaml))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("ParseConfigYaml err = %v, want substring %q", err, tc.want)
 			}
 		})
 	}

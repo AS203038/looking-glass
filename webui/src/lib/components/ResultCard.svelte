@@ -180,6 +180,11 @@
 				<CircleCheck size={12} />
 				done
 			</span>
+		{:else if result.errorKind === 'timeout'}
+			<span class="lg-badge lg-badge-warning">
+				<Clock size={12} />
+				timed out
+			</span>
 		{:else}
 			<span class="lg-badge lg-badge-danger">
 				<CircleX size={12} />
@@ -234,13 +239,23 @@
 			/>
 		</div>
 	{:else if result.status === 'error'}
-		<div
-			class="flex items-start gap-2 p-4 text-sm"
-			style="color: var(--color-danger); background-color: color-mix(in oklab, var(--color-danger) 8%, transparent);"
-		>
-			<CircleX size={16} class="mt-0.5 shrink-0" />
-			<span class="font-mono break-words whitespace-pre-wrap">{result.error}</span>
-		</div>
+		{#if result.errorKind === 'timeout'}
+			<div
+				class="flex items-start gap-2 p-4 text-sm"
+				style="color: var(--color-warning); background-color: color-mix(in oklab, var(--color-warning) 10%, transparent);"
+			>
+				<Clock size={16} class="mt-0.5 shrink-0" />
+				<span class="font-mono break-words whitespace-pre-wrap">{result.error}</span>
+			</div>
+		{:else}
+			<div
+				class="flex items-start gap-2 p-4 text-sm"
+				style="color: var(--color-danger); background-color: color-mix(in oklab, var(--color-danger) 8%, transparent);"
+			>
+				<CircleX size={16} class="mt-0.5 shrink-0" />
+				<span class="font-mono break-words whitespace-pre-wrap">{result.error}</span>
+			</div>
+		{/if}
 	{:else}
 		<ResultToolbar
 			comparing={compareWith !== null}
