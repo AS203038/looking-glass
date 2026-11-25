@@ -1550,6 +1550,7 @@
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nx">PeerName</span><span class="w">       </span><span class="kt">string</span><span class="w">        </span><span class="c1">// BGP peer session name (for bgp.peer_routes)</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>A command that uses <code>{{.PeerIP}}</code> or <code>{{.PeerName}}</code> does not run when the request has no value for it: the request fails with <code>InvalidArgument</code>.</p>
 <h3 id="custom-template-functions">Custom Template Functions<a class="headerlink" href="#custom-template-functions" title="Permanent link">&para;</a></h3>
 <p>The Go template engine implements custom functions to assist with vendor-specific formatting quirks:</p>
 <ul>

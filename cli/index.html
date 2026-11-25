@@ -1568,8 +1568,10 @@
 <h3 id="bgp-peer-routes-instance-router-peer_ip-alias-peer-routes"><code>bgp peer-routes &lt;instance&gt; &lt;router&gt; &lt;peer_ip&gt;</code> (alias <code>peer-routes</code>)<a class="headerlink" href="#bgp-peer-routes-instance-router-peer_ip-alias-peer-routes" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=received
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>lg-cli bgp peer-routes as203038 1 192.0.2.1 --type=accepted --name=peer_member_100
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>lg-cli bgp peer-routes as203038 1 'fe80::1%et-0/0/1:0.0'
 </span></code></pre></div>
-<p>Calls <code>BGPPeerRoutes</code> to query routing details on a per-peer session basis. Useful for route-server debugging at IXPs.</p>
+<p>Calls <code>BGPPeerRoutes</code> to query routing details on a per-peer session basis. Useful for route-server debugging at IXPs.
+A link-local IPv6 peer can have its interface after <code>%</code>, as the router shows it in the BGP summary.</p>
 <p>Supported flags:
 * <code>-t, --type</code>: Peer route query type: <code>received</code> (default), <code>accepted</code>, <code>rejected</code>, or <code>advertised</code>.
 * <code>-n, --name</code>: Administrative peer session/protocol name (required for name-based route servers like BIRD).</p>
