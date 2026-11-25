@@ -66,10 +66,11 @@
 		class="border-t px-4 py-2 font-mono text-xs"
 		style="border-color: var(--color-border); color: var(--color-fg-muted);"
 	>
-		{#if stats.target}<span>target <span style="color: var(--color-fg);">{stats.target}</span></span
-			>{/if}
-		{#if stats.source}<span class="ml-3"
-				>source <span style="color: var(--color-fg);">{stats.source}</span></span
-			>{/if}
+		{#if stats.target}<span>
+				target <span style="color: var(--color-fg);">{stats.target}</span>
+			</span>{/if}
+		{#if stats.source}<span class="ml-3">
+				source <span style="color: var(--color-fg);">{stats.source}</span>
+			</span>{/if}
 	</div>
 {/if}

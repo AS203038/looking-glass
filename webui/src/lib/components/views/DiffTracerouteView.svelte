@@ -70,9 +70,12 @@
 								? 'color-mix(in oklab, var(--color-warning) 10%, transparent)'
 								: 'transparent'};"
 				>
-					<td class="px-3 py-1.5 text-right whitespace-nowrap" style="color: var(--color-fg-muted);"
-						>{r.ttl}</td
+					<td
+						class="px-3 py-1.5 text-right whitespace-nowrap"
+						style="color: var(--color-fg-muted);"
 					>
+						{r.ttl}
+					</td>
 					<td class="px-3 py-1.5 font-bold whitespace-nowrap">
 						{#if r.status === 'added'}<span style="color: var(--color-success)">+</span>
 						{:else if r.status === 'removed'}<span style="color: var(--color-danger)">-</span>
@@ -84,10 +87,10 @@
 							<div class="flex flex-col">
 								{#each r.old.probes as p, i (i)}
 									{#if p.ip}
-										<span
-											>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}{#if p.asn > 0}
-												<span class="ml-1 opacity-75">AS{p.asn}</span>{/if}</span
-										>
+										<span>
+											{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}{#if p.asn > 0}
+												<span class="ml-1 opacity-75">AS{p.asn}</span>{/if}
+										</span>
 									{:else}
 										<span>*</span>
 									{/if}
@@ -100,10 +103,10 @@
 							<div class="flex flex-col">
 								{#each r.new.probes as p, i (i)}
 									{#if p.ip}
-										<span
-											>{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}{#if p.asn > 0}
-												<span class="ml-1 opacity-75">AS{p.asn}</span>{/if}</span
-										>
+										<span>
+											{p.hostname && p.hostname !== p.ip ? p.hostname : p.ip}{#if p.asn > 0}
+												<span class="ml-1 opacity-75">AS{p.asn}</span>{/if}
+										</span>
 									{:else}
 										<span>*</span>
 									{/if}

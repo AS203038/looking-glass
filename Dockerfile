@@ -8,19 +8,19 @@ RUN buf generate
 
 # CI reads the Node version from this line (.github/actions/setup-node).
 FROM --platform=$BUILDPLATFORM node:24-alpine AS node-builder
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN npm install -g pnpm
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 WORKDIR /opt
-COPY webui/pnpm-workspace.yaml webui/package.json webui/pnpm-lock.yaml ./webui/
+COPY package.json ./
+RUN corepack prepare --activate
+COPY pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY webui/package.json ./webui/
 COPY protobuf/package.json ./protobuf/
 RUN --mount=type=cache,target=/pnpm/store \
-    cd webui \
- && pnpm config set store-dir /pnpm/store \
- && pnpm install --frozen-lockfile
+    PNPM_STORE_DIR=/pnpm/store pnpm install --frozen-lockfile
 COPY webui ./webui
 COPY --from=buf-builder /opt/protobuf ./protobuf
-RUN cd webui && pnpm run build
+RUN pnpm --dir webui run build
 
 FROM --platform=$BUILDPLATFORM golang:alpine AS go-builder
 ENV CGO_ENABLED=0

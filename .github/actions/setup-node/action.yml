@@ -21,4 +21,4 @@ runs:
       with:
         node-version: ${{ steps.version.outputs.node }}
         cache: 'pnpm'
-        cache-dependency-path: webui/pnpm-lock.yaml
+        cache-dependency-path: pnpm-lock.yaml

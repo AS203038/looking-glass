@@ -10,7 +10,7 @@ For an architectural overview, read [architecture.md](./architecture.md) first.
 | ----------- | -------------------------------- | ------------------ |
 | Go          | Backend                          | 1.25+              |
 | Node.js     | WebUI build / dev server         | 20.x LTS           |
-| pnpm        | WebUI package manager (workspace) | 9.x                |
+| pnpm        | WebUI package manager (workspace) | 11.x               |
 | `buf`       | Protobuf codegen                  | latest             |
 | Docker      | (optional) container builds       | any recent version |
 | `make`      | Local tasks                       | any                |
@@ -19,9 +19,9 @@ For an architectural overview, read [architecture.md](./architecture.md) first.
 Install Go and Node from your distro / nvm. For everything else:
 
 ```bash
-# pnpm via corepack (ships with Node ≥ 16)
+# pnpm via corepack (ships with Node ≥ 16; reads `packageManager` from root package.json)
 corepack enable
-corepack prepare pnpm@9 --activate
+corepack prepare --activate
 
 # buf (optional, only needed when regenerating protobuf)
 make install-tools     # equivalent to: go install github.com/bufbuild/buf/cmd/buf@latest

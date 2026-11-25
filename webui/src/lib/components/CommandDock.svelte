@@ -453,9 +453,9 @@
 			</p>
 		{:else if $selectedRouters.length > 0 && $command && (paramOptional || $parameter.trim())}
 			<p class="hidden text-[0.7rem] sm:block" style="color: var(--color-fg-subtle);">
-				Will run <span class="font-mono"
-					>{resolveCommand($command as CommandValue, $parameter.trim())}</span
-				>
+				Will run <span class="font-mono">
+					{resolveCommand($command as CommandValue, $parameter.trim())}
+				</span>
 				{#if !paramOptional}
 					<span class="font-mono">"{$parameter.trim()}"</span>
 				{/if}

@@ -80,10 +80,11 @@
 						? 'color-mix(in oklab, var(--color-danger) 15%, transparent)'
 						: 'transparent'};"
 			>
-				<span class="mr-1.5 inline-block w-3 opacity-75 select-none" aria-hidden="true"
-					>{part.added ? '+' : part.removed ? '-' : ' '}</span
-				><span class="sr-only">{part.added ? 'Added: ' : part.removed ? 'Removed: ' : ''}</span
-				>{part.value}
+				<span class="mr-1.5 inline-block w-3 opacity-75 select-none" aria-hidden="true">
+					{part.added ? '+' : part.removed ? '-' : ' '}
+				</span><span class="sr-only">
+					{part.added ? 'Added: ' : part.removed ? 'Removed: ' : ''}
+				</span>{part.value}
 			</div>
 		{/each}
 	</div>

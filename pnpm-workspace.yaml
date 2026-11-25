@@ -1,0 +1,11 @@
+packages:
+  - 'webui'
+  - 'protobuf'
+
+allowBuilds:
+  '@tailwindcss/oxide': true
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@lucide/svelte@1.80.0'
+  - '@types/node@26.6.10'

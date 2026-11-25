@@ -10,12 +10,7 @@
 	let { summary, routerId }: Props = $props();
 
 	type SortKey =
-		| 'peerIp'
-		| 'peerAsn'
-		| 'state'
-		| 'uptimeSeconds'
-		| 'prefixesReceived'
-		| 'prefixesSent';
+		'peerIp' | 'peerAsn' | 'state' | 'uptimeSeconds' | 'prefixesReceived' | 'prefixesSent';
 	let searchQuery = $state('');
 	let sortKey = $state<SortKey | null>(null);
 	let sortAsc = $state(true);
@@ -95,7 +90,7 @@
 			placeholder="Search ASN, IP, Desc…"
 			aria-label="Filter BGP peers"
 			bind:value={searchQuery}
-			class="lg-input w-52 !py-1 text-xs font-mono"
+			class="lg-input w-52 !py-1 font-mono text-xs"
 		/>
 	</div>
 </div>
@@ -173,16 +168,16 @@
 						{p.addressFamily?.replace('-unicast', '') ?? '—'}
 					</td>
 					<td class="px-3 py-1.5">
-						<span class="lg-badge {bgpStateBadgeClass(p.state)} !px-1.5 !py-0 text-[10px]"
-							>{p.state}</span
-						>
+						<span class="lg-badge {bgpStateBadgeClass(p.state)} !px-1.5 !py-0 text-[10px]">
+							{p.state}
+						</span>
 						{#if p.stateDetail}
 							<span class="ml-1" style="color: var(--color-fg-subtle);">{p.stateDetail}</span>
 						{/if}
 					</td>
-					<td class="px-3 py-1.5" style="color: var(--color-fg-muted);"
-						>{formatBgpAge(p.uptimeSeconds)}</td
-					>
+					<td class="px-3 py-1.5" style="color: var(--color-fg-muted);">
+						{formatBgpAge(p.uptimeSeconds)}
+					</td>
 					<td class="px-3 py-1.5 text-right">{Number(p.prefixesReceived).toLocaleString()}</td>
 					{#if hasAccepted}
 						<td class="px-3 py-1.5 text-right">{Number(p.prefixesAccepted).toLocaleString()}</td>

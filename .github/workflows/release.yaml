@@ -24,8 +24,6 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - uses: pnpm/action-setup@v6
-      with:
-        version: 9
     - uses: ./.github/actions/setup-node
     - uses: bufbuild/buf-setup-action@v1
       with:
@@ -37,9 +35,8 @@ jobs:
         buf generate
     - name: Build Svelte WebUI
       run: |
-        cd webui
         pnpm install --frozen-lockfile
-        pnpm run build
+        pnpm --dir webui run build
 
     - uses: wangyoucao577/go-release-action@v1
       with:
