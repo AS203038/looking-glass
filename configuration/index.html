@@ -1019,7 +1019,7 @@
 
 <h1 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h1>
 <p>Looking Glass is configured by a single YAML file: <code>config.yaml</code> in the server's working directory. There is no command-line flag for config path, no environment-variable equivalents for individual keys, and no runtime reload — restart the server to apply changes.</p>
-<p>The only environment variable consulted by the server itself is <strong><code>ROUTER_DIR</code></strong> (see <a href="#router-templates">Router templates</a>).</p>
+<p>The application-specific environment variable consulted by the server itself is <strong><code>ROUTER_DIR</code></strong> (see <a href="#router-templates">Router templates</a>). At startup, <code>cmd/server</code> also honors Go's standard <strong><code>GOMAXPROCS</code></strong> and <strong><code>GOMEMLIMIT</code></strong> environment variables as well as <strong><code>AUTOMEMLIMIT</code></strong> (<code>0.0</code>–<code>1.0</code> cgroup memory ratio, default <code>0.9</code>, or <code>off</code> to disable automatic memory-limit tuning).</p>
 <p>The canonical, fully-annotated example lives at <a href="../example.config.yaml"><code>example.config.yaml</code></a>. This page is the spec.</p>
 <h2 id="top-level-shape">Top-level shape<a class="headerlink" href="#top-level-shape" title="Permanent link">&para;</a></h2>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">devices</span><span class="p">:</span><span class="w">        </span><span class="p p-Indicator">[]</span><span class="w">          </span><span class="c1"># required (may be empty but key must exist)</span>
@@ -1499,7 +1499,7 @@
 <tr>
 <td><code>server</code></td>
 <td>—</td>
-<td><code>server starting</code> (version, pid, devices) / <code>server shutting down</code>.</td>
+<td><code>maxprocs:</code> / <code>GOMEMLIMIT</code> startup messages; <code>server starting</code> (<code>version</code>, <code>pid</code>, <code>devices</code>, <code>gomaxprocs</code>, <code>gomemlimit</code>) / <code>server shutting down</code>.</td>
 </tr>
 <tr>
 <td><code>http</code></td>

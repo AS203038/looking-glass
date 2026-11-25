@@ -1286,7 +1286,9 @@
 <li>Calls <code>Start(ctx, web)</code>.</li>
 <li><code>Start(ctx, web)</code>:</li>
 <li><code>utils.ParseConfigYaml("config.yaml")</code> → <code>*Config</code> (fatal on error).</li>
-<li><code>routers.CreateRouterMap(cfg)</code> → spawns one health-check goroutine per device.</li>
+<li><code>logging.Init(cfg.Logging)</code> configures the process-wide <code>slog</code> handler.</li>
+<li><code>configureRuntime(serverLog)</code> adjusts <code>GOMAXPROCS</code> (<code>go.uber.org/automaxprocs</code>) and <code>GOMEMLIMIT</code> (<code>github.com/KimMachineGun/automemlimit</code>) from cgroup limits and returns the <code>GOMAXPROCS</code> restore callback.</li>
+<li><code>routers.CreateRouterMap(cfg)</code> → binds configured devices to router templates.</li>
 <li><code>http.ListenAndServe(ctx, cfg, rm, web)</code> blocks for the lifetime of the listener.</li>
 </ol>
 <p>There is currently <strong>no graceful shutdown</strong>. Cancelling <code>ctx</code> stops the health-check ticker but does not propagate to the HTTP server. This is a known limitation; for now, SIGTERM kills the process and any in-flight requests are lost. The stateless design makes this acceptable in practice.</p>

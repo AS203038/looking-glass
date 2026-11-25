@@ -1192,6 +1192,7 @@
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span>ghcr.io/as203038/looking-glass:latest
 </span></code></pre></div>
 <p>If you reference router credentials via <code>ssh_key:</code>, the path inside the container must match the volume mount path (<code>/ssh-key</code> in the example above). Use Docker <code>secrets</code> or Podman <code>--secret</code> for the key file in production.</p>
+<p>At startup, the server automatically aligns <code>GOMAXPROCS</code> (via <code>go.uber.org/automaxprocs</code>) and <code>GOMEMLIMIT</code> (via <code>github.com/KimMachineGun/automemlimit</code>, defaulting to <code>90%</code> of the cgroup memory limit) with container CPU and memory limits. Set <code>GOMAXPROCS</code>, <code>GOMEMLIMIT</code>, or <code>AUTOMEMLIMIT</code> (<code>0.0</code>–<code>1.0</code> or <code>off</code>) in the container environment to override or disable these defaults.</p>
 <h2 id="kubernetes">Kubernetes<a class="headerlink" href="#kubernetes" title="Permanent link">&para;</a></h2>
 <p>Looking Glass scales horizontally; deploy it as a regular <code>Deployment</code> with <code>replicas &gt; 1</code> and a <code>Service</code> in front. The manifest below uses a <code>Secret</code> for sensitive material and a <code>ConfigMap</code> for the rest of <code>config.yaml</code>.</p>
 <h3 id="manifest-pattern">Manifest pattern<a class="headerlink" href="#manifest-pattern" title="Permanent link">&para;</a></h3>

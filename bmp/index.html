@@ -956,6 +956,7 @@
 <ul>
 <li><strong><code>enabled</code></strong>: Set to <code>true</code> to start the concurrent background TCP server and enable BMP lookups. Requires a configured <code>redis</code> cache block.</li>
 <li><strong><code>listen</code></strong>: The address and TCP port where Looking Glass listens for BMP client connections. BMP-capable routers must be configured to dial this IP/port as a BMP Collector.</li>
+<li><strong>Frame Size Cap &amp; Pagination</strong>: Incoming BMP frames larger than 1 MiB are rejected before payload allocation. <code>BGPPeerRoutes</code> queries stream via Redis <code>HScan</code> (<code>limit</code> / <code>page_token</code>) rather than loading an entire peer RIB in one <code>HGetAll</code> call.</li>
 </ul>
 <h3 id="device-matching-the-remote-ip-quirk">Device Matching (The Remote IP Quirk)<a class="headerlink" href="#device-matching-the-remote-ip-quirk" title="Permanent link">&para;</a></h3>
 <p>When a router dials the Looking Glass BMP TCP port, Looking Glass must associate the incoming telemetry with one of the devices defined in your <code>devices</code> list. </p>

@@ -2005,6 +2005,7 @@
 <ul>
 <li><strong>Build-Stable Invalidation</strong>: The current version string (e.g. <code>v1.2.3</code> or untracked suffix) is folded directly into every key prefix. Deploying a new binary release instantly invalidates prior cached items cluster-wide, eliminating stale-state issues after an upgrade.</li>
 <li><strong>No Error Caching</strong>: Only successful RPC responses are cached. Connection failures, authentication timeouts, or other operational errors are never written to the cache.</li>
+<li><strong>Size Guard</strong>: Serialized responses larger than 8 MiB are skipped when writing to Redis to avoid large cache-marshal spikes.</li>
 <li><strong>TTL Configuration</strong>: Cache TTL is configured globally via <code>redis.ttl</code> (e.g. <code>5m</code>). There is no manual invalidation API.</li>
 </ul>
 <p>Cache hits set the <code>X-Cache: HIT</code> response header and appear in the structured access log:</p>
